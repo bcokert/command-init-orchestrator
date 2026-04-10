@@ -25,7 +25,9 @@ cd command-init-orchestrator
 ./claude-install.sh
 ```
 
-Installs to `~/.claude/commands/init-orchestrator/`.
+Installs:
+- `~/.claude/commands/init-orchestrator.md` — the command
+- `~/.claude/init-orchestrator/defaults/` — bundled skills, agents, and config
 
 ## Usage
 

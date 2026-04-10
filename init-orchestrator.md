@@ -65,7 +65,7 @@ ls .orchestration/ 2>/dev/null
 
 If it doesn't exist: create the full structure (no prompting needed, this is the first run).
 
-If it does exist: scan what's there. Read version from frontmatter of each existing skill file. Compare against the version in `~/.claude/commands/init-orchestrator/defaults/skills/{name}/SKILL.md` (the source of truth).
+If it does exist: scan what's there. Read version from frontmatter of each existing skill file. Compare against the version in `~/.claude/init-orchestrator/defaults/skills/{name}/SKILL.md` (the source of truth).
 
 ---
 
@@ -102,10 +102,10 @@ Two skill sources:
 
 All skills are bundled inside this command's defaults — none are global.
 
-**Bundled skills** (all from `~/.claude/commands/init-orchestrator/defaults/skills/`):
+**Bundled skills** (all from `~/.claude/init-orchestrator/defaults/skills/`):
 - `pipeline`, `migrate`, `design`, `slice`, `spec`, `breakdown`, `implement`, `learn`, `qa`, `commit`
 
-For each: read `~/.claude/commands/init-orchestrator/defaults/skills/{name}/SKILL.md`, write to `.orchestration/skills/{name}/SKILL.md`.
+For each: read `~/.claude/init-orchestrator/defaults/skills/{name}/SKILL.md`, write to `.orchestration/skills/{name}/SKILL.md`.
 
 If a source file doesn't exist, note it and skip — don't fail the whole init.
 
@@ -113,7 +113,7 @@ If a source file doesn't exist, note it and skip — don't fail the whole init.
 
 ## Phase 3 — Write agents
 
-Read each file from `~/.claude/commands/init-orchestrator/defaults/agents/` and write to `.orchestration/agents/`.
+Read each file from `~/.claude/init-orchestrator/defaults/agents/` and write to `.orchestration/agents/`.
 
 Files: `lead.md`, `architect.md`, `standards.md`, `server-dev.md`, `client-dev.md`, `quality.md`.
 
@@ -121,8 +121,8 @@ Files: `lead.md`, `architect.md`, `standards.md`, `server-dev.md`, `client-dev.m
 
 ## Phase 4 — Write README and config
 
-Write `~/.claude/commands/init-orchestrator/defaults/README.md` to `.orchestration/README.md`.
-Write `~/.claude/commands/init-orchestrator/defaults/config.yaml` to `.orchestration/config.yaml` (only if it doesn't exist).
+Write `~/.claude/init-orchestrator/defaults/README.md` to `.orchestration/README.md`.
+Write `~/.claude/init-orchestrator/defaults/config.yaml` to `.orchestration/config.yaml` (only if it doesn't exist).
 
 ---
 

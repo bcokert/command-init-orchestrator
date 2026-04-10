@@ -48,7 +48,7 @@ Read the task file. Present:
 **Kickoff prompt** (paste into a new Claude Code session):
 
 ```
-Read .orchestration/agents/{agent_type}.md for your role context.
+Read .claude/agents/{agent_type}.md for your role context.
 Read .orchestration/specs/tasks/{spec-id}/NN-{slug}.md and implement it.
 Read the full spec at .orchestration/specs/briefs/{spec-filename} for constraints and observable outcomes.
 When done, update the task file frontmatter status to "done".

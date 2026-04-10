@@ -115,7 +115,7 @@ updated: {today}
 ## How to kick off a task
 
 \`\`\`
-Read .orchestration/agents/{agent_type}.md for your role.
+Read .claude/agents/{agent_type}.md for your role.
 Read .orchestration/specs/tasks/{spec-id}/NN-{slug}.md and implement it.
 Read the full spec at .orchestration/specs/briefs/{spec-filename} for context.
 When done, update the task file status to "done".

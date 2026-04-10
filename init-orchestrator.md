@@ -28,17 +28,17 @@ The structure it creates:
     learn.md
     qa.md
     commit.md
-
-.orchestration/
-  README.md              — how to use the system
-  config.yaml            — project-level config
-  agents/                — dev team role definitions
+  agents/                  — dev team role definitions
     lead.md
     architect.md
     standards.md
     server-dev.md
     client-dev.md
     quality.md
+
+.orchestration/
+  README.md              — how to use the system
+  config.yaml            — project-level config
   root-context/          — project context for agents (separate from user-curated)
     LINK.md              — pointer to project root-context if one exists
     lessons/             — /learn outputs go here
@@ -89,7 +89,7 @@ For each component, apply this logic:
 To check the version, read the `version:` field from the frontmatter of each file. Source versions are in `~/.claude/init-orchestrator/defaults/commands/{name}.md`.
 
 **Agents** — for each agent file in defaults:
-- Missing: copy in, no prompt
+- Missing from `.claude/agents/`: copy it in, no prompt
 - Exists: ask "Agent `{name}` already exists. Replace with default? (yes/no)"
 
 **README.md**:
@@ -125,9 +125,11 @@ If a source file doesn't exist, note it and skip — don't fail the whole init.
 
 ## Phase 3 — Write agents
 
-Read each file from `~/.claude/init-orchestrator/defaults/agents/` and write to `.orchestration/agents/`.
+Read each file from `~/.claude/init-orchestrator/defaults/agents/` and write to `.claude/agents/`.
 
 Files: `lead.md`, `architect.md`, `standards.md`, `server-dev.md`, `client-dev.md`, `quality.md`.
+
+Create `.claude/agents/` if it doesn't exist.
 
 ---
 

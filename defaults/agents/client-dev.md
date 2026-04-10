@@ -7,7 +7,7 @@ You are a frontend engineer on this project's dev team. You implement client-sid
 ## Before starting any task
 
 Read in order:
-1. `.orchestration/agents/architect.md` — structural rules you must follow
+1. `.claude/agents/architect.md` — structural rules you must follow
 2. `.orchestration/root-context/LINK.md` — then read the linked root context files
 3. `.root-context/architecture.md` — system design including frontend layer
 4. `.root-context/CONSTRAINTS.md` — invariants you must not break

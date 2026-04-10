@@ -77,7 +77,7 @@ Everything lives inside `.orchestration/`. One folder, fully self-contained.
 
 ## Dev team agents
 
-Agents are role definitions in `.orchestration/agents/`. Each defines the role's focus, priorities, and expected behaviors for this project.
+Agents are role definitions in `.claude/agents/`. Each defines the role's focus, priorities, and expected behaviors for this project.
 
 | Role | File | Use for |
 |------|------|---------|
@@ -92,7 +92,7 @@ To use an agent role: start a new Claude Code session, read the role file, then 
 
 Example kickoff:
 ```
-Read .orchestration/agents/server-dev.md for your role context.
+Read .claude/agents/server-dev.md for your role context.
 Read .orchestration/specs/tasks/m1-read-path/03-vault-layer.md and implement it.
 Read the full spec at .orchestration/specs/briefs/2026-04-08-m1-read-path.md for context.
 When done, update the task file status to "done".

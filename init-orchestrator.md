@@ -221,7 +221,28 @@ updated: {today}
 
 ---
 
-## Phase 7 — Done
+## Phase 7 — Update .gitignore
+
+Check if `.gitignore` exists at the project root:
+
+```bash
+ls .gitignore 2>/dev/null
+```
+
+**If it exists:** Read the file and check if `.orchestration/dashboard/` (or `.orchestration/dashboard`) is already listed. If not, append it:
+
+```
+# Orchestration dashboard (live state, not for version control)
+.orchestration/dashboard/
+```
+
+**If it doesn't exist:** Create `.gitignore` with that entry.
+
+Never modify any other lines in `.gitignore` — only append.
+
+---
+
+## Phase 8 — Done
 
 Report what was created or updated. Show the full structure with a tree. Remind Bdon of the workflow:
 
@@ -235,3 +256,4 @@ Report what was created or updated. Show the full structure with a tree. Remind 
 - Never replace existing files without asking (except first-run where nothing exists).
 - If a source command file is missing from `~/.claude/init-orchestrator/defaults/commands/`, note it and continue — don't fail the whole init.
 - Write files using absolute paths (resolve `~` to the actual home directory via `echo $HOME`).
+- When updating `.gitignore`, only append — never rewrite or reorder existing entries.

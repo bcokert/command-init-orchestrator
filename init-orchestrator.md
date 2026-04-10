@@ -1,6 +1,6 @@
 ---
 description: |
-  Sets up .orchestration/ in the current project. Copies skills, creates dev team agents, initializes dashboard and root-context structure. Safe to re-run: adds missing components and asks before replacing anything. Self-contained: no runtime dependency on root commands.
+  Sets up .orchestration/ in the current project. Copies commands to .claude/commands/, creates dev team agents, initializes dashboard and root-context structure. Safe to re-run: adds missing components and asks before replacing anything. Self-contained: no runtime dependency on root commands.
 allowed-tools:
   - Read
   - Write
@@ -16,20 +16,22 @@ Sets up the orchestration layer for a project. Safe to re-run — adds missing c
 The structure it creates:
 
 ```
+.claude/
+  commands/                — orchestration commands, callable via /command-name
+    pipeline.md
+    migrate.md
+    design.md
+    slice.md
+    spec.md
+    breakdown.md
+    implement.md
+    learn.md
+    qa.md
+    commit.md
+
 .orchestration/
   README.md              — how to use the system
   config.yaml            — project-level config
-  skills/                — local copies of all orchestration skills
-    pipeline/SKILL.md
-    migrate/SKILL.md
-    design/SKILL.md
-    slice/SKILL.md
-    spec/SKILL.md
-    breakdown/SKILL.md
-    implement/SKILL.md
-    learn/SKILL.md
-    qa/SKILL.md
-    commit/SKILL.md
   agents/                — dev team role definitions
     lead.md
     architect.md
@@ -63,9 +65,15 @@ Check if `.orchestration/` already exists:
 ls .orchestration/ 2>/dev/null
 ```
 
-If it doesn't exist: create the full structure (no prompting needed, this is the first run).
+Also check `.claude/commands/` for existing orchestration commands:
 
-If it does exist: scan what's there. Read version from frontmatter of each existing skill file. Compare against the version in `~/.claude/init-orchestrator/defaults/skills/{name}/SKILL.md` (the source of truth).
+```bash
+ls .claude/commands/ 2>/dev/null
+```
+
+If neither exists: create the full structure (no prompting needed, this is the first run).
+
+If either exists: scan what's there and apply the re-run logic below.
 
 ---
 
@@ -73,10 +81,12 @@ If it does exist: scan what's there. Read version from frontmatter of each exist
 
 For each component, apply this logic:
 
-**Skills** — for each skill in the set (design, slice, spec, breakdown, implement, learn, qa, commit):
-- Missing from `.orchestration/skills/`: copy it in, no prompt
+**Commands** — for each command in the set (design, slice, spec, breakdown, implement, learn, qa, commit, pipeline, migrate):
+- Missing from `.claude/commands/`: copy it in, no prompt
 - Same version as source: skip
-- Different version: ask "Skill `{name}` is at v{old} locally, v{new} available. Update? (yes/no)"
+- Different version: ask "Command `{name}` is at v{old} locally, v{new} available. Update? (yes/no)"
+
+To check the version, read the `version:` field from the frontmatter of each file. Source versions are in `~/.claude/init-orchestrator/defaults/commands/{name}.md`.
 
 **Agents** — for each agent file in defaults:
 - Missing: copy in, no prompt
@@ -96,16 +106,18 @@ For each component, apply this logic:
 
 ---
 
-## Phase 2 — Copy skills
+## Phase 2 — Copy commands
 
-Two skill sources:
+All commands are bundled inside this command's defaults.
 
-All skills are bundled inside this command's defaults — none are global.
+Source: `~/.claude/init-orchestrator/defaults/commands/`
+Target: `.claude/commands/` in the current project
 
-**Bundled skills** (all from `~/.claude/init-orchestrator/defaults/skills/`):
-- `pipeline`, `migrate`, `design`, `slice`, `spec`, `breakdown`, `implement`, `learn`, `qa`, `commit`
+Commands: `pipeline`, `migrate`, `design`, `slice`, `spec`, `breakdown`, `implement`, `learn`, `qa`, `commit`
 
-For each: read `~/.claude/init-orchestrator/defaults/skills/{name}/SKILL.md`, write to `.orchestration/skills/{name}/SKILL.md`.
+For each: read `~/.claude/init-orchestrator/defaults/commands/{name}.md`, write to `.claude/commands/{name}.md`.
+
+Create `.claude/commands/` if it doesn't exist.
 
 If a source file doesn't exist, note it and skip — don't fail the whole init.
 
@@ -209,7 +221,7 @@ updated: {today}
 
 ## Phase 7 — Done
 
-Report what was created or updated. Show the full `.orchestration/` structure with a tree. Remind Bdon of the workflow:
+Report what was created or updated. Show the full structure with a tree. Remind Bdon of the workflow:
 
 > "Orchestration ready. Workflow: /design → /slice → /spec → /breakdown → /implement → /qa → /commit → /learn"
 
@@ -219,5 +231,5 @@ Report what was created or updated. Show the full `.orchestration/` structure wi
 
 - Never auto-replace config.yaml or dashboard files. Those are live state.
 - Never replace existing files without asking (except first-run where nothing exists).
-- If a source skill file is missing from `~/.claude/commands/`, note it and continue — don't fail the whole init.
+- If a source command file is missing from `~/.claude/init-orchestrator/defaults/commands/`, note it and continue — don't fail the whole init.
 - Write files using absolute paths (resolve `~` to the actual home directory via `echo $HOME`).

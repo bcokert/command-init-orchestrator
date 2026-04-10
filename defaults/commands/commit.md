@@ -1,10 +1,7 @@
 ---
-name: commit
 version: 1.0.0
 description: |
   Commits completed task work. Uses the task file for commit message context. Stages specific files, writes a task-scoped commit message, and updates the dashboard.
-triggers:
-  - /commit
 allowed-tools:
   - Read
   - Write

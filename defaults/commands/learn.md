@@ -1,10 +1,7 @@
 ---
-name: learn
 version: 1.0.0
 description: |
   Reviews completed task files and QA reports, extracts lessons worth keeping, and writes them to .orchestration/root-context/lessons/. Always proposes before writing.
-triggers:
-  - /learn
 allowed-tools:
   - Read
   - Write

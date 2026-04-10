@@ -1,10 +1,7 @@
 ---
-name: breakdown
 version: 1.0.0
 description: |
   Takes a delegation brief and breaks it into task files in specs/tasks/{spec-id}/. Each task maps to one slice and is self-contained for an agent to execute. Updates the orchestration dashboard.
-triggers:
-  - /breakdown
 allowed-tools:
   - Read
   - Write

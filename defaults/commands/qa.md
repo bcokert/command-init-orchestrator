@@ -1,10 +1,7 @@
 ---
-name: qa
 version: 1.0.0
 description: |
   Runs after implement. Verifies done signals for each task in a spec, runs mechanical checks where possible, and outputs a QA report to .orchestration/dashboard/{spec-id}-qa.md.
-triggers:
-  - /qa
 allowed-tools:
   - Read
   - Write

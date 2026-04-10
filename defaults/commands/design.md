@@ -1,10 +1,7 @@
 ---
-name: design
 version: 1.0.0
 description: |
   Run a structured design interview to produce a ~200 line design doc. Covers intent, current state, desired end state, patterns to follow, and resolved design decisions. Interviews Bdon until all questions are answered — nothing unresolved in the output. Output feeds into /slice.
-triggers:
-  - /design
 allowed-tools:
   - Read
   - Write

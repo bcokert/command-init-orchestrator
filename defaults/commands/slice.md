@@ -1,10 +1,7 @@
 ---
-name: slice
 version: 1.0.0
 description: |
   Takes a design doc and produces a vertical slicing plan. Each slice is independently deliverable and validatable. Phases are optional groupings of slices — slices are the fundamental unit. Max ~200 lines. Output feeds into /spec.
-triggers:
-  - /slice
 allowed-tools:
   - Read
   - Write

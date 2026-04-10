@@ -1,10 +1,7 @@
 ---
-name: migrate
 version: 1.0.0
 description: |
   Takes an existing spec, brief, or research doc and runs it through the full design → slice → spec → breakdown pipeline. Uses the existing doc to seed the design interview, compressing what's already known. Human reviews deeply at design and slice; lightly at spec.
-triggers:
-  - /migrate
 allowed-tools:
   - Read
   - Write
@@ -43,7 +40,7 @@ If no file was passed, ask: "Which existing doc are we migrating? (path to file)
 
 ## Phase 1 — Design interview
 
-Read and follow `.orchestration/skills/design/SKILL.md` in full.
+Read and follow `.claude/commands/design.md` in full.
 
 Seed the context log with facts from Phase 0 as `resolved` items before starting the interview. Only ask about what's genuinely missing or ambiguous — the existing doc compresses the interview significantly.
 
@@ -74,7 +71,7 @@ Wait. Apply any corrections, confirm, proceed.
 
 ## Phase 2 — Slice
 
-Read and follow `.orchestration/skills/slice/SKILL.md` in full.
+Read and follow `.claude/commands/slice.md` in full.
 
 Pass the design doc path from Phase 1 as input. When the slices doc is written and saved, proceed to the review gate.
 
@@ -100,7 +97,7 @@ Wait. Apply any corrections, confirm, proceed.
 
 ## Phase 3 — Spec
 
-Read and follow `.orchestration/skills/spec/SKILL.md` in full.
+Read and follow `.claude/commands/spec.md` in full.
 
 Pass the slices doc path from Phase 2 as input. When the delegation brief is written and saved, proceed to the review gate.
 
@@ -126,7 +123,7 @@ Wait. Apply any corrections, confirm, proceed.
 
 ## Phase 4 — Breakdown
 
-Read and follow `.orchestration/skills/breakdown/SKILL.md` in full.
+Read and follow `.claude/commands/breakdown.md` in full.
 
 Pass the delegation brief path from Phase 3 as input.
 
@@ -150,4 +147,4 @@ Next step: `/implement` to kick off the first task.
 - Never skip a review gate.
 - If Bdon provides corrections at a gate, apply them before moving on.
 - The research context compresses the interview — don't re-ask what you already know, but don't skip questions whose answers you're genuinely unsure of.
-- Each phase reads the corresponding skill file and follows it completely before the next gate.
+- Each phase reads the corresponding command file and follows it completely before the next gate.

@@ -1,10 +1,7 @@
 ---
-name: pipeline
 version: 1.0.0
 description: |
   Runs the full design → slice → spec → breakdown pipeline for a new feature or change. Starts with a fresh design interview, no prior research. Human reviews deeply at design and slice; lightly at spec.
-triggers:
-  - /pipeline
 allowed-tools:
   - Read
   - Write
@@ -36,7 +33,7 @@ If Bdon has described what he wants to build in the conversation, start from tha
 
 ## Phase 1 — Design interview
 
-Read and follow `.orchestration/skills/design/SKILL.md` in full.
+Read and follow `.claude/commands/design.md` in full.
 
 No pre-seeded context — this is a fresh start. Run the full interview until all questions are resolved.
 
@@ -67,7 +64,7 @@ Wait. Apply any corrections, confirm, proceed.
 
 ## Phase 2 — Slice
 
-Read and follow `.orchestration/skills/slice/SKILL.md` in full.
+Read and follow `.claude/commands/slice.md` in full.
 
 Pass the design doc path from Phase 1 as input. When the slices doc is written and saved, proceed to the review gate.
 
@@ -93,7 +90,7 @@ Wait. Apply any corrections, confirm, proceed.
 
 ## Phase 3 — Spec
 
-Read and follow `.orchestration/skills/spec/SKILL.md` in full.
+Read and follow `.claude/commands/spec.md` in full.
 
 Pass the slices doc path from Phase 2 as input. When the delegation brief is written and saved, proceed to the review gate.
 
@@ -119,7 +116,7 @@ Wait. Apply any corrections, confirm, proceed.
 
 ## Phase 4 — Breakdown
 
-Read and follow `.orchestration/skills/breakdown/SKILL.md` in full.
+Read and follow `.claude/commands/breakdown.md` in full.
 
 Pass the delegation brief path from Phase 3 as input.
 
@@ -142,4 +139,4 @@ Next step: `/implement` to kick off the first task.
 
 - Never skip a review gate.
 - If Bdon provides corrections at a gate, apply them before moving on.
-- Each phase reads the corresponding skill file and follows it completely before the next gate.
+- Each phase reads the corresponding command file and follows it completely before the next gate.

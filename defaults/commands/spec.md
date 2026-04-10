@@ -1,10 +1,7 @@
 ---
-name: spec
 version: 2.0.0
 description: |
   Takes a slices doc (and its linked design doc) and writes a full Delegation Brief for an AI agent. No discovery interview — that happened in /design. Self-contained output: test vectors, explicit escalation paths, independently verifiable breakdown.
-triggers:
-  - /spec
 allowed-tools:
   - Read
   - Write
@@ -141,4 +138,4 @@ Write using the full absolute path (never pass `~/...` to Write). Confirm the pa
 - No discovery interview. Read the docs, write the spec.
 - Ask Bdon only if something is genuinely unresolvable from the available docs.
 - The spec is done when an agent could execute it without asking anything.
-- This skill is for AI agent delegation only. For human delegation, use `/delegate`.
+- This command is for AI agent delegation only. For human delegation, use `/delegate`.

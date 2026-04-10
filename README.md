@@ -1,23 +1,31 @@
 # /init-orchestrator
 
-A Claude Code command that sets up a project-level orchestration layer under `.orchestration/`.
+A Claude Code command that sets up a project-level orchestration layer.
 
 ## What it does
 
-Scaffolds the full orchestration structure — bundled skills, dev team agent definitions, root-context linking, and a task dashboard — in a single run. Safe to re-run: adds missing components and prompts before replacing anything that already exists.
+Scaffolds the full orchestration structure — dev team agent definitions, root-context linking, task dashboard, and all orchestration commands — in a single run. Safe to re-run: adds missing components and prompts before replacing anything that already exists.
 
 ```
+.claude/
+  commands/        # orchestration commands, callable via /command-name
+    pipeline.md, migrate.md, design.md, slice.md, spec.md
+    breakdown.md, implement.md, qa.md, commit.md, learn.md
+
 .orchestration/
   README.md
   config.yaml
-  skills/          # local copies of orchestration skills
   agents/          # dev team role definitions
   root-context/    # project context for agents
   specs/           # design docs, slices, briefs, tasks
   dashboard/       # task state
 ```
 
-## Install
+## How the install works
+
+Two stages:
+
+**Stage 1 — install to `~/.claude/` (once, or to update)**
 
 ```bash
 git clone git@github.com:bcokert/command-init-orchestrator.git
@@ -26,16 +34,29 @@ cd command-init-orchestrator
 ```
 
 Installs:
-- `~/.claude/commands/init-orchestrator.md` — the command
-- `~/.claude/init-orchestrator/defaults/` — bundled skills, agents, and config
+- `~/.claude/commands/init-orchestrator.md` — the `/init-orchestrator` command
+- `~/.claude/init-orchestrator/defaults/` — bundled commands, agents, and config (the source of truth for all copies)
 
-## Usage
+Nothing goes into any project yet.
+
+**Stage 2 — init a project (once per project, or to update)**
 
 In any Claude Code session, from your project root:
 
 ```
 /init-orchestrator
 ```
+
+Reads from `~/.claude/init-orchestrator/defaults/` and writes into the current project:
+- `.claude/commands/` — all 10 orchestration commands, callable via `/command-name`
+- `.orchestration/` — agents, README, config, root-context structure, dashboard
+
+## Updating
+
+To get new command versions into a project:
+
+1. Pull this repo and re-run `./claude-install.sh` — updates `~/.claude/`
+2. Re-run `/init-orchestrator` in each project — version check fires and offers updates for anything that changed
 
 ## Workflow
 

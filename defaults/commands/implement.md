@@ -1,10 +1,7 @@
 ---
-name: implement
 version: 1.0.0
 description: |
   Reads the orchestration dashboard, identifies the next actionable task, and provides the exact kickoff prompt for a human to run. Updates the task status to in-progress.
-triggers:
-  - /implement
 allowed-tools:
   - Read
   - Write

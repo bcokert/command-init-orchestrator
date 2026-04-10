@@ -37,8 +37,24 @@ In any Claude Code session, from your project root:
 
 ## Workflow
 
-Once initialized:
+### Starting a feature
 
 ```
-/design → /slice → /spec → /breakdown → /implement → /qa → /commit → /learn
+/pipeline               → new feature: full design interview → slice → spec → breakdown
+/migrate [existing.md]  → existing spec/research: compressed interview → slice → spec → breakdown
+```
+
+Both run the full chain in one session with review gates.
+
+### Step by step (manual control)
+
+```
+/design     → structured interview → design doc (~200 lines)
+/slice      → design doc          → vertical slicing plan
+/spec       → slices doc          → delegation brief (agent-ready)
+/breakdown  → delegation brief    → task files in .orchestration/specs/tasks/
+/implement  → dashboard           → guided kickoff prompt per task
+/qa         → completed tasks     → verification report
+/commit     → task file           → scoped git commit + dashboard update
+/learn      → completed spec      → lessons in root-context/lessons/
 ```

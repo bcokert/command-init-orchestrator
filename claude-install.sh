@@ -2,7 +2,7 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-DEST="$HOME/.claude/skills/init-orchestrator"
+DEST="$HOME/.claude/commands/init-orchestrator"
 
 mkdir -p "$DEST"
 cp -r "$SCRIPT_DIR/." "$DEST/"

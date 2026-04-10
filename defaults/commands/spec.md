@@ -118,11 +118,12 @@ Fix any issues found.
 
 ---
 
-## Phase 4 — Save
+## Phase 4 — Bdonize and save
 
-Invoke the `bdonizer` skill on the full brief text before saving.
-- If available: invoke it and use the output.
-- If not: proceed with the current text.
+Apply bdonizer patterns directly to the draft before saving. Do not invoke the bdonizer Skill tool — it loads instructions but does not produce revised output in this context. Apply inline:
+
+- **Phase 1 — Strip AI patterns:** significance inflation, AI vocabulary ("crucial", "highlight", "landscape", "underscore", "vibrant"), em dash overuse, inline-header lists, filler phrases ("in order to", "it is important to note"), excessive hedging, sycophantic tone, chatbot artifacts.
+- **Phase 2 — Tune to voice:** no warmup sentence, short declarative payoffs, deadpan over dramatic, practical framing over emotional, stop when done (no summary sentence). Sentence case headings. Terse fragments are fine.
 
 Save the file:
 - If the current project's CLAUDE.md specifies where to save specs, follow those instructions.

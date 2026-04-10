@@ -1,0 +1,227 @@
+---
+name: init-orchestrator
+version: 1.0.0
+description: |
+  Sets up .orchestration/ in the current project. Copies skills, creates dev team agents, initializes dashboard and root-context structure. Safe to re-run: adds missing components and asks before replacing anything. Self-contained: no runtime dependency on root skills.
+triggers:
+  - /init-orchestrator
+allowed-tools:
+  - Read
+  - Write
+  - Bash
+  - Glob
+  - AskUserQuestion
+---
+
+# Init Orchestrator
+
+Sets up the orchestration layer for a project. Safe to re-run — adds missing components and prompts before replacing anything that already exists.
+
+The structure it creates:
+
+```
+.orchestration/
+  README.md              — how to use the system
+  config.yaml            — project-level config
+  skills/                — local copies of all orchestration skills
+    pipeline/SKILL.md
+    migrate/SKILL.md
+    design/SKILL.md
+    slice/SKILL.md
+    spec/SKILL.md
+    breakdown/SKILL.md
+    implement/SKILL.md
+    learn/SKILL.md
+    qa/SKILL.md
+    commit/SKILL.md
+  agents/                — dev team role definitions
+    lead.md
+    architect.md
+    standards.md
+    server-dev.md
+    client-dev.md
+    quality.md
+  root-context/          — project context for agents (separate from user-curated)
+    LINK.md              — pointer to project root-context if one exists
+    lessons/             — /learn outputs go here
+  specs/                 — all planning artifacts, scoped by type
+    design/              — /design outputs (~200 line design docs)
+    slices/              — /slice outputs (slicing plans)
+    briefs/              — /spec outputs (delegation briefs)
+    tasks/               — /breakdown outputs, one folder per spec
+      {spec-id}/
+        NN-{slug}.md
+  dashboard/
+    summary.md           — overall spec/task state (single source of truth)
+    {spec-id}.md         — per-spec task queue
+    {spec-id}-qa.md      — QA reports
+```
+
+---
+
+## Phase 0 — Check what exists
+
+Check if `.orchestration/` already exists:
+
+```bash
+ls .orchestration/ 2>/dev/null
+```
+
+If it doesn't exist: create the full structure (no prompting needed, this is the first run).
+
+If it does exist: scan what's there. Read version from frontmatter of each existing skill file. Compare against the version in `~/.claude/skills/{name}/SKILL.md` (the source of truth).
+
+---
+
+## Phase 1 — Handle existing components (re-run case)
+
+For each component, apply this logic:
+
+**Skills** — for each skill in the set (design, slice, spec, breakdown, implement, learn, qa, commit):
+- Missing from `.orchestration/skills/`: copy it in, no prompt
+- Same version as source: skip
+- Different version: ask "Skill `{name}` is at v{old} locally, v{new} available. Update? (yes/no)"
+
+**Agents** — for each agent file in defaults:
+- Missing: copy in, no prompt
+- Exists: ask "Agent `{name}` already exists. Replace with default? (yes/no)"
+
+**README.md**:
+- Missing: write it, no prompt
+- Exists: ask "README.md already exists. Replace? (yes/no)"
+
+**config.yaml**:
+- Missing: write it, no prompt
+- Exists: skip (config is project-specific, never auto-replace)
+
+**dashboard/**:
+- Missing: initialize summary.md, no prompt
+- Exists: skip (dashboard is live state, never touch)
+
+---
+
+## Phase 2 — Copy skills
+
+Two skill sources:
+
+All skills are bundled inside this skill's defaults — none are global.
+
+**Bundled skills** (all from `~/.claude/skills/init-orchestrator/defaults/skills/`):
+- `pipeline`, `migrate`, `design`, `slice`, `spec`, `breakdown`, `implement`, `learn`, `qa`, `commit`
+
+For each: read `~/.claude/skills/init-orchestrator/defaults/skills/{name}/SKILL.md`, write to `.orchestration/skills/{name}/SKILL.md`.
+
+If a source file doesn't exist, note it and skip — don't fail the whole init.
+
+---
+
+## Phase 3 — Write agents
+
+Read each file from `~/.claude/skills/init-orchestrator/defaults/agents/` and write to `.orchestration/agents/`.
+
+Files: `lead.md`, `architect.md`, `standards.md`, `server-dev.md`, `client-dev.md`, `quality.md`.
+
+---
+
+## Phase 4 — Write README and config
+
+Write `~/.claude/skills/init-orchestrator/defaults/README.md` to `.orchestration/README.md`.
+Write `~/.claude/skills/init-orchestrator/defaults/config.yaml` to `.orchestration/config.yaml` (only if it doesn't exist).
+
+---
+
+## Phase 5 — Handle root context
+
+Check if `.root-context/` exists at the project root:
+
+```bash
+ls .root-context/ 2>/dev/null
+```
+
+**If it exists:**
+
+Ask:
+
+> ".root-context/ exists at the project root. This is dev context the orchestration system should know about. Options:
+> 1. Create a pointer — .orchestration/root-context/LINK.md points to .root-context/ (recommended: keeps them separate)
+> 2. Leave it — I'll note the path but not create any link
+>
+> Which? (1 or 2)"
+
+If option 1: write `.orchestration/root-context/LINK.md`:
+
+```markdown
+# Root Context Location
+
+This project's root context lives at `.root-context/` in the project root.
+
+Agents should read those files for architecture, constraints, and decisions before starting any task. Key files:
+- `.root-context/architecture.md` — system design and tech stack
+- `.root-context/CONSTRAINTS.md` — invariants every implementation must preserve
+- `.root-context/DECISIONS.md` — ADR log
+
+Lessons from past work are stored separately in `.orchestration/root-context/lessons/`.
+```
+
+If option 2: create `.orchestration/root-context/LINK.md` with just the path noted, no pointer behavior.
+
+**If `.root-context/` does not exist:**
+
+Create `.orchestration/root-context/README.md`:
+
+```markdown
+# Root Context
+
+No root-context found at project root. Add one at `.root-context/` with:
+- `architecture.md` — system design and tech stack
+- `CONSTRAINTS.md` — invariants every implementation must preserve
+- `DECISIONS.md` — ADR log
+
+Until then, agents will have limited project context.
+```
+
+Create the `lessons/` directory placeholder by writing `.orchestration/root-context/lessons/.gitkeep` (empty file).
+
+---
+
+## Phase 6 — Initialize dashboard
+
+If `.orchestration/dashboard/summary.md` doesn't exist, create it:
+
+```markdown
+---
+updated: {today}
+---
+
+# Orchestration Summary
+
+## Active specs
+
+| ID | Title | Status | Tasks | Done | QA |
+|----|-------|--------|-------|------|----|
+
+## Blocked
+
+*(none)*
+
+## Learning
+
+*(no lessons yet — run /learn after completing a spec)*
+```
+
+---
+
+## Phase 7 — Done
+
+Report what was created or updated. Show the full `.orchestration/` structure with a tree. Remind Bdon of the workflow:
+
+> "Orchestration ready. Workflow: /design → /slice → /spec → /breakdown → /implement → /qa → /commit → /learn"
+
+---
+
+## Behavior rules
+
+- Never auto-replace config.yaml or dashboard files. Those are live state.
+- Never replace existing files without asking (except first-run where nothing exists).
+- If a source skill file is missing from `~/.claude/skills/`, note it and continue — don't fail the whole init.
+- Write files using absolute paths (resolve `~` to the actual home directory via `echo $HOME`).

@@ -53,6 +53,19 @@ This redesign introduces a project as a first-class folder, a sequencing ID that
 - Worktrees are execution boundaries. Once `/implement` assigns a project to a worktree, all subsequent work — including new design rounds — happens in that worktree. Agents are scoped to their worktree path. Main branch is planning only.
 - Dogfood `/status` against real `status.md` files. If `/status` can't summarize a project correctly, the status format is broken. Fix the format, not the command.
 
+## Key edge cases
+
+- **Status update is always last.** Every stage writes its artifacts first, updates `status.md` last. Status is the authoritative completion signal — not file existence. If status says a stage is done, it is done. If status says in progress, it is not done regardless of what files exist on disk.
+- **Mid-stage crash, no output file:** Status shows the stage as in progress, output file absent. Re-running the command detects this and regenerates the file from scratch.
+- **Mid-stage crash, output file present:** File was written but status wasn't advanced (crashed between write and status update). Re-running detects the file, uses it as-is, advances status. No regeneration needed.
+- **Partial breakdown (some task files written, not all):** Task count is validated against the spec breakdown table on resume. Mismatches trigger full regeneration — task writes are idempotent.
+- **Worktree creation failure:** If `git worktree add` fails (branch conflict, disk error, permissions), no `status.md` update is written — the project stays at `tasks_ready`. No partial worktree state.
+- **Worktree merge conflict on signoff:** Merge is attempted; if it fails, the project stays at `signoff_review` with a conflict note. Worktree is preserved for manual resolution. Archive does not happen until merge succeeds.
+- **Manual edits to artifact files:** All commands re-read files from disk on resume — they never cache content from a previous session. Manual edits are always picked up.
+- **Wrong command at any stage:** Every command checks `status.md` before doing any work. If the project is not in a valid state for that command, the output names the current stage, explains why the command can't proceed, and states which command to run instead. No silent failures, no partial runs.
+- **Run N+1 task collision:** Task files from run 01 and run 02 must not overwrite each other. Task files are stored with a run prefix or in a run-namespaced path; breakdown is idempotent within a run.
+- **Orphaned worktree (directory manually deleted):** `git worktree list` still shows the registration. `/status` detects the missing directory and reports it, suggesting `git worktree prune`. Does not crash.
+
 ## Resolved design decisions
 
 ### Project folder as the project identity

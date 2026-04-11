@@ -139,6 +139,10 @@ status: ready
 
 [Bullet list. Design patterns, conventions, and approaches this work should follow — both from the codebase and from first principles. Include what to avoid and why.]
 
+## Key edge cases
+
+[Bullet list. Scenarios that can go wrong, produce partial state, or cause user confusion. Focus on: crashes mid-stage, resume from partial state, conflicting inputs, wrong-command errors, data that can't be recovered. This section is the primary input for slice validation signals — if an edge case isn't named here, it won't be tested.]
+
 ## Resolved design decisions
 
 [One entry per decision made during the interview.]

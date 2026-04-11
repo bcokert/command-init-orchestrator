@@ -1,0 +1,220 @@
+---
+type: design
+date: 2026-04-10
+feature: project-sequencing-and-status
+status: ready
+---
+
+# Project sequencing and status
+
+## Intent
+
+The current orchestrator tracks artifact types in separate folders — designs here, slices there, briefs somewhere else — with no single thread connecting them to a project, no way to know where a project is in the pipeline without reading multiple files, and no collision resistance when multiple developers work in parallel. A project exists as a set of files that happen to share a naming convention, not as a coherent unit.
+
+This redesign introduces a project as a first-class folder, a sequencing ID that ties all artifacts together, a status file that is always the single source of truth, and four commands that resume deterministically from whatever state the project is in. The goal is a system where any developer can look at `.orchestration/projects/` and immediately understand what's happening — no context required. All of it with the raw data to support strong metrics in place for observability and future improvement of every step.
+
+## Current state
+
+- Artifact folders are top-level: `specs/design/`, `specs/slices/`, `specs/briefs/`, `specs/tasks/`, `dashboard/`
+- No stable ID links a design doc to its slices doc, spec, tasks, and QA report
+- Status lives in frontmatter across multiple files — fragmented, hard to aggregate
+- `/pipeline` runs the full flow in one session but has no resume capability; if interrupted, you start over
+- `/implement` is a human kickoff guide, not an agent execution command
+- `/qa` and `/breakdown` are separate manual commands, not part of a continuous flow
+- No multi-dev collision resistance in naming
+- No concept of QA feedback iterations — a project has one pass, no structured way to handle review feedback
+
+## Desired end state
+
+- Each project lives in `.orchestration/projects/{id}/` — one folder, all artifacts, all runs
+- The ID is `{github-username}-{zero-padded-seq}-{slug}`, e.g. `bcokert-00001-auth-redesign` — collision-resistant across devs, sequential within a dev
+- `status.md` in each project folder is the single source of truth: current pipeline stage, current run number, blocking reason, next action, and a timestamped log of every state transition
+- A project supports 1+N pipeline runs — original plus QA iteration rounds — each producing a versioned set of artifacts (`design-01.md`, `slices-01.md`, `spec-01.md` for run 1; `design-02.md` etc. for run 2)
+- Tasks are a flat sequential list across all runs, with dependency metadata; each task knows which run it belongs to
+- Four commands cover the full lifecycle, each resuming from `status.md`:
+  - `/design` — runs design → slicing → spec → breakdown; stops when tasks are ready for execution
+  - `/implement` — lets user select 1+ ready projects, creates a git worktree per project, then runs task execution → QA → report; stops when report is ready for review
+  - `/review` — closes the project (done) or triggers the next pipeline run back into `/design`; both paths operate within the existing worktree
+  - `/status` — reads all project `status.md` files (including active worktrees) and summarizes non-done projects with their current stage and worktree state
+- Every state transition is timestamped in `status.md` and every task completion is timestamped in the task file, enabling measurement at task, slice, and project level — active processing vs waiting for human approval, and cross-project comparisons like whether fewer slices correlates with faster delivery
+- Done projects are archived to `.orchestration/projects/done/YYYY-MM/{id}/`
+- `status.md` is the interface for any future external export (Jira, Linear, etc.) and for metrics dashboards — no structural changes needed to add those later
+- All commands validate the project's current state before acting and fail with a clear explanation if the project isn't in the right stage, telling the user which command to run instead
+
+## Patterns to follow
+
+- Status is deterministic from file state, not from command history. Any command can read `status.md` and know exactly what to do next without knowing what ran before.
+- Resume over restart. Every command checks status first and picks up mid-stage if interrupted.
+- Fail by educating. If a command is called on a project in the wrong state, it doesn't guess or silently do nothing — it tells the user exactly what stage the project is in and which command to run next and briefly why.
+- Progressive pipeline runs, not special-case QA modes. A QA iteration is just another pipeline run scoped to the feedback. The system doesn't distinguish — it just increments the run counter.
+- Artifact versioning by run number, not by date. `design-01.md` is clearer than `2026-04-10-design.md` when you're looking at run state. Dates belong in frontmatter, not filenames.
+- Status.md is append-friendly. Runs are logged in order; current state is always the last entry. Reading it top-to-bottom tells the project's story.
+- Timestamp every state transition. State changes without timestamps are invisible to metrics. Every write to `status.md` includes an ISO 8601 timestamp. This is the raw material for all future measurement.
+- Worktrees are execution boundaries. Once `/implement` assigns a project to a worktree, all subsequent work — including new design rounds — happens in that worktree. Agents are scoped to their worktree path. Main branch is planning only.
+- Dogfood `/status` against real `status.md` files. If `/status` can't summarize a project correctly, the status format is broken. Fix the format, not the command.
+
+## Resolved design decisions
+
+### Project folder as the project identity
+
+**Decision:** A project is a folder at `.orchestration/projects/{id}/`, not a set of files with matching names in separate type folders.
+
+**Why:** All artifacts for a project are co-located. You can `ls` a project and see its complete state. Moving a project to `done/` is one folder move. No cross-folder linkage to maintain.
+
+**Rejected alternatives:** Keeping type-based top-level folders (current) — loses the project-as-unit property and makes resume logic fragile.
+
+---
+
+### Collision-resistant ID format
+
+**Decision:** `{github-username}-{zero-padded-5-digit-seq}-{slug}`, e.g. `bcokert-00001-auth-redesign`. Sequence is per-developer. Slug is derived from the project name at creation time, kebab-case, max ~5 words.
+
+**Why:** GitHub usernames are globally unique. Two devs on the same repo can't produce the same ID. Same dev doing two things in parallel produces different IDs. Collisions within a dev are real conflicts that must be resolved — which is correct behaviour.
+
+**Rejected alternatives:** UUIDs — unreadable, unsortable. Pure sequence — collides across devs. Date prefix — collides if two projects start the same day.
+
+---
+
+### status.md as single source of truth
+
+**Decision:** Each project has a `status.md` that tracks: current pipeline stage, current run number, blocking reason (if any), next action, worktree path and branch (once assigned), and an append-only `transitions` log — one entry per state change, each with stage name, ISO 8601 timestamp, and an optional note. All commands read this first; none infer state from artifact existence alone.
+
+**Why:** Artifact existence is a useful hint but not sufficient — a file can exist in a broken or partial state. One authoritative file is always current and readable by humans, agents, and future tooling alike. The transitions log is the raw source for all metrics — time in each stage, wait time vs active time, iteration count — without any additional instrumentation.
+
+**Rejected alternatives:** Deriving status from which files exist — brittle, doesn't handle partial writes or interrupted commands. Separate metrics file — second source of truth. Frontmatter-only tracking — loses history; you can't reconstruct what happened or measure it.
+
+---
+
+### 1+N pipeline runs per project
+
+**Decision:** A project starts with run 01. Each QA feedback cycle that needs more work starts a new run (02, 03, ...). Each run produces `design-{NN}.md`, `slices-{NN}.md`, `spec-{NN}.md`. Tasks from all runs share one flat list in `tasks/` with run metadata and dependency links. Each run is within the same worktree for that project.
+
+**Why:** QA feedback isn't a special mode — it's the same design → slice → spec → implement → QA cycle, scoped to the gaps found. Treating it as a new run means the same commands work, the same review gates apply, and there's a clear record of how the project evolved.
+
+**Rejected alternatives:** A single mutable slices doc that grows — loses history, makes status ambiguous. Separate QA-specific artifacts — requires special-case logic in every command.
+
+---
+
+### Four commands, full lifecycle coverage
+
+**Decision:** `/design`, `/implement`, `/review`, `/status`. No other commands exposed to users.
+
+- `/design` owns: design interview → slices → spec → breakdown → tasks_ready
+- `/implement` owns: project selection → worktree creation → task execution (multi-agent) → QA → QA report
+- `/review` owns: signoff (done) OR feedback capture → triggers `/design` for next run within the worktree
+- `/status` owns: read all `status.md` files across main and active worktrees, summarize non-done projects
+
+**Why:** The current seven-command surface (`/design`, `/slice`, `/spec`, `/breakdown`, `/implement`, `/qa`, `/pipeline`) requires the user to know the sequence and manage their own state. Three action commands + one read command is the right surface. Status drives resume, not the user's memory.
+
+**Rejected alternatives:** Keeping current command set — no resume, user must manage state. Single `/go` command — loses the natural human review gates between design and execution.
+
+---
+
+### /implement: project selection, worktrees, and multi-agent execution
+
+**Decision:** `/implement` runs in three steps:
+
+1. **Project selection.** Shows all projects in `tasks_ready` state (not already in a worktree, not in progress). User selects 1+ projects to kick off.
+
+2. **Worktree creation.** For each selected project, system creates a git worktree at `.orchestration/worktrees/{id}` on branch `project/{id}`. Updates `status.md` with `worktree_path` and `branch`. From this point, all work for that project happens in the worktree — including any future design rounds triggered by `/review`.
+
+3. **Execution.** User chooses parallel or sequential. Default: sequential. Parallel capped at 4 concurrent projects. Within each project, tasks run sequentially respecting `depends_on`. Agent team is suggested from the `agent_type` fields present in ready tasks (tasks needing only `client-dev` suggest just that agent; mixed tasks suggest the full team). User confirms or adjusts before agents start.
+
+**Why:** Worktrees give each project an isolated branch context — agents know their scope from the working directory, parallel projects can't conflict, and main branch stays clean for planning. Suggesting the agent team from task metadata rather than asking an open question reduces friction without sacrificing control.
+
+**Rejected alternatives:** Running all implementation in main — blocks parallel projects and pollutes the planning branch. Asking the user to name agents explicitly — they shouldn't need to know which agents exist.
+
+---
+
+### Done archiving with month subfolders
+
+**Decision:** Completed projects are moved to `.orchestration/projects/done/YYYY-MM/{id}/`. Status set to `done` before move.
+
+**Why:** Done projects accumulate. Month subfolders prevent flat-folder sprawl while preserving easy manual browsing. The move is a single operation that also serves as the completion signal.
+
+---
+
+### /status dogfoods status.md
+
+**Decision:** `/status` reads only `status.md` files — no artifact scanning, no dashboard files. `/status` also runs `git worktree list` to discover active worktrees and reads their `status.md` files directly from those paths. If it can't produce an accurate summary, the status format needs fixing.
+
+**Why:** Ensures the status format stays honest. If the format drifts or becomes incomplete, `/status` breaks visibly rather than silently degrading. Worktree-aware reading ensures in-flight projects don't disappear from status just because their branch hasn't merged yet.
+
+---
+
+### Command state validation — fail by educating
+
+**Decision:** Every command begins by reading `status.md` and checking whether the project is in a valid state for that command. If not, it outputs: what stage the project is currently in, why that means this command can't proceed, and which command to run instead. It then stops — no partial work.
+
+Valid entry points per command:
+- `/design` — any stage from `new` through `spec_review`, plus re-entry after a `/review` feedback round
+- `/implement` — only `tasks_ready`
+- `/review` — only `signoff_review`
+
+**Why:** Silent no-ops or partial runs are confusing. A clear error that tells you the next step costs nothing and prevents the user from accidentally triggering work out of order.
+
+**Rejected alternatives:** Letting commands auto-redirect to the right command — adds complexity and hides what the system is doing. Failing silently — worst option.
+
+---
+
+### Worktree lifecycle
+
+**Decision:** Worktrees are created at `/implement` time, not at project creation. Workflow:
+
+1. `/implement` shows all projects with status `tasks_ready` (not already in a worktree, not in progress).
+2. User selects 1+ projects.
+3. For each, system runs `git worktree add .orchestration/worktrees/{id} project/{id}`, creating both the worktree directory and a dedicated branch.
+4. `.orchestration/worktrees/` is gitignored (local filesystem paths); the branches themselves are tracked.
+5. User chooses parallel or sequential execution. Default: sequential. Parallel capped at 4 concurrent projects (prevents resource exhaustion, consistent with pi-cortex patterns).
+6. `status.md` is updated with `worktree_path` and `branch` fields once the worktree is created.
+7. All subsequent work — task execution, QA, design rounds — happens in the worktree. Main branch is read-only for that project.
+8. On final signoff, the worktree branch is merged to main, the worktree directory is removed (`git worktree remove`), and the project is archived to `done/`.
+9. Safe removal: system checks for uncommitted changes before removing the worktree. If found, it warns and stops.
+
+**Why:** Worktrees are the clean solution to parallel project execution without branch conflicts. Once a project is in a worktree, every agent knows its scope implicitly from the working directory. Main branch stays clean for planning.
+
+**Rejected alternatives:** Running all implementation in main — conflicts with parallel projects. Creating worktrees at project creation — worktrees exist for months before implementation starts, cluttering the repo.
+
+---
+
+### Timestamps on every state transition
+
+**Decision:** `status.md` includes a `transitions` log — an append-only list of entries, each with: stage name, ISO 8601 timestamp, and optionally a note (e.g. "human approved design", "QA failed — 2 tasks"). Every write to `status.md` that changes the pipeline stage appends a new entry.
+
+**Why:** Timestamps are the raw material for all future measurement. Adding them costs nothing at write time. Not adding them is irreversible — you can't reconstruct historical timing from file state alone.
+
+---
+
+### Metrics exposed by the system
+
+**Decision:** The slice is the fundamental unit of measurement. A project is a set of slices; a pipeline run produces 1+ slices; tasks belong to slices. Metrics are tracked at task, slice, and project levels. The transitions log in `status.md` plus timestamps in task files provide the raw data for all of this without additional instrumentation.
+
+**Task-level**
+- Time from task assigned to task done (agent processing time per task)
+- Time per task by agent type (reveals which agent types are slower or have higher rework rates)
+- QA pass/fail per task on first attempt
+
+**Slice-level** (the primary unit)
+- Total time per slice: from slice creation to slice QA pass
+- Active time vs wait time within a slice (time agents worked vs time waiting for human gates)
+- QA pass rate per slice (tasks in this slice that passed QA without rework / total tasks in slice)
+- Number of tasks per slice (sizing signal — large task count may indicate slice was too broad)
+- Whether a slice required a follow-up run (slice produced a run N+1 to address its gaps)
+- Time from slice spec_approved to first task started (queue wait time)
+
+**Project-level**
+- Total wall-clock time from project start to done
+- Total number of slices across all runs
+- Number of pipeline runs (QA iteration count — proxy for first-pass quality)
+- Slice count per run (run 01 vs run 02+ — later runs typically smaller)
+- Active processing time vs human wait time across the whole project
+- Whether more or fewer slices correlated with faster completion or fewer QA iterations (cross-project comparison)
+
+**Cross-project comparative** (answers the "are more slices better?" question)
+- Projects grouped by total slice count: avg completion time, avg QA iteration count, avg rework rate
+- Slice size distribution (tasks per slice) vs QA pass rate — validates the "smaller slices ship cleaner" hypothesis
+- Time in planning (design + slicing + spec) vs time in execution (implement + QA), per project — reveals where the system's bottlenecks actually are
+
+These are computed on read (by `/status`, a future dashboard, or a flamegraph tool) — not stored as derived data. `status.md` and task file timestamps are the only write targets.
+
+**Rejected alternatives:** A separate metrics file — creates a second source of truth. Logging to an external system at write time — adds a dependency before we've validated the format. Pre-aggregating metrics at write time — premature; the raw transitions log is more flexible.

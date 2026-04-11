@@ -16,7 +16,7 @@ Four rules applied throughout:
 - **State validation is universal.** At every stage, every command except the correct one outputs a helpful message: what stage the project is in, why that command can't proceed, and which command to run instead. Validation sections call this out explicitly per slice.
 - **Status update is always the last step.** Every stage writes its artifacts first, updates `status.md` last. This makes status the authoritative source: if status says a stage is done, it is done. If status says a stage is in progress, the stage did not complete — regardless of what files exist on disk.
 - **Resume detects what exists.** When a stage is in progress, the command checks which artifacts already exist before doing any work. Existing files are used as-is (crash happened after write, before status update). Missing files are generated. Status is advanced only after all artifacts for the stage are confirmed present. A crash should never require starting over from the beginning of a stage.
-- **Commit after every artifact write; push at every human gate.** Each command commits to git after writing each artifact and after advancing `status.md`. At each review gate — where the command pauses and waits for human input — it also pushes. This makes progress visible in git history, keeps each stage recoverable independent of `status.md`, and lets a pipeline be paused and resumed from any machine. Push target is currently main; branch-per-project is future work.
+- **Commit + push at every human gate.** At each review gate — where a command pauses and waits for input — it commits all artifacts produced in that stage and pushes. One commit per gate, not per artifact. Each commit is a coherent stage snapshot: "finished design", "finished slicing", etc. Push target is currently main; branch-per-project is future work.
 
 User education is a requirement in every command slice — contextual output after each stage transition explaining what just happened, where the user is, and what to do next. The education audit in slice 10 verifies coverage.
 
@@ -35,7 +35,7 @@ User education is a requirement in every command slice — contextual output aft
   - Phase 4: write `design-01.md`, advance `status.md` to `design_review` with timestamp
   - Phase 5: review gate with education (what just happened, why this is the highest-leverage review, what corrections cost nothing here vs later)
 - `status.md` written at project creation, not at interview completion — so any crash is detectable as `design_in_progress` with no `design-01.md`
-- Commit after writing `design-01.md` and after advancing status to `design_review`; push before showing the review gate. This establishes the commit/push cadence for all subsequent slices — every artifact write and every gate push follows this same pattern.
+- Commit all stage artifacts (`design-01.md` + `status.md`) and push before showing the review gate. This establishes the gate-commit cadence for all subsequent slices — one commit per stage, at the gate.
 - Define `status.md` format: `stage`, `run`, `project_id`, `next_action`, and `transitions` list (each entry: `stage`, `timestamp`, `note`)
 - Internal organisation: slicing, spec, and breakdown logic may remain in `slice.md`, `spec.md`, `breakdown.md` as implementation files; `/design` is the only user-facing command that orchestrates them. No requirement to merge or remove those files in this slice.
 - Remove `/pipeline` command (superseded by `/design`)

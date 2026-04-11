@@ -141,20 +141,19 @@ This redesign introduces a project as a first-class folder, a sequencing ID that
 
 ### Auto-commit between stages, push at stage gates
 
-**Decision:** Every command commits to git after writing each artifact (design doc, slices doc, spec, task files, QA report, status update). At each human review gate — where the command pauses and waits — it also pushes. Commits are the default, not optional. Push at gates is also the default.
+**Decision:** At each human review gate — where a command pauses and waits for input — it commits everything produced in that stage and pushes. One commit per gate, not per artifact. Commits and pushes are the default, not optional.
 
 This means:
-- Writing `design-01.md` and advancing status to `design_review` → commit
-- Reaching the `design_review` gate → push
-- Writing `slices-01.md` → commit; reaching `slicing_review` gate → push
-- Each task file written → commit (or batched per breakdown); reaching `tasks_ready` → push
-- QA report written → commit; reaching `signoff_review` → push
+- Reaching `design_review` → commit (`design-01.md` + `status.md`) + push
+- Reaching `slicing_review` → commit (`slices-01.md` + `status.md`) + push
+- Reaching `tasks_ready` → commit (`spec-01.md` + all task files + `status.md`) + push
+- Reaching `signoff_review` → commit (QA report + `status.md`) + push
 
 Push target is currently main. A branch-per-project model (push to `project/{id}`) is the right eventual shape but deferred — the commit cadence and gate-push behaviour are established now so the branch model can be layered on later without changing anything else.
 
-**Why:** Status and session context already know where the pipeline is — commits don't add information the system doesn't have. What they add is: a readable history of how a project evolved (design → slices delta is one diff), crash safety beyond `status.md` (the artifact is in git, not just on disk), and easy pause/resume with visible progress (you can stop mid-pipeline, come back days later, and `git log` tells you exactly where things are). Gate pushes specifically ensure that a completed stage isn't lost to a local disk failure and make it easy for a collaborator to see what's been done.
+**Why:** One commit per gate produces a git log that reads like a project journal — "finished design", "finished slicing", "tasks ready". Each diff is coherent: the design commit shows only the design doc, not interleaved status noise. This makes it easy to see what changed between stages and to audit any step. Gate pushes ensure a completed stage isn't lost to a local disk failure and let collaborators see progress without pulling mid-stage noise.
 
-**Rejected alternatives:** Commit only at the end — loses the per-stage delta and doesn't help with mid-pipeline crashes. Opt-in commits — the friction means they won't happen consistently, which defeats the purpose.
+**Rejected alternatives:** Commit after every artifact write — too granular, buries meaningful diffs in noise, makes `git log` unreadable. Commit only at project completion — loses per-stage history and doesn't help with mid-pipeline crashes. Opt-in commits — inconsistent, defeats the purpose.
 
 ---
 

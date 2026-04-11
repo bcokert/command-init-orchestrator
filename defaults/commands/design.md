@@ -176,3 +176,4 @@ Write using the full absolute path (never pass `~/...` to Write — it does not 
 - If something contradicts an earlier answer, surface the conflict and resolve it before moving on.
 - The design doc has no open questions. Everything in it is settled.
 - New questions that emerge mid-interview must be resolved before Phase 3, not left for later.
+- **After any change to the design doc — whether from Bdon's edits, new decisions, or resolved questions — do a full cohesion pass before saving.** Check every section: Intent, Current state, Desired end state, Patterns, and all Resolved decisions. If any section contradicts the change or describes a superseded state, update it. A new decision at the bottom does not automatically update the sections above. The whole doc must be internally consistent at all times.

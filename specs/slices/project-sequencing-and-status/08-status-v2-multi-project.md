@@ -3,7 +3,7 @@ type: slice
 slice: 08
 project: project-sequencing-and-status
 design: specs/design/project-sequencing-and-status.md
-status: specced
+status: tasks_ready
 ---
 
 # Slice 08 — `/status` v2: multi-project + worktree-aware

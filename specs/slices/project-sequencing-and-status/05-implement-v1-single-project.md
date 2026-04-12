@@ -19,4 +19,4 @@ status: draft
 
 - Worktree creation fails (branch exists, disk error): clear error, project stays `tasks_ready`, no partial state
 - Agent fails mid-task: task stays `in_progress`, QA detects and reports — does not auto-advance to `done`
-- QA failures: advance to `signoff_review` anyway — failures are information for the reviewer, not a blocker
+- QA failures: fix what the agent team can fix, re-run QA, advance to `signoff_review` only when QA passes. Items requiring a human or unavailable service are noted in the report but don't block advancement.

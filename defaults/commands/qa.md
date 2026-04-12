@@ -44,6 +44,19 @@ Mark each check: `pass`, `fail`, or `manual` (requires human or running service)
 
 ---
 
+## Phase 1.5 — Fix failures and re-verify
+
+For each `fail`:
+
+1. Determine if the fix is within scope — the agent team can resolve it without human input or an unavailable service.
+2. If yes: fix it, then re-run the verification for that check. Repeat until it passes or you're stuck.
+3. If stuck after a genuine fix attempt: mark `fail` with a clear description of what was tried.
+4. If the fix requires human judgment, a running service, or information not available: mark `manual` with a note explaining what's needed.
+
+Only write the QA report (Phase 2) when all fixable failures have been resolved. `manual` items do not block the report.
+
+---
+
 ## Phase 2 — Write QA report
 
 Path: `.orchestration/dashboard/{spec-id}-qa.md`
@@ -100,6 +113,8 @@ Update `.orchestration/dashboard/summary.md` — set the QA column for this spec
 ## Behavior rules
 
 - Only verify what done signals specify. Don't invent test cases.
+- Fix failures that are within scope before writing the report. Re-run verification after fixing. The report reflects the final state, not the initial state.
 - If a check requires a running service that's not available, mark it `manual` — don't skip it.
-- A spec is `passed` only if all checks pass. Anything else is `partial` or `failed`.
-- If there are failures: do not suggest marking the spec `done`. Flag for fix.
+- A spec is `passed` only if all non-manual checks pass. `manual` items do not count as failures.
+- If there are unfixed failures: do not suggest marking the spec `done`. Flag for fix.
+- QA runs automatically after all tasks complete — do not wait to be asked. When the last task is marked `done`, proceed to Phase 0 immediately.

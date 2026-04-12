@@ -3,7 +3,7 @@ spec: specs/briefs/project-sequencing-and-status/04-status-v1.md
 slice: 04
 step: 3
 title: Add error handling — malformed status.md and missing fields
-status: todo
+status: done
 depends_on: [02-status-no-arg-mode.md]
 agent_type: architect
 assigned_at: null

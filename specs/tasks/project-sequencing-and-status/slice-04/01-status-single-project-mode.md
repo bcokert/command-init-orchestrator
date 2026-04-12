@@ -3,7 +3,7 @@ spec: specs/briefs/project-sequencing-and-status/04-status-v1.md
 slice: 04
 step: 1
 title: Create status.md command — single-project mode
-status: todo
+status: done
 depends_on: []
 agent_type: architect
 assigned_at: null

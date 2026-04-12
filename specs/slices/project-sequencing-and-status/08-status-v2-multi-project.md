@@ -3,7 +3,7 @@ type: slice
 slice: 08
 project: project-sequencing-and-status
 design: specs/design/project-sequencing-and-status.md
-status: draft
+status: specced
 ---
 
 # Slice 08 — `/status` v2: multi-project + worktree-aware
@@ -14,7 +14,7 @@ status: draft
 
 - No-arg `/status` → `git worktree list` run → all non-done projects read from correct paths → summary table: project ID, stage, slice progress, worktree, next action, elapsed time
 - Projects in `*_review` stage: reminder below table of which command unblocks them
-- Done projects excluded
+- Done projects excluded, except show a list of projects done this week grouped by user (the part of the slug) as a quick recap of recent changes.
 
 ## Edge cases
 

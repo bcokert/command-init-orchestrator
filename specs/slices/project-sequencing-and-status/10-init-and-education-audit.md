@@ -3,10 +3,12 @@ type: slice
 slice: 10
 project: project-sequencing-and-status
 design: specs/design/project-sequencing-and-status.md
-status: draft
+status: specced
 ---
 
 # Slice 10 — Init-orchestrator + README + education audit
+
+**Depends on:** Slice 09 QA feedback must be resolved before implementing this slice. Slice 09 runs e2e against the full system — any fixes it surfaces should be applied first so this audit reflects the final state.
 
 **Goal:** `init-orchestrator` installs the new 4-command structure correctly. README is accurate. Every command has contextual education output, especially around worktrees and parallel execution.
 

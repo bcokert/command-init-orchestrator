@@ -151,7 +151,9 @@ This means:
 - Human approves design → commit (`design-01.md` + `status.md`) + push → slicing begins
 - Human approves slices → commit (`slices-01.md` + `status.md`) + push → spec begins
 - Human approves spec → commit (`spec-01.md` + all task files + `status.md`) + push → ready for implement
-- Human approves at signoff → commit (QA report + `status.md`) + push → done
+- Human approves at signoff → commit (all implementation changes + task files + QA report + `status.md`) + push → done
+
+The execution pipeline (implement → QA → signoff_review) is a special case: nothing is committed until the human approves at signoff. All implementation file changes, task status updates (`assigned_at`, `completed_at`), the QA report, and slice/status.md updates stay uncommitted so the human can see the full diff when reviewing. This is the point — the reviewer needs to see exactly what changed.
 
 Push target is currently main. A branch-per-project model (push to `project/{id}`) is the right eventual shape but deferred — the commit cadence and gate-push behaviour are established now so the branch model can be layered on later without changing anything else.
 

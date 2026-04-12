@@ -140,3 +140,4 @@ Do not proceed to the next slice until /review is complete.
 - A spec is `passed` only if all non-manual checks pass. `manual` items do not count as failures.
 - If there are unfixed failures: do not suggest marking the spec `done`. Flag for fix.
 - QA runs automatically after all tasks complete — do not wait to be asked. When the last task is marked `done`, proceed to Phase 0 immediately.
+- Never `git add` or `git commit` anything. The QA report, slice status update, and status.md changes all stay uncommitted. The human reviews the full uncommitted diff at signoff_review. The commit happens in `/review` on approval.

@@ -451,6 +451,7 @@ Run /implement to start implementation.
 - If Bdon gives a vague or short answer, ask a focused follow-up rather than accepting it.
 - If something contradicts an earlier answer, surface the conflict and resolve it before moving on.
 - Status update is always the last step of any stage. Never advance status before all artifacts for that stage are written.
-- Never commit or push mid-stage — only at gates, on approval.
+- Never commit or push mid-stage — only at gates, on approval. "On approval" means when the human re-runs the command after reviewing, not when the gate is first reached.
+- The execution pipeline (implement → QA → signoff_review) has its own commit cadence: nothing is committed until the human runs /review and approves. All implementation changes, task status updates, QA reports, and slice status changes stay uncommitted so the human can see the full diff at review time.
 - After any change to the design doc, do a full cohesion pass before saving: check every section for contradictions with the change. A new decision at the bottom does not automatically update the sections above.
 - Resuming: always re-read files from disk. Never use cached content from earlier in the session.

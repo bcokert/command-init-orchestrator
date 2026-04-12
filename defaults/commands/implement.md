@@ -149,7 +149,7 @@ On QA pass:
 
 ## Behavior rules
 
-- Never commit during task execution or at QA pass — commit cadence belongs to `/review`.
+- Never `git add` or `git commit` anything — not during task execution, not after QA, not at signoff_review. All changes (implementation files, task status updates, QA report, slice status, status.md) must stay uncommitted so the human can review the full diff. The commit happens in `/review` when the human approves.
 - Never run tasks in parallel — v1 is sequential only.
 - Always validate `depends_on` before running a task. A task with an unmet dependency must not run.
 - Resume by reading task file statuses from disk. Never assume state from the current session.

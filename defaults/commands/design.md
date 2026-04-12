@@ -226,19 +226,21 @@ When ready, run /design to continue to slicing.
 
 ### On entry
 
-1. Write `slicing_in_progress` to `status.md` before any other work:
-```yaml
-stage: slicing_in_progress
-next_action: complete slicing
-transitions:
-  - stage: slicing_in_progress
-    timestamp: {ISO 8601}
-    note: slicing started
-```
+Check the current stage before writing anything:
 
-2. Check `.orchestration/projects/{id}/slices/` for existing files. If any exist: delete them all, log "previous slicing incomplete — regenerating", then proceed with full slicing.
+- **Entering from `slicing_review`** (stage is already `slicing_review`): skip straight to the slicing gate below. No re-slicing, no file changes.
+- **Entering from `design_review`**: write `slicing_in_progress` to `status.md` first:
+  ```yaml
+  stage: slicing_in_progress
+  next_action: complete slicing
+  transitions:
+    - stage: slicing_in_progress
+      timestamp: {ISO 8601}
+      note: slicing started
+  ```
+- **Entering from `slicing_in_progress`** (resume after crash): check `.orchestration/projects/{id}/slices/` for existing files. If any exist: delete them all, log "previous slicing incomplete — regenerating", then proceed. If none exist: proceed.
 
-3. Re-read `design-{NN}.md` from disk before slicing. Never use cached content.
+Always re-read `design-{NN}.md` from disk before slicing. Never use cached content.
 
 ### Slicing
 
@@ -285,19 +287,19 @@ When ready, run /design to continue to spec for slice 01.
 
 ### On entry
 
-1. Write `spec_in_progress` to `status.md` before any other work:
-```yaml
-stage: spec_in_progress
-next_action: complete spec
-transitions:
-  - stage: spec_in_progress
-    timestamp: {ISO 8601}
-    note: spec started
-```
+Check the current stage before writing anything:
 
-2. Resume detection:
-   - `spec_in_progress` + no brief file → restart spec for that slice.
-   - `spec_review` → show gate immediately, no re-spec.
+- **Entering from `spec_review`** (stage is already `spec_review`): skip straight to the spec gate below. No re-spec, no file changes.
+- **Entering from `slicing_review`**: write `spec_in_progress` to `status.md` first:
+  ```yaml
+  stage: spec_in_progress
+  next_action: complete spec
+  transitions:
+    - stage: spec_in_progress
+      timestamp: {ISO 8601}
+      note: spec started
+  ```
+- **Entering from `spec_in_progress`** (resume after crash): check if brief already exists for the target slice. If it exists: skip writing and advance to spec gate. If not: restart spec from the beginning.
 
 ### Slice selection
 

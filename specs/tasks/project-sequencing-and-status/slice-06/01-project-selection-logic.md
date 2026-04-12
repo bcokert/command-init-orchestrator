@@ -3,11 +3,11 @@ spec: specs/briefs/project-sequencing-and-status/06-implement-v2-concurrent.md
 slice: 06
 step: 1
 title: Update project selection to allow concurrent implementing projects
-status: todo
+status: done
 depends_on: []
 agent_type: architect
-assigned_at: null
-completed_at: null
+assigned_at: 2026-04-12T00:00:00Z
+completed_at: 2026-04-12T00:00:00Z
 ---
 
 ## Work

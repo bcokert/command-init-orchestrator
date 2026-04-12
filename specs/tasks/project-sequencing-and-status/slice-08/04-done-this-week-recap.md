@@ -3,11 +3,11 @@ spec: specs/briefs/project-sequencing-and-status/08-status-v2-multi-project.md
 slice: 08
 step: 4
 title: Write done-this-week recap (Phase 4)
-status: todo
+status: done
 depends_on: [03-summary-table-output.md]
 agent_type: architect
-assigned_at: null
-completed_at: null
+assigned_at: 2026-04-12T00:00:00Z
+completed_at: 2026-04-12T00:00:00Z
 ---
 
 ## Work

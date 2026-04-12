@@ -4,7 +4,7 @@ slice: 06
 order: 6
 project: project-sequencing-and-status
 design: specs/design/project-sequencing-and-status.md
-status: tasks_ready
+status: signoff_review
 ---
 
 # Slice 06 — `/implement` v2: concurrent projects

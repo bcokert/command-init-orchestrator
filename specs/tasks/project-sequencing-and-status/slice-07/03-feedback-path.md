@@ -3,11 +3,11 @@ spec: specs/briefs/project-sequencing-and-status/07-review-command.md
 slice: 07
 step: 3
 title: Write feedback path (Phase 2)
-status: todo
+status: done
 depends_on: [02-approve-path.md]
 agent_type: architect
-assigned_at: null
-completed_at: null
+assigned_at: 2026-04-12T00:00:00Z
+completed_at: 2026-04-12T00:00:00Z
 ---
 
 ## Work

@@ -1,7 +1,7 @@
 ---
-version: 1.0.0
+version: 2.0.0
 description: |
-  Reads status.md files from .orchestration/projects/ and displays a concise summary. With a project ID arg: single-project detail view. Without: lists all active projects and prompts selection. Read-only — never modifies files.
+  Reads status.md files from .orchestration/projects/ and active worktrees. With a project ID arg: single-project detail view. Without: summary table of all active projects plus a done-this-week recap. Read-only — never modifies files.
 allowed-tools:
   - Read
   - Glob
@@ -17,15 +17,15 @@ Your job is to read project status and display it clearly. Never modify any file
 
 ## Phase 0 — Detect mode
 
-If a project ID was passed as argument: proceed to Phase 1 (single-project mode).
+If a project ID was passed as argument: proceed to Phase 1 (single-project detail view).
 
-If no argument: proceed to Phase 2 (no-arg mode).
+If no argument: proceed to Phase 2 (multi-project scan).
 
 ---
 
 ## Phase 1 — Single-project detail view
 
-1. Resolve path: `.orchestration/projects/{id}/status.md`
+1. Resolve path: `.orchestration/projects/{id}/status.md`. Also check active worktrees — if `worktree_path` is set and the directory exists, read `status.md` from the worktree path (authoritative).
 
 2. If the project folder does not exist:
    > "project {id} not found — run `/status` with no args to list projects"
@@ -50,6 +50,7 @@ project:   {id}
 stage:     {stage}          (or "[missing — check status.md]" if absent)
 next:      {next_action}    (or "[missing]" if absent)
 elapsed:   {elapsed} (since {stage} at {timestamp of most recent transition})
+worktree:  {worktree_path}  (if set)
 
 Recent transitions:
   {timestamp}  {stage}  {note}
@@ -66,35 +67,67 @@ Warning: {field} is missing or unreadable in status.md
 
 ---
 
-## Phase 2 — No-arg mode
+## Phase 2 — Multi-project scan
 
-1. Check if `.orchestration/projects/` exists. If not:
-   > "no active projects — run `/design` to start one"
-   Stop.
+1. Scan `.orchestration/projects/*/status.md`. Exclude files under `done/` subdirectory.
 
-2. Scan `.orchestration/projects/*/status.md`. For each file found: read `stage`. Collect all projects where `stage` is not `done` (and not under `done/` subfolder).
+2. Run `git worktree list`. For each worktree path (excluding the main worktree):
+   - Check if a `status.md` exists at `{worktree_path}/.orchestration/projects/{id}/status.md`.
+   - If it exists and differs from main: use the worktree version (authoritative).
+   - If the worktree path is registered in git but the directory is missing: flag as `worktree_missing`.
 
-3. If no active projects found:
-   > "no active projects — run `/design` to start one"
-   Stop.
+3. Collect all active projects. For each:
+   - `stage` from status.md
+   - `next_action` from status.md
+   - `worktree_path` if set
+   - Elapsed time in current stage: `now - last_transition_timestamp`. If timestamp missing: "unknown"
+   - Flag: `worktree_missing` if applicable
 
-4. List projects:
+4. Proceed to Phase 3.
+
+---
+
+## Phase 3 — Summary table
+
+If no active projects found:
+> "no active projects — run `/design` to start one"
+Skip to Phase 4 (done-this-week recap still runs).
+
+Otherwise, render the table:
 
 ```
-Active projects:
-
-  {id}    {stage}
-  {id}    {stage}
-
-Run /status {id} for details, or select one:
+| Project | Stage | Worktree | Next action | Time in stage |
+|---------|-------|----------|-------------|---------------|
+| {id}    | {stage} | {path or —} | {next_action} | {elapsed} |
 ```
 
-5. Prompt user to select a project ID.
+Below the table:
+- For each project in a `*_review` stage: one line — "• {id}: run /{command} to continue"
+  - `design_review` → `/design`
+  - `slicing_review` → `/design`
+  - `spec_review` → `/design`
+  - `signoff_review` → `/review`
+- For each `worktree_missing` project: "• {id}: worktree missing at {path} — run `git worktree prune`"
+- For each `status.md` with missing required fields: show project row with "⚠ malformed status.md" in the stage column
 
-6. Once selected, run Phase 1 for that project.
+---
 
-7. After displaying detail, show:
-   > Tip: run `/status {id}` directly to skip this list.
+## Phase 4 — Done this week
+
+Scan `.orchestration/projects/done/*/*/status.md` (YYYY-MM subdirs).
+
+For each: find the `done` transition in the `transitions` log. If the timestamp is within the last 7 days: include it.
+
+Group results by username (first segment of the project ID, e.g. `bcokert` from `bcokert-00001-auth-redesign`).
+
+If any results:
+```
+Done this week:
+  {username}: {slug} (Mon Apr 10), {slug} (Tue Apr 11)
+  {username}: {slug} (Sun Apr 9)
+```
+
+If nothing done in the last 7 days: omit this section entirely.
 
 ---
 
@@ -102,5 +135,7 @@ Run /status {id} for details, or select one:
 
 - Read-only. Never write, edit, or delete any file under any circumstance.
 - Partial reads are better than crashes. Show what's readable, warn on gaps.
-- Elapsed time is derived from the most recent transition timestamp. If transitions are missing, omit elapsed.
-- Only active projects appear in the list. Done projects have been archived and are not shown.
+- Elapsed time is derived from the most recent transition timestamp. If transitions are missing, show "unknown".
+- Worktree `status.md` is authoritative over main when it diverges — the worktree is where current work lives.
+- Orphaned worktrees (directory missing) produce a warning row, not a crash.
+- Done projects are excluded from the active table. They appear only in the done-this-week recap (if recent).

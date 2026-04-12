@@ -24,10 +24,14 @@ Your job is to take a project from `tasks_ready` to `signoff_review`. You own: p
 If a project ID was passed as argument: read `.orchestration/projects/{id}/status.md` and validate the project is at `tasks_ready` or `implementing`.
 
 If no argument:
-1. Scan `.orchestration/projects/*/status.md` for `stage: tasks_ready`.
-2. If none: "no projects ready — run /design to get to tasks_ready." Stop.
-3. If one: use it.
-4. If multiple: list them and prompt selection.
+1. Scan `.orchestration/projects/*/status.md`. Collect projects by stage.
+2. Separate into two lists: `tasks_ready` and `implementing`.
+3. If `tasks_ready` is non-empty: list them and prompt selection (even if `implementing` projects exist — concurrent execution is normal).
+4. If `tasks_ready` is empty and `implementing` is non-empty:
+   - List the implementing projects with their worktree paths.
+   - Output: "No projects ready to start. Pass a project ID to resume one of the above."
+   - Stop.
+5. If both lists are empty: "No projects ready — run /design to start one." Stop.
 
 ### Step 2 — Wrong-command routing table
 
@@ -37,7 +41,8 @@ Check this table before doing any work. `/implement` enforces its own rows.
 |-------|---------------|---------------|
 | `design_in_progress`, `design_review`, `slicing_in_progress`, `slicing_review`, `spec_in_progress`, `spec_review`, `breakdown_in_progress` | `/implement` | "Project '{id}' is in {stage} — run `/design` to continue." |
 | `implementing` | `/design` or `/review` | "Project '{id}' is implementing in worktree {worktree_path} — run `/implement` to resume, or `/review` once QA is complete." |
-| `signoff_review` | `/implement` | "Project '{id}' is awaiting signoff — run `/review` to approve or provide feedback." |
+| `signoff_review` | `/implement` with this specific project ID | "Project '{id}' is awaiting signoff — run `/review` to approve or provide feedback." |
+| `feedback_pending` | `/implement` | "Project '{id}' has unprocessed feedback — run `/design` to spec the next slice." |
 
 ### Step 3 — Route by current stage
 
@@ -51,6 +56,12 @@ Check this table before doing any work. `/implement` enforces its own rows.
 
 ## Phase 1 — Worktree creation
 
+**On resume** (project is `implementing` with `worktree_path` set in `status.md`):
+1. Check if the directory at `worktree_path` exists.
+2. If it exists: skip worktree creation entirely. Proceed to Phase 2.
+3. If the directory is missing: output "Worktree directory missing at {worktree_path}. Run `git worktree prune` to clean up, then re-run /implement to create a fresh worktree." Stop.
+
+**On first run** (project is `tasks_ready`):
 1. Create `.orchestration/worktrees/` if it doesn't exist.
 
 2. Detect first-time use: run `git worktree list`. If the output has only one line (main worktree only), this is the first worktree this repo has used.

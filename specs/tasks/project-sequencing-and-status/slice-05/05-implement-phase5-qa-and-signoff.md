@@ -3,7 +3,7 @@ spec: specs/briefs/project-sequencing-and-status/05-implement-v1-single-project.
 slice: 05
 step: 5
 title: Phase 5 — auto-QA and signoff_review advance
-status: todo
+status: done
 depends_on: [04-implement-phase4-task-execution.md]
 agent_type: architect
 assigned_at: null

@@ -3,7 +3,7 @@ spec: specs/briefs/project-sequencing-and-status/05-implement-v1-single-project.
 slice: 05
 step: 1
 title: Rewrite implement.md — Phase 0 routing, wrong-command table, project selection
-status: todo
+status: done
 depends_on: []
 agent_type: architect
 assigned_at: null

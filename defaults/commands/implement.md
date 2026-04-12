@@ -1,77 +1,156 @@
 ---
-version: 1.0.0
+version: 2.0.0
 description: |
-  Reads the orchestration dashboard, identifies the next actionable task, and provides the exact kickoff prompt for a human to run. Updates the task status to in-progress.
+  Execution pipeline for a single project: project selection → worktree creation → sequential task execution → automatic QA → signoff_review. Resumes from wherever the project left off. Stops at signoff_review for human approval via /review.
 allowed-tools:
   - Read
   - Write
   - Glob
+  - Grep
+  - Bash
   - AskUserQuestion
 ---
 
-# Implement — Guided Task Kickoff
+# Implement — Task execution pipeline
 
-Your job is to read the dashboard, find the next ready task, and give Bdon the exact prompt to kick it off.
-
----
-
-## Phase 0 — Load state
-
-Read `.orchestration/dashboard/summary.md`. If it doesn't exist, say:
-
-> "No tasks found. Run /design to create tasks first."
-
-Show the active specs and current state.
+Your job is to take a project from `tasks_ready` to `signoff_review`. You own: project selection, worktree creation, sequential task execution, and automatic QA.
 
 ---
 
-## Phase 1 — Identify next task
+## Phase 0 — Detect state and route
 
-If a spec-id was passed as argument, read `.orchestration/dashboard/{spec-id}.md`.
-If not, show the active specs and ask which one to work on.
+### Step 1 — Identify the project
 
-Find the next task that is:
-- Status: `todo`
-- All `depends_on` tasks have status `done`
+If a project ID was passed as argument: read `.orchestration/projects/{id}/status.md` and validate the project is at `tasks_ready` or `implementing`.
 
-If no task is actionable, say so and explain what's blocking.
+If no argument:
+1. Scan `.orchestration/projects/*/status.md` for `stage: tasks_ready`.
+2. If none: "no projects ready — run /design to get to tasks_ready." Stop.
+3. If one: use it.
+4. If multiple: list them and prompt selection.
 
----
+### Step 2 — Wrong-command routing table
 
-## Phase 2 — Present the kickoff
+Check this table before doing any work. `/implement` enforces its own rows.
 
-Read the task file. Present:
+| Stage | Wrong command | Error message |
+|-------|---------------|---------------|
+| `design_in_progress`, `design_review`, `slicing_in_progress`, `slicing_review`, `spec_in_progress`, `spec_review`, `breakdown_in_progress` | `/implement` | "Project '{id}' is in {stage} — run `/design` to continue." |
+| `implementing` | `/design` or `/review` | "Project '{id}' is implementing in worktree {worktree_path} — run `/implement` to resume, or `/review` once QA is complete." |
+| `signoff_review` | `/implement` | "Project '{id}' is awaiting signoff — run `/review` to approve or provide feedback." |
 
-**Task:** {title} — {one-sentence summary of what it does}
-**Agent role:** {agent_type} — {brief reason, e.g. "server-side Go work"}
+### Step 3 — Route by current stage
 
-**Kickoff prompt** (paste into a new Claude Code session):
-
-```
-Read .claude/agents/{agent_type}.md for your role context.
-Read .orchestration/specs/tasks/{spec-id}/NN-{slug}.md and implement it.
-Read the full spec at .orchestration/specs/briefs/{spec-filename} for constraints and observable outcomes.
-When done, update the task file frontmatter status to "done".
-```
-
-**Done signal to watch for:**
-{Restate the done signal from the task file in 1-2 lines.}
+| Stage | Action |
+|-------|--------|
+| `tasks_ready` | Proceed to Phase 1 |
+| `implementing` | Resume — find first `in_progress` or next runnable `todo` task, skip to Phase 3 |
+| All tasks `done`, stage `implementing` | Skip directly to Phase 4 (QA) |
 
 ---
 
-## Phase 3 — Update dashboard
+## Phase 1 — Worktree creation
 
-Ask: "Ready to mark this as in-progress?"
+1. Create `.orchestration/worktrees/` if it doesn't exist.
 
-If yes:
-- Update task file frontmatter: `status: in-progress`
-- Update `.orchestration/dashboard/{spec-id}.md` — change status in the table
-- Update `.orchestration/dashboard/summary.md` — no change needed until task completes
+2. Detect first-time use: run `git worktree list`. If the output has only one line (main worktree only), this is the first worktree this repo has used.
+
+3. Run:
+   ```bash
+   git worktree add .orchestration/worktrees/{id} -b project/{id}
+   ```
+
+4. **On failure** (non-zero exit): output a clear error describing what failed. Do NOT update `status.md`. Project stays at `tasks_ready`. Stop.
+
+5. **On success:** update `status.md` — append transition and add fields:
+   ```yaml
+   worktree_path: .orchestration/worktrees/{id}
+   branch: project/{id}
+   transitions:
+     - stage: worktree_created
+       timestamp: {ISO 8601}
+       note: worktree created at .orchestration/worktrees/{id}
+   ```
+
+6. Show education:
+   - **First time** (single-line `git worktree list`): explain what worktrees are — isolated working directories on a dedicated branch, one per project, all agents scoped to the worktree path so parallel projects can't conflict, main branch stays clean for planning. Explain what happens next.
+   - **Repeat use**: "worktree created — working on branch project/{id}"
+
+---
+
+## Phase 2 — Agent team
+
+1. Read all task files in `.orchestration/projects/{id}/tasks/slice-*/` with `status: todo`.
+2. Collect unique `agent_type` values. Count tasks per type.
+3. Display:
+   ```
+   Suggested agent team for {id}:
+     - {agent_type} ({N} tasks)
+     - {agent_type} ({N} tasks)
+
+   Confirm or adjust before tasks begin:
+   ```
+4. Wait for user confirmation. User may remove types or add others.
+5. Do not proceed to Phase 3 until confirmed.
+
+---
+
+## Phase 3 — Task execution
+
+1. Write `implementing` to `status.md` before executing any task:
+   ```yaml
+   stage: implementing
+   next_action: executing tasks
+   transitions:
+     - stage: implementing
+       timestamp: {ISO 8601}
+       note: task execution started
+   ```
+
+2. Build the execution queue: all `todo` tasks ordered by `step`, respecting `depends_on`. A task is runnable only when all tasks named in its `depends_on` list have `status: done`.
+
+3. If a `depends_on` reference doesn't exist or isn't `done` when required: stop and report which task is blocked and what's blocking it.
+
+4. For each task in order:
+   - Write `assigned_at: {ISO 8601}` to task file frontmatter.
+   - Present the task: read the task file and the brief it references. Provide a kickoff that includes the task work, its done signal, and the brief path for full context.
+   - When task completes: write `status: done` and `completed_at: {ISO 8601}` to task file frontmatter.
+   - Proceed to next task.
+
+5. If all tasks are already `done` on entry: skip directly to Phase 4.
+
+---
+
+## Phase 4 — QA and signoff
+
+Read and follow `defaults/commands/qa.md` in full. QA runs automatically — no prompt.
+
+On QA pass:
+1. Slice file frontmatter: `status: signoff_review`
+2. Update `status.md`:
+   ```yaml
+   stage: signoff_review
+   next_action: run /review to approve or provide feedback
+   transitions:
+     - stage: signoff_review
+       timestamp: {ISO 8601}
+       note: QA passed
+   ```
+3. Output:
+   ```
+   QA passed — {project_id} slice {NN}
+
+   Review the output. When ready, run /review to approve (marks done)
+   or provide feedback (creates a new slice in the backlog).
+   ```
+4. Stop. No commit — that happens in `/review` on approval.
 
 ---
 
 ## Behavior rules
 
-- Only show tasks that exist in task files. Never invent.
-- Always verify depends_on before recommending a task.
-- The kickoff prompt must be exact and complete — agent should need nothing else to start.
+- Never commit during task execution or at QA pass — commit cadence belongs to `/review`.
+- Never run tasks in parallel — v1 is sequential only.
+- Always validate `depends_on` before running a task. A task with an unmet dependency must not run.
+- Resume by reading task file statuses from disk. Never assume state from the current session.
+- If no `tasks_ready` projects exist, say so clearly and stop.

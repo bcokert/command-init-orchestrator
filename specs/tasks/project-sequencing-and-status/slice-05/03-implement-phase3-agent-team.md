@@ -3,7 +3,7 @@ spec: specs/briefs/project-sequencing-and-status/05-implement-v1-single-project.
 slice: 05
 step: 3
 title: Phase 3 — agent team suggestion
-status: todo
+status: done
 depends_on: [02-implement-phase2-worktree.md]
 agent_type: architect
 assigned_at: null

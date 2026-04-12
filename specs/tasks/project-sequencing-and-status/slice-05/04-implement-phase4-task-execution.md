@@ -3,7 +3,7 @@ spec: specs/briefs/project-sequencing-and-status/05-implement-v1-single-project.
 slice: 05
 step: 4
 title: Phase 4 — sequential task execution with timestamps
-status: todo
+status: done
 depends_on: [03-implement-phase3-agent-team.md]
 agent_type: architect
 assigned_at: null

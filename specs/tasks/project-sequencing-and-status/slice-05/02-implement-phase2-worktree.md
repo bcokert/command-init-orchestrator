@@ -3,7 +3,7 @@ spec: specs/briefs/project-sequencing-and-status/05-implement-v1-single-project.
 slice: 05
 step: 2
 title: Phase 2 — worktree creation and first-time education
-status: todo
+status: done
 depends_on: [01-implement-phase0-routing-and-selection.md]
 agent_type: architect
 assigned_at: null

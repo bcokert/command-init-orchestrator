@@ -107,8 +107,9 @@ status: {passed|failed|partial|pending-manual}
 
 When QA passes (all non-manual checks green):
 
-1. Update the slice file frontmatter: `status: signoff_review`
-2. Update `status.md`:
+1. Write the QA report file.
+2. Update the slice file frontmatter: `status: signoff_review`
+3. Update `status.md` (no commit yet — commit happens in `/review` on approval):
 ```yaml
 stage: signoff_review
 next_action: run /review to approve or provide feedback
@@ -117,10 +118,6 @@ transitions:
     timestamp: {ISO 8601}
     note: QA passed — {N} checks, {M} manual
 ```
-3. Commit and push:
-   - `git add` QA report + slice file + `status.md`
-   - `git commit -m "QA passed — {project_id} slice {NN}"`
-   - `git push`
 4. Output:
 ```
 QA passed — slice {NN}: {title}
@@ -131,7 +128,7 @@ or provide feedback (creates new slice in backlog).
 Do not proceed to the next slice until /review is complete.
 ```
 
-**Stop here. Do not proceed to the next slice.**
+**Stop here. The commit happens in `/review` when the human approves — not now.**
 
 ---
 

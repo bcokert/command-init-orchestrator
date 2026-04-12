@@ -110,6 +110,8 @@ status: draft
 
 After writing all slice files, output a one-line summary of the full slice list so the human can see the whole plan at a glance.
 
+Every slice requires human review before it can be specced. Slices are written with `status: draft`. The human sets `status: reviewed` when a slice is ready to spec.
+
 ---
 
 ## Phase 6 — Bdonize and save

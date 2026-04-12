@@ -272,11 +272,12 @@ Slicing complete — {project_id}
 
 {N} slice files in .orchestration/projects/{id}/slices/
 
-Slice 01 is fully detailed — ready to spec. Slices 02+ are rough
-drafts; flesh them out when they become next.
+Slice 01 is fully detailed. Slices 02+ are intentionally rough — flesh
+them out when they become next.
 
-Edit slice files directly if anything needs changing.
-When ready, run /design to continue to spec for slice 01.
+Every slice requires human review before it can be specced.
+Review slice 01, edit directly if needed, then set status: reviewed.
+When ready, run /design to continue to spec.
 ```
 
 **Wait here.**
@@ -303,9 +304,17 @@ Check the current stage before writing anything:
 
 ### Slice selection
 
-Select the target slice: the lowest-numbered slice file in `.orchestration/projects/{id}/slices/` with `status: draft` or `status: reviewed` that comes after all slices with `status: specced`, `tasks_ready`, or `done`. Never skip a slice.
+Select the target slice: the lowest-numbered slice file in `.orchestration/projects/{id}/slices/` with `status: reviewed` that comes after all slices with `status: specced`, `tasks_ready`, or `done`. Never skip a slice.
 
-If the selected slice is `draft` and its content is ambiguous (the Goal or edge cases don't give enough to write a spec): stop and ask the user to clarify before proceeding.
+If the next slice has `status: draft` (not yet reviewed):
+```
+Slice {NN} — {title} — is draft and hasn't been reviewed yet.
+
+Review the slice file at .orchestration/projects/{id}/slices/{NN}-{slug}.md.
+Edit it directly if anything needs changing, then set status: reviewed.
+When ready, run /design to continue to spec.
+```
+Stop. Do not spec a draft slice.
 
 ### Writing the brief
 

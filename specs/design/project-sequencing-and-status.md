@@ -26,7 +26,7 @@ This redesign introduces a project as a first-class folder, a sequencing ID that
 
 ## Desired end state
 
-- Each project lives in `.orchestration/projects/{id}/` — one folder, all artifacts, all runs
+- Each project lives in `.orchestration/projects/{id}/` — one folder, all artifacts, all runs. Subfolders are numbered in pipeline order: `01-design/`, `02-slices/`, `03-briefs/`, `04-tasks/`, `05-qa/`
 - The ID is `{github-username}-{zero-padded-seq}-{slug}`, e.g. `bcokert-00001-auth-redesign` — collision-resistant across devs, sequential within a dev
 - `status.md` in each project folder is the single source of truth: current pipeline stage, current run number, blocking reason, next action, and a timestamped log of every state transition
 - A project is a set of independent slices, each with its own pipeline (reviewed → specced → tasks_ready → implementing → qa → done). Review feedback adds new slices to the backlog — no separate "run" concept.
@@ -103,6 +103,8 @@ This redesign introduces a project as a first-class folder, a sequencing ID that
 **Decision:** A project is a set of independent slices. Each slice has its own pipeline: reviewed → specced → tasks_ready → implementing → qa → done. Slices are stored as individual files (one per slice) in `.orchestration/projects/{id}/slices/`. Review feedback creates new slice files added to the project backlog — there is no "run" concept. Tasks from all slices share one flat list with slice metadata and dependency links.
 
 Slice files target 30–50 lines, hard cap at 100. A slice that can't be described in 100 lines is too big.
+
+**Follow-up slices** (feedback from signoff review) use dot notation: `05.1`, `05.2`, etc. The filename follows the same pattern: `05.1-{slug}.md`. The frontmatter includes `follow_up_of: 05` for traceability and `order: 5.1` as the canonical sort key. The `order` field is a float — `5.1` sorts between `5` and `6`. All slice files carry an `order` field; for regular slices it matches the slice number. Follow-up slices enter the backlog like any other slice and go through the full pipeline.
 
 The design doc covers the whole project vision. Slicing produces N individual slice files. The user reviews the next slice (and optionally more) before it can be specced. Future slices are intentionally rough until they become next — implementation and QA of the current slice will reshape them anyway. The human can review the next slice while the current one is being implemented, which is the intended parallelism.
 

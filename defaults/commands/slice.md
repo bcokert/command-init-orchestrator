@@ -84,12 +84,15 @@ Each slice is its own file. Target 30–50 lines. Hard cap 100 lines. A slice th
 
 **Slices 02+:** intentionally rough. Goal + 2–3 rough bullets per section, clearly in draft state. Implementation will reshape them before they become next.
 
-Path: `.orchestration/projects/{id}/slices/{NN}-{slug}.md`
+**Follow-up slices** (from signoff review feedback) use dot notation: `slice: 05.1`, `order: 5.1`, filename `05.1-{slug}.md`. The `order` field is the canonical sort key — `5.1` sorts between `5` and `6`.
+
+Path: `.orchestration/projects/{id}/slices/{NN}-{slug}.md` (or `{NN.N}-{slug}.md` for follow-ups)
 
 ```markdown
 ---
 type: slice
 slice: {NN}
+order: {NN}
 project: [short kebab-case feature name]
 design: [path to design doc]
 status: draft

@@ -3,7 +3,7 @@ type: slice
 slice: 09
 project: project-sequencing-and-status
 design: specs/design/project-sequencing-and-status.md
-status: specced
+status: tasks_ready
 ---
 
 # Slice 09 — Metrics quality + gap surface

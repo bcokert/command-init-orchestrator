@@ -3,7 +3,7 @@ type: slice
 slice: 05
 project: project-sequencing-and-status
 design: specs/design/project-sequencing-and-status.md
-status: specced
+status: tasks_ready
 ---
 
 # Slice 05 — `/implement` v1: single project, sequential

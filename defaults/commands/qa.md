@@ -140,8 +140,6 @@ or one bullet per changed file}
 
 Review the output. When ready, run /review to approve (marks done)
 or provide feedback (creates new slice in backlog).
-
-Do not proceed to the next slice until /review is complete.
 ```
 
 **Stop here. The commit happens in `/review` when the human approves — not now.**

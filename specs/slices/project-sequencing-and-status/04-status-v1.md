@@ -3,7 +3,7 @@ type: slice
 slice: 04
 project: project-sequencing-and-status
 design: specs/design/project-sequencing-and-status.md
-status: draft
+status: specced
 ---
 
 # Slice 04 — `/status` v1: single project
@@ -13,7 +13,7 @@ status: draft
 ## Happy path
 
 - `/status {id}` at any stage from slices 1–3 → correct stage, next action, elapsed time, last 3 transitions with timestamps; output scans in under 5 seconds
-- No-arg mode: lists all project IDs, prompts for selection
+- No-arg mode: lists all project IDs, prompts for selection, educates about different ways to call status
 
 ## Edge cases
 

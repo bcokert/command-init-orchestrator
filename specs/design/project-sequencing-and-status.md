@@ -29,8 +29,8 @@ This redesign introduces a project as a first-class folder, a sequencing ID that
 - Each project lives in `.orchestration/projects/{id}/` — one folder, all artifacts, all runs
 - The ID is `{github-username}-{zero-padded-seq}-{slug}`, e.g. `bcokert-00001-auth-redesign` — collision-resistant across devs, sequential within a dev
 - `status.md` in each project folder is the single source of truth: current pipeline stage, current run number, blocking reason, next action, and a timestamped log of every state transition
-- A project supports 1+N pipeline runs — original plus QA iteration rounds — each producing a versioned set of artifacts (`design-01.md`, `slices-01.md`, `spec-01.md` for run 1; `design-02.md` etc. for run 2)
-- Tasks are a flat sequential list across all runs, with dependency metadata; each task knows which run it belongs to
+- A project is a set of independent slices, each with its own pipeline (reviewed → specced → tasks_ready → implementing → qa → done). Review feedback adds new slices to the backlog — no separate "run" concept.
+- Tasks are a flat sequential list across all slices, with dependency metadata; each task knows which slice it belongs to
 - Four commands cover the full lifecycle, each resuming from `status.md`:
   - `/design` — runs design → slicing → spec → breakdown; stops when tasks are ready for execution
   - `/implement` — lets user select 1+ ready projects, creates a git worktree per project, then runs task execution → QA → report; stops when report is ready for review
@@ -63,7 +63,7 @@ This redesign introduces a project as a first-class folder, a sequencing ID that
 - **Worktree merge conflict on signoff:** Merge is attempted; if it fails, the project stays at `signoff_review` with a conflict note. Worktree is preserved for manual resolution. Archive does not happen until merge succeeds.
 - **Manual edits to artifact files:** All commands re-read files from disk on resume — they never cache content from a previous session. Manual edits are always picked up.
 - **Wrong command at any stage:** Every command checks `status.md` before doing any work. If the project is not in a valid state for that command, the output names the current stage, explains why the command can't proceed, and states which command to run instead. No silent failures, no partial runs.
-- **Run N+1 task collision:** Task files from run 01 and run 02 must not overwrite each other. Task files are stored with a run prefix or in a run-namespaced path; breakdown is idempotent within a run.
+- **Cross-slice task collision:** Task files from different slices must not overwrite each other. Task files are stored with a slice prefix or in a slice-namespaced path; breakdown is idempotent within a slice.
 - **Orphaned worktree (directory manually deleted):** `git worktree list` still shows the registration. `/status` detects the missing directory and reports it, suggesting `git worktree prune`. Does not crash.
 
 ## Resolved design decisions
@@ -90,7 +90,7 @@ This redesign introduces a project as a first-class folder, a sequencing ID that
 
 ### status.md as single source of truth
 
-**Decision:** Each project has a `status.md` that tracks: current pipeline stage, current run number, blocking reason (if any), next action, worktree path and branch (once assigned), and an append-only `transitions` log — one entry per state change, each with stage name, ISO 8601 timestamp, and an optional note. All commands read this first; none infer state from artifact existence alone.
+**Decision:** Each project has a `status.md` that tracks: current pipeline stage, next slice to work on, blocking reason (if any), next action, worktree path and branch (once assigned), and an append-only `transitions` log — one entry per state change, each with stage name, ISO 8601 timestamp, and an optional note. Each slice file tracks its own status in frontmatter (`draft`, `reviewed`, `specced`, `tasks_ready`, `implementing`, `qa`, `done`). All commands read `status.md` first; none infer state from artifact existence alone.
 
 **Why:** Artifact existence is a useful hint but not sufficient — a file can exist in a broken or partial state. One authoritative file is always current and readable by humans, agents, and future tooling alike. The transitions log is the raw source for all metrics — time in each stage, wait time vs active time, iteration count — without any additional instrumentation.
 
@@ -98,13 +98,17 @@ This redesign introduces a project as a first-class folder, a sequencing ID that
 
 ---
 
-### 1+N pipeline runs per project
+### Slices as independent units
 
-**Decision:** A project starts with run 01. Each QA feedback cycle that needs more work starts a new run (02, 03, ...). Each run produces `design-{NN}.md`, `slices-{NN}.md`, `spec-{NN}.md`. Tasks from all runs share one flat list in `tasks/` with run metadata and dependency links. Each run is within the same worktree for that project.
+**Decision:** A project is a set of independent slices. Each slice has its own pipeline: reviewed → specced → tasks_ready → implementing → qa → done. Slices are stored as individual files (one per slice) in `.orchestration/projects/{id}/slices/`. Review feedback creates new slice files added to the project backlog — there is no "run" concept. Tasks from all slices share one flat list with slice metadata and dependency links.
 
-**Why:** QA feedback isn't a special mode — it's the same design → slice → spec → implement → QA cycle, scoped to the gaps found. Treating it as a new run means the same commands work, the same review gates apply, and there's a clear record of how the project evolved.
+Slice files target 30–50 lines, hard cap at 100. A slice that can't be described in 100 lines is too big.
 
-**Rejected alternatives:** A single mutable slices doc that grows — loses history, makes status ambiguous. Separate QA-specific artifacts — requires special-case logic in every command.
+The design doc covers the whole project vision. Slicing produces N individual slice files. The user reviews the next slice (and optionally more) before it can be specced. Future slices are intentionally rough until they become next — implementation and QA of the current slice will reshape them anyway. The human can review the next slice while the current one is being implemented, which is the intended parallelism.
+
+**Why:** One combined slices doc requires reviewing everything upfront — most of it will change before it's ever implemented. Individual slice files let the user focus on what's actually next, encourages small batches, and prevents over-planning. Review feedback naturally extends the backlog by adding new slice files rather than requiring a separate "iteration run" concept.
+
+**Rejected alternatives:** One combined slices doc — requires full upfront review, doesn't scale, changes before it matters. A "runs" model (run 01, run 02) — unnecessary abstraction when slices are already the right unit. Pre-speccing all slices — locks in decisions that implementation will invalidate.
 
 ---
 
@@ -141,13 +145,13 @@ This redesign introduces a project as a first-class folder, a sequencing ID that
 
 ### Auto-commit between stages, push at stage gates
 
-**Decision:** At each human review gate — where a command pauses and waits for input — it commits everything produced in that stage and pushes. One commit per gate, not per artifact. Commits and pushes are the default, not optional.
+**Decision:** At each human review gate, the commit and push happen when the human **approves and moves forward** — not when the gate is first reached, and not during corrections. While a human is reviewing and making edits, no commits happen. The commit is the signal that the gate has been passed. One commit per gate, not per artifact or correction.
 
 This means:
-- Reaching `design_review` → commit (`design-01.md` + `status.md`) + push
-- Reaching `slicing_review` → commit (`slices-01.md` + `status.md`) + push
-- Reaching `tasks_ready` → commit (`spec-01.md` + all task files + `status.md`) + push
-- Reaching `signoff_review` → commit (QA report + `status.md`) + push
+- Human approves design → commit (`design-01.md` + `status.md`) + push → slicing begins
+- Human approves slices → commit (`slices-01.md` + `status.md`) + push → spec begins
+- Human approves spec → commit (`spec-01.md` + all task files + `status.md`) + push → ready for implement
+- Human approves at signoff → commit (QA report + `status.md`) + push → done
 
 Push target is currently main. A branch-per-project model (push to `project/{id}`) is the right eventual shape but deferred — the commit cadence and gate-push behaviour are established now so the branch model can be layered on later without changing anything else.
 
@@ -235,11 +239,10 @@ Valid entry points per command:
 
 **Project-level**
 - Total wall-clock time from project start to done
-- Total number of slices across all runs
-- Number of pipeline runs (QA iteration count — proxy for first-pass quality)
-- Slice count per run (run 01 vs run 02+ — later runs typically smaller)
+- Total slice count (original plan vs total including feedback slices — delta is a proxy for how well the initial plan held up)
+- Number of feedback slices added post-QA (proxy for first-pass quality)
 - Active processing time vs human wait time across the whole project
-- Whether more or fewer slices correlated with faster completion or fewer QA iterations (cross-project comparison)
+- Whether more or fewer slices correlated with faster completion or fewer QA feedback rounds (cross-project comparison)
 
 **Cross-project comparative** (answers the "are more slices better?" question)
 - Projects grouped by total slice count: avg completion time, avg QA iteration count, avg rework rate

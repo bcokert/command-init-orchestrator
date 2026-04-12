@@ -1,7 +1,7 @@
 ---
-version: 1.0.0
+version: 2.0.0
 description: |
-  Run a structured design interview to produce a ~200 line design doc. Covers intent, current state, desired end state, patterns to follow, and resolved design decisions. Interviews Bdon until all questions are answered — nothing unresolved in the output. Output feeds into /slice.
+  Full planning pipeline for a single project: design interview → slicing → spec → breakdown → tasks_ready. Resumes from wherever the project left off. Commits and pushes at each human approval gate. Ends when tasks are ready for /implement.
 allowed-tools:
   - Read
   - Write
@@ -12,25 +12,76 @@ allowed-tools:
   - Skill
 ---
 
-# Design — Discovery Interview
+# Design — Full planning pipeline
 
-Your job is to produce a design doc that settles everything before detailed specs are written. Bdon will review this deeply — it's his highest-leverage review gate.
-
-**Do not write the design doc yet.**
+Your job is to take a project from idea to tasks_ready. You own the full planning pipeline: design interview → slicing → spec → breakdown. You resume from wherever the project last stopped.
 
 ---
 
-## Phase 0 — Load context
+## Phase 0 — Detect state and route
 
-Before interviewing, read all available project context:
+### Step 1 — Identify the project
 
-1. Check for a `CLAUDE.md` in the current project directory and read it.
-2. Read `.root-context/architecture.md` if it exists.
-3. Read `.root-context/CONSTRAINTS.md` if it exists.
-4. Read `.root-context/DECISIONS.md` if it exists.
-5. If Bdon has mentioned specific files or areas, read those too.
+If a project ID or path was passed as argument, use it.
 
-Note what you've read. This is your baseline — don't ask questions the docs already answer.
+If no argument:
+1. Scan `.orchestration/projects/` for folders with `status.md` where `stage` is not `done`, `implementing`, `qa_in_progress`, or `signoff_review`.
+2. If one match: use it.
+3. If multiple matches: list them and ask which to resume, or offer to start a new one.
+4. If no matches: start a new project (proceed to Step 3).
+
+### Step 2 — Check for wrong-command situations
+
+Read `status.md`. If stage is past the design pipeline (`tasks_ready`, `implementing`, `qa_in_progress`, `signoff_review`, `feedback_pending`):
+
+> "Project '{id}' is in {stage} — run `/implement` to execute tasks, or `/review` once implementation is complete."
+
+Stop. Do no further work.
+
+### Step 3 — Route by current stage
+
+Read `status.md` if it exists. Route:
+
+| Status | Action |
+|--------|--------|
+| No project folder | Create project (Step 4), then run interview (Phase 1) |
+| `design_in_progress`, no `design-01.md` | Inform user interview didn't complete, run interview (Phase 1) |
+| `design_in_progress`, `design-01.md` exists | Interview completed but status wasn't advanced — skip to Phase 4 (advance status + gate) |
+| `design_review` | Show review gate (Phase 4) |
+| `slicing_in_progress` | Resume slicing (Phase 5) |
+| `slicing_review` | Show slicing gate (Phase 5) |
+| `spec_in_progress` | Resume spec (Phase 6) |
+| `spec_review` | Show spec gate (Phase 6) |
+| `breakdown_in_progress` | Resume breakdown (Phase 7) |
+| `tasks_ready` | "Tasks are ready — run `/implement` to start." Stop. |
+| `feedback_pending` | Resume as new design run (Phase 1), increment run counter |
+
+### Step 4 — Create new project
+
+1. Get github username: `git config user.name`, fall back to prefix of `git config user.email`.
+2. Derive slug from the project name: lowercase, kebab-case, max 5 words, strip stop words (the, a, an, for, of, in, to).
+3. Scan `.orchestration/projects/` for folders matching `{username}-*`, find the highest sequence number, add 1, zero-pad to 5 digits. If folder already exists at derived path, increment and retry.
+4. Create `.orchestration/projects/{id}/`. Create `.orchestration/projects/` if it doesn't exist.
+5. Write `status.md` immediately — before any interview interaction:
+
+```yaml
+stage: design_in_progress
+project_id: {id}
+next_action: complete design interview
+transitions:
+  - stage: design_in_progress
+    timestamp: {ISO 8601 with timezone offset}
+    note: project created
+```
+
+6. Load project context before starting the interview:
+   - Read `CLAUDE.md` in the current project directory if it exists.
+   - Read `.root-context/architecture.md`, `.root-context/CONSTRAINTS.md`, `.root-context/DECISIONS.md` if they exist.
+   - Note what you've read — don't ask questions the docs already answer.
+
+Escalation checks (run before Step 4):
+- If git is not initialised: stop — "This directory is not a git repo. Initialise git first."
+- If `.orchestration/` exists with unexpected structure: stop and ask before proceeding.
 
 ---
 
@@ -38,78 +89,57 @@ Note what you've read. This is your baseline — don't ask questions the docs al
 
 Restate in one sentence what you've heard Bdon wants to design. Ask him to confirm or correct.
 
-If nothing has been described yet, open with:
-
-> "What are we designing?"
+If nothing has been described yet, open with: "What are we designing?"
 
 ---
 
 ## Phase 2 — Interview
 
-This is the core of the process. Surface everything Bdon knows but hasn't said yet.
+Surface everything Bdon knows but hasn't said yet.
 
-**No filter on questions.** This is the only stage where every question is on the table — implementation details, architecture calls, naming, edge cases, preferences, constraints, patterns, trade-offs. Ask them all here. Once the design doc is written, that window is closed.
+**No filter on questions.** This is the only stage where every question is on the table. Once the design doc is written, that window is closed.
 
 Ask **3–5 questions per turn**. Never more. Wait for answers before the next round.
 
 Surface questions across these areas:
 
-**Intent and motivation**
-- What problem does this solve? For whom?
-- Why now?
-- What does success look like in observable terms?
-- What's the forcing function or deadline?
+**Intent and motivation** — What problem does this solve? Why now? What does success look like?
 
-**Current state**
-- How does it work today? What are the pain points?
-- What exists that this builds on or replaces?
-- What constraints come from the current system?
+**Current state** — How does it work today? What are the pain points? What constraints come from the current system?
 
-**Desired end state**
-- What does the world look like when this is done?
-- What can someone do that they couldn't do before?
-- What does failure look like?
+**Desired end state** — What can someone do when this is done that they couldn't before? What does failure look like?
 
-**Patterns and conventions**
-- Are there existing patterns in the codebase this should follow?
-- Are there patterns it should explicitly NOT follow?
-- What conventions (naming, structure, file organization) apply here?
-- What architectural decisions in DECISIONS.md are relevant?
+**Patterns and conventions** — What patterns should this follow? What should it explicitly not follow? What architectural decisions are relevant?
 
-**Design decisions**
-- Where are the real forks in the road?
-- What trade-offs need to be made? Which direction does Bdon lean?
-- What must be decided now vs. can be deferred to the spec?
+**Design decisions** — Where are the real forks in the road? What trade-offs need to be made?
 
-**Boundaries**
-- What is explicitly out of scope?
-- What must not be touched?
-- What are the hard constraints (performance, compatibility, dependencies)?
+**Boundaries** — What is explicitly out of scope? What must not be touched?
 
 ---
 
-**Keep a running context log** in every response once Phase 2 begins:
+Keep a running context log every turn during Phase 2:
 
 ```
 > **Context so far:**
 > - resolved: [key fact or decision]
-> - resolved: [key fact or decision]
 > - open: [question still unanswered]
 ```
 
-Mark every item as `resolved` or `open`. Never move to Phase 3 while any item is `open`. New questions that surface during the interview get added as `open` and must also be resolved.
+Never move to Phase 3 while any item is `open`.
 
-When the list has no open items, say: "I think I have everything. Ready to write the design doc?"
+When the list has no open items: "I think I have everything. Ready to write the design doc?"
 
 ---
 
 ## Phase 3 — Write the design doc
 
-Only begin when Phase 2 is complete and there are no open questions.
+Only begin when Phase 2 is complete with no open questions.
 
-Target: ~200 lines. Shorter is fine if the content is genuinely simpler. Longer is fine if it warrants it. Do not compress unnaturally.
+Target: ~200 lines. Do not compress unnaturally.
 
----
+Apply bdonizer patterns inline before writing:
+- **Strip AI patterns:** significance inflation, AI vocabulary ("crucial", "highlight", "landscape", "underscore", "vibrant"), em dash overuse, inline-header lists, filler phrases, excessive hedging, sycophantic tone.
+- **Tune to voice:** no warmup sentence, short declarative payoffs, deadpan over dramatic, practical framing. Sentence case headings. Terse fragments are fine.
 
 ### Design doc format
 
@@ -118,66 +148,205 @@ Target: ~200 lines. Shorter is fine if the content is genuinely simpler. Longer 
 type: design
 date: YYYY-MM-DD
 feature: [short kebab-case name]
+project_id: {id}
 status: ready
 ---
 
 # [Feature/Change Name] — Design
 
 ## Intent
-
-[1-2 paragraphs. What this is and why it matters. Written for someone with no prior context — they understand the full situation after reading this section alone.]
+[1-2 paragraphs. Full context for someone with no prior knowledge.]
 
 ## Current state
-
-[Bullet list. Relevant facts about how things work today: pain points, constraints from existing systems, anything that shapes what's possible.]
+[Bullet list. Pain points, constraints, what exists today.]
 
 ## Desired end state
-
-[Bullet list. Observable facts about the world when this is done. What can someone do? What no longer needs to happen?]
+[Bullet list. Observable facts about the world when this is done.]
 
 ## Patterns to follow
-
-[Bullet list. Design patterns, conventions, and approaches this work should follow — both from the codebase and from first principles. Include what to avoid and why.]
+[Bullet list. What to follow, what to avoid, and why.]
 
 ## Key edge cases
-
-[Bullet list. Scenarios that can go wrong, produce partial state, or cause user confusion. Focus on: crashes mid-stage, resume from partial state, conflicting inputs, wrong-command errors, data that can't be recovered. This section is the primary input for slice validation signals — if an edge case isn't named here, it won't be tested.]
+[Bullet list. Crashes, partial state, wrong-command errors, unrecoverable data. Primary input for slice validation.]
 
 ## Resolved design decisions
-
-[One entry per decision made during the interview.]
-
-### [Decision title]
-**Decision:** [What was decided]
-**Why:** [The reasoning — what makes this the right call given the constraints]
-**Rejected alternatives:** [What was considered and why it was ruled out]
+[One entry per decision. Decision / Why / Rejected alternatives.]
 ```
+
+Write to `.orchestration/projects/{id}/design-01.md` (or `design-{NN}.md` for run N on a feedback_pending project).
 
 ---
 
-## Phase 4 — Bdonize and save
+## Phase 4 — Advance status and design review gate
 
-Apply bdonizer patterns directly to the draft before saving. Do not invoke the bdonizer Skill tool — it loads instructions but does not produce revised output in this context. Apply inline:
+After writing the design doc:
 
-- **Phase 1 — Strip AI patterns:** significance inflation, AI vocabulary ("crucial", "highlight", "landscape", "underscore", "vibrant"), em dash overuse, inline-header lists, filler phrases ("in order to", "it is important to note"), excessive hedging, sycophantic tone, chatbot artifacts.
-- **Phase 2 — Tune to voice:** no warmup sentence, short declarative payoffs, deadpan over dramatic, practical framing over emotional, stop when done (no summary sentence). Sentence case headings. Terse fragments are fine.
+1. Append to `status.md` transitions and update stage:
+```yaml
+stage: design_review
+next_action: review design doc and run /design to continue to slicing
+transitions:
+  - stage: design_review
+    timestamp: {ISO 8601}
+    note: design interview complete
+```
 
-Save the file:
-- If the current project's CLAUDE.md specifies where to save design docs, follow those instructions.
-- If `.orchestration/` exists in the project root, save to `.orchestration/specs/design/YYYY-MM-DD-[short-name].md`.
-- Otherwise default to `specs/design/YYYY-MM-DD-[short-name].md`.
+2. Commit and push:
+   - `git add .orchestration/projects/{id}/design-{NN}.md .orchestration/projects/{id}/status.md`
+   - `git commit -m "Design interview complete — {project_id}"`
+   - `git push` — if push fails, report clearly and continue. Status is committed locally.
 
-Write using the full absolute path (never pass `~/...` to Write — it does not expand `~`). Confirm the path to Bdon when done.
+3. Show the review gate:
+
+```
+Design interview complete — {project_id}
+
+Saved: .orchestration/projects/{id}/design-01.md
+
+Highest-leverage review point. Corrections here cost nothing.
+After slicing, corrections require updating slice files.
+After implementation, corrections cost the most.
+
+Review the design doc. Edit it directly if anything needs changing.
+When ready, run /design to continue to slicing.
+```
+
+**Wait here.** Do not proceed to slicing until Bdon says to continue.
+
+---
+
+## Phase 5 — Slicing
+
+Read and follow `.claude/commands/slice.md` in full.
+
+Pass `design-{NN}.md` as input. Produce individual slice files at `.orchestration/projects/{id}/slices/{NN}-{slug}.md`. Each slice: Goal + Happy path + Edge cases, 30–50 lines, hard cap 100.
+
+After writing all slice files:
+
+1. Update `status.md`:
+```yaml
+stage: slicing_review
+next_action: review slice files and run /design to continue to spec
+transitions:
+  - stage: slicing_review
+    timestamp: {ISO 8601}
+    note: {N} slices created
+```
+
+2. Commit and push:
+   - `git add .orchestration/projects/{id}/slices/ .orchestration/projects/{id}/status.md`
+   - `git commit -m "Slicing complete — {project_id} ({N} slices)"`
+   - `git push`
+
+3. Show the slicing gate:
+
+```
+Slicing complete — {project_id}
+
+{N} slice files created in .orchestration/projects/{id}/slices/
+
+Review the slices. Slice 01 should be fully detailed — the rest are
+intentionally rough until they become next. Each slice should be
+vertical (observable value end-to-end) and small (30–50 lines).
+
+Edit slice files directly if anything needs changing.
+When ready, run /design to continue to spec for slice 01.
+```
+
+**Wait here.**
+
+---
+
+## Phase 6 — Spec
+
+Read and follow `.claude/commands/spec.md` in full.
+
+Spec only the next unspecced slice (lowest-numbered slice with `status: reviewed` or `status: draft` that is next in sequence after any `specced`/`tasks_ready`/done slices).
+
+Write the delegation brief to `.orchestration/projects/{id}/briefs/{NN}-{slug}.md`.
+
+After writing:
+
+1. Update slice file frontmatter: `status: specced`
+2. Update `status.md`:
+```yaml
+stage: spec_review
+next_action: review brief and run /design to continue to breakdown
+transitions:
+  - stage: spec_review
+    timestamp: {ISO 8601}
+    note: spec written for slice {NN}
+```
+
+3. Commit and push:
+   - `git add .orchestration/projects/{id}/briefs/ .orchestration/projects/{id}/slices/{NN}-*.md .orchestration/projects/{id}/status.md`
+   - `git commit -m "Spec complete — {project_id} slice {NN}"`
+   - `git push`
+
+4. Show the spec gate (light review):
+
+```
+Spec complete — slice {NN}: {title}
+
+Saved: .orchestration/projects/{id}/briefs/{NN}-{slug}.md
+
+Light review — check:
+- Intent gives enough context for an agent with no prior knowledge
+- Observable outcomes cover happy path and key edge cases
+- Constraints are specific enough to enforce
+- Breakdown maps cleanly to the slice
+
+Run /design to continue to breakdown, or edit the brief directly first.
+```
+
+**Wait here.**
+
+---
+
+## Phase 7 — Breakdown
+
+Read and follow `.claude/commands/breakdown.md` if it exists, otherwise apply breakdown logic directly.
+
+Create task files at `.orchestration/projects/{id}/tasks/slice-{NN}/{task-NN}-{slug}.md`. Each task: spec reference, slice, step, title, status: todo, depends_on, agent_type, assigned_at: null, completed_at: null.
+
+After creating all task files:
+
+1. Update slice file frontmatter: `status: tasks_ready`
+2. Update `status.md`:
+```yaml
+stage: tasks_ready
+next_action: run /implement to start implementation
+transitions:
+  - stage: tasks_ready
+    timestamp: {ISO 8601}
+    note: {N} tasks created for slice {NN}
+```
+
+3. Commit and push:
+   - `git add .orchestration/projects/{id}/tasks/ .orchestration/projects/{id}/slices/{NN}-*.md .orchestration/projects/{id}/status.md`
+   - `git commit -m "Tasks ready — {project_id} slice {NN} ({N} tasks)"`
+   - `git push`
+
+4. Output:
+
+```
+Tasks ready — slice {NN}: {title}
+
+{N} tasks created in .orchestration/projects/{id}/tasks/slice-{NN}/
+
+Run /implement to start implementation.
+```
 
 ---
 
 ## Behavior rules
 
-- Never write the design doc before all questions are resolved.
+- Never write the design doc before all Phase 2 questions are resolved.
 - Never ask more than 5 questions per turn.
 - Always update the context log every turn during Phase 2.
 - If Bdon gives a vague or short answer, ask a focused follow-up rather than accepting it.
 - If something contradicts an earlier answer, surface the conflict and resolve it before moving on.
-- The design doc has no open questions. Everything in it is settled.
-- New questions that emerge mid-interview must be resolved before Phase 3, not left for later.
-- **After any change to the design doc — whether from Bdon's edits, new decisions, or resolved questions — do a full cohesion pass before saving.** Check every section: Intent, Current state, Desired end state, Patterns, and all Resolved decisions. If any section contradicts the change or describes a superseded state, update it. A new decision at the bottom does not automatically update the sections above. The whole doc must be internally consistent at all times.
+- Status update is always the last step of any stage. Never advance status before all artifacts for that stage are written.
+- Never commit or push mid-stage — only at gates, on approval.
+- After any change to the design doc, do a full cohesion pass before saving: check every section for contradictions with the change. A new decision at the bottom does not automatically update the sections above.
+- Resuming: always re-read files from disk. Never use cached content from earlier in the session.

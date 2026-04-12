@@ -3,7 +3,7 @@ type: slice
 slice: 01
 project: project-sequencing-and-status
 design: specs/design/project-sequencing-and-status.md
-status: tasks_ready
+status: done
 ---
 
 # Slice 01 — Project creation + design interview

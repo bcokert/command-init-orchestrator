@@ -3,11 +3,11 @@ spec: specs/briefs/project-sequencing-and-status/01-project-creation-and-design-
 slice: 01
 step: 2
 title: Implement project folder creation and ID generation
-status: todo
+status: done
 depends_on: [01-phase-0-resume-logic.md]
 agent_type: architect
-assigned_at: null
-completed_at: null
+assigned_at: 2026-04-11T15:30:00-07:00
+completed_at: 2026-04-11T15:45:00-07:00
 ---
 
 ## Work

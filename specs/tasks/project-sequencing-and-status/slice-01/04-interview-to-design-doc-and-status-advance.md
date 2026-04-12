@@ -3,11 +3,11 @@ spec: specs/briefs/project-sequencing-and-status/01-project-creation-and-design-
 slice: 01
 step: 4
 title: Wire interview through to design-01.md write and status advance
-status: todo
+status: done
 depends_on: [03-status-md-write-and-format.md]
 agent_type: architect
-assigned_at: null
-completed_at: null
+assigned_at: 2026-04-11T15:30:00-07:00
+completed_at: 2026-04-11T15:45:00-07:00
 ---
 
 ## Work

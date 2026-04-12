@@ -76,61 +76,37 @@ Target: as short as the content genuinely allows, max ~200 lines. Do not compres
 
 ---
 
-### Slices doc format
+### Slice file format
+
+Each slice is its own file. Target 30–50 lines. Hard cap 100 lines. A slice that can't fit in 100 lines is too big — split it.
+
+The next slice gets full detail. Subsequent slices are intentionally rough until they become next — implementation will reshape them anyway.
+
+Path: `{slices-dir}/{NN}-{slug}.md` where `slices-dir` follows the same convention as the design doc location.
 
 ```markdown
 ---
-type: slices
-date: YYYY-MM-DD
+type: slice
+slice: {NN}
+project: [short kebab-case feature name]
 design: [path to design doc]
-feature: [short kebab-case name]
-status: ready
+status: draft
 ---
 
-# [Feature/Change Name] — Slices
+# Slice {NN} — [Name]
 
-## Overview
+**Goal:** [1-2 sentences. What this delivers. Observable end state, not implementation steps.]
 
-[1-2 sentences: what we're building and how many slices total.]
+## Happy path
 
----
+[3-5 bullets. What works correctly when this slice is done. Each is a testable statement about the world.]
 
-[Option A — with phases, when a natural sequence exists:]
+## Edge cases
 
-## Phase 1: [Name]
-
-[1 sentence: what this phase delivers.]
-
-### Slice 1.1 — [Name]
-
-**Goal:** [What this delivers. Observable, not implementation.]
-**Changes:** [Files, systems, or architectural areas affected.]
-**Validation:** [How you verify this slice works without reading the code.]
-
-### Slice 1.2 — [Name]
-
-...
-
----
-
-## Phase 2: [Name]
-
-...
-
----
-
-[Option B — no phases, just sequential slices:]
-
-### Slice 1 — [Name]
-
-**Goal:** [What this delivers.]
-**Changes:** [What changes.]
-**Validation:** [How you verify it.]
-
-### Slice 2 — [Name]
-
-...
+[3-5 bullets. Crashes, partial state, wrong inputs, recovery. Each names the condition and the expected behaviour.]
 ```
+
+After writing all slice files, output a one-line summary of the full slice list so the human can see the whole plan at a glance.
 
 ---
 
@@ -141,12 +117,12 @@ Apply bdonizer patterns directly to the draft before saving. Do not invoke the b
 - **Phase 1 — Strip AI patterns:** significance inflation, AI vocabulary ("crucial", "highlight", "landscape", "underscore", "vibrant"), em dash overuse, inline-header lists, filler phrases ("in order to", "it is important to note"), excessive hedging, sycophantic tone, chatbot artifacts.
 - **Phase 2 — Tune to voice:** no warmup sentence, short declarative payoffs, deadpan over dramatic, practical framing over emotional, stop when done (no summary sentence). Sentence case headings. Terse fragments are fine.
 
-Save the file:
-- If the current project's CLAUDE.md specifies where to save slice docs, follow those instructions.
-- If `.orchestration/` exists in the project root, save to `.orchestration/specs/slices/YYYY-MM-DD-[short-name].md`.
-- Otherwise default to `specs/slices/YYYY-MM-DD-[short-name].md`.
+Save slice files:
+- If `.orchestration/` exists in the project root, save to `.orchestration/specs/slices/[feature-name]/{NN}-{slug}.md`.
+- Otherwise default to `specs/slices/[feature-name]/{NN}-{slug}.md`.
+- One file per slice. Never combine into a single doc.
 
-Write using the full absolute path (never pass `~/...` to Write). Confirm the path to Bdon.
+Write using the full absolute path (never pass `~/...` to Write). Confirm the paths to Bdon.
 
 ---
 

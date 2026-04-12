@@ -3,7 +3,7 @@ type: slice
 slice: 05
 project: project-sequencing-and-status
 design: specs/design/project-sequencing-and-status.md
-status: draft
+status: reviewed
 ---
 
 # Slice 05 — `/implement` v1: single project, sequential
@@ -12,7 +12,7 @@ status: draft
 
 ## Happy path
 
-- Run `/implement` → shows `tasks_ready` projects → user selects one → worktree education shown → worktree created at `.orchestration/worktrees/{id}` on branch `project/{id}` → agent team suggested from task `agent_type` fields, user confirms → tasks run sequentially with `assigned_at`/`completed_at` timestamps → QA runs → `qa-report-{slice-id}.md` written → status advances to `signoff_review`, commit + push
+- Run `/implement` → shows `tasks_ready` projects → user selects one → worktree created at `.orchestration/worktrees/{id}` on branch `project/{id}` → brief confirmation shown ("worktree created — working on branch project/{id}"); first-time only (no prior worktrees in repo): fuller explanation of what worktrees are and why → agent team suggested from task `agent_type` fields, user confirms → tasks run sequentially with `assigned_at`/`completed_at` timestamps → QA runs → `qa-report-{slice-id}.md` written → status advances to `signoff_review`
 - `/design` or `/review` while `implementing` → "project is implementing in worktree {path} — run `/implement` to resume, or `/review` once QA is complete"
 
 ## Edge cases

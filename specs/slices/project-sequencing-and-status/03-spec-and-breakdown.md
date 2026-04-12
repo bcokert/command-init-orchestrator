@@ -3,7 +3,7 @@ type: slice
 slice: 03
 project: project-sequencing-and-status
 design: specs/design/project-sequencing-and-status.md
-status: reviewed
+status: tasks_ready
 ---
 
 # Slice 03 — Spec + breakdown → tasks ready

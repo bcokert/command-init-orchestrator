@@ -3,7 +3,7 @@ spec: specs/briefs/project-sequencing-and-status/02-slicing-step.md
 slice: 02
 step: 2
 title: Update slice.md output path and format
-status: todo
+status: done
 depends_on: [01-phase5-status-and-resume.md]
 agent_type: architect
 assigned_at: null

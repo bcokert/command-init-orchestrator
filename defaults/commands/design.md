@@ -30,13 +30,20 @@ If no argument:
 3. If multiple matches: list them and ask which to resume, or offer to start a new one.
 4. If no matches: start a new project (proceed to Step 3).
 
-### Step 2 — Check for wrong-command situations
+### Step 2 — Wrong-command routing table
 
-Read `status.md`. If stage is past the design pipeline (`tasks_ready`, `implementing`, `qa_in_progress`, `signoff_review`, `feedback_pending`):
+Full routing table for all commands and stages. `/design` enforces its own rows; `/implement` and `/review` enforce theirs. Check this table first — if the current command is wrong for the current stage, output the error and stop.
 
-> "Project '{id}' is in {stage} — run `/implement` to execute tasks, or `/review` once implementation is complete."
+| Stage | Wrong command | Error message |
+|-------|---------------|---------------|
+| `slicing_in_progress`, `slicing_review` | `/implement` or `/review` | "Project '{id}' is in {stage} — run `/design` to continue." |
+| `spec_in_progress`, `spec_review` | `/implement` or `/review` | "Project '{id}' is in {stage} — run `/design` to continue." |
+| `breakdown_in_progress` | `/implement` or `/review` | "Project '{id}' is in {stage} — run `/design` to continue." |
+| `tasks_ready` | `/review` | "Project '{id}' is in tasks_ready — run `/implement` to start implementation." |
+| `tasks_ready` | `/design` | "Project '{id}' is in tasks_ready — run `/implement` to start implementation." |
+| `implementing`, `qa_in_progress`, `signoff_review`, `feedback_pending` | `/design` | "Project '{id}' is in {stage} — run `/implement` to execute tasks, or `/review` once implementation is complete." |
 
-Stop. Do no further work.
+Stop after outputting the error. Do no further work.
 
 ### Step 3 — Route by current stage
 
@@ -217,11 +224,29 @@ When ready, run /design to continue to slicing.
 
 ## Phase 5 — Slicing
 
+### On entry
+
+1. Write `slicing_in_progress` to `status.md` before any other work:
+```yaml
+stage: slicing_in_progress
+next_action: complete slicing
+transitions:
+  - stage: slicing_in_progress
+    timestamp: {ISO 8601}
+    note: slicing started
+```
+
+2. Check `.orchestration/projects/{id}/slices/` for existing files. If any exist: delete them all, log "previous slicing incomplete — regenerating", then proceed with full slicing.
+
+3. Re-read `design-{NN}.md` from disk before slicing. Never use cached content.
+
+### Slicing
+
 Read and follow `.claude/commands/slice.md` in full.
 
 Pass `design-{NN}.md` as input. Produce individual slice files at `.orchestration/projects/{id}/slices/{NN}-{slug}.md`. Each slice: Goal + Happy path + Edge cases, 30–50 lines, hard cap 100.
 
-After writing all slice files:
+### After all slice files written
 
 1. Update `status.md`:
 ```yaml
@@ -236,18 +261,17 @@ transitions:
 2. Commit and push:
    - `git add .orchestration/projects/{id}/slices/ .orchestration/projects/{id}/status.md`
    - `git commit -m "Slicing complete — {project_id} ({N} slices)"`
-   - `git push`
+   - `git push` — if push fails, report clearly and continue. Status is committed locally.
 
 3. Show the slicing gate:
 
 ```
 Slicing complete — {project_id}
 
-{N} slice files created in .orchestration/projects/{id}/slices/
+{N} slice files in .orchestration/projects/{id}/slices/
 
-Review the slices. Slice 01 should be fully detailed — the rest are
-intentionally rough until they become next. Each slice should be
-vertical (observable value end-to-end) and small (30–50 lines).
+Slice 01 is fully detailed — ready to spec. Slices 02+ are rough
+drafts; flesh them out when they become next.
 
 Edit slice files directly if anything needs changing.
 When ready, run /design to continue to spec for slice 01.
@@ -259,13 +283,35 @@ When ready, run /design to continue to spec for slice 01.
 
 ## Phase 6 — Spec
 
-Read and follow `.claude/commands/spec.md` in full.
+### On entry
 
-Spec only the next unspecced slice (lowest-numbered slice with `status: reviewed` or `status: draft` that is next in sequence after any `specced`/`tasks_ready`/done slices).
+1. Write `spec_in_progress` to `status.md` before any other work:
+```yaml
+stage: spec_in_progress
+next_action: complete spec
+transitions:
+  - stage: spec_in_progress
+    timestamp: {ISO 8601}
+    note: spec started
+```
+
+2. Resume detection:
+   - `spec_in_progress` + no brief file → restart spec for that slice.
+   - `spec_review` → show gate immediately, no re-spec.
+
+### Slice selection
+
+Select the target slice: the lowest-numbered slice file in `.orchestration/projects/{id}/slices/` with `status: draft` or `status: reviewed` that comes after all slices with `status: specced`, `tasks_ready`, or `done`. Never skip a slice.
+
+If the selected slice is `draft` and its content is ambiguous (the Goal or edge cases don't give enough to write a spec): stop and ask the user to clarify before proceeding.
+
+### Writing the brief
+
+Read and follow `.claude/commands/spec.md` in full.
 
 Write the delegation brief to `.orchestration/projects/{id}/briefs/{NN}-{slug}.md`.
 
-After writing:
+### After writing
 
 1. Update slice file frontmatter: `status: specced`
 2. Update `status.md`:
@@ -281,7 +327,7 @@ transitions:
 3. Commit and push:
    - `git add .orchestration/projects/{id}/briefs/ .orchestration/projects/{id}/slices/{NN}-*.md .orchestration/projects/{id}/status.md`
    - `git commit -m "Spec complete — {project_id} slice {NN}"`
-   - `git push`
+   - `git push` — if push fails, report clearly and continue. Status is committed locally.
 
 4. Show the spec gate (light review):
 
@@ -305,11 +351,49 @@ Run /design to continue to breakdown, or edit the brief directly first.
 
 ## Phase 7 — Breakdown
 
-Read and follow `.claude/commands/breakdown.md` if it exists, otherwise apply breakdown logic directly.
+### On entry
 
-Create task files at `.orchestration/projects/{id}/tasks/slice-{NN}/{task-NN}-{slug}.md`. Each task: spec reference, slice, step, title, status: todo, depends_on, agent_type, assigned_at: null, completed_at: null.
+1. Write `breakdown_in_progress` to `status.md` before any other work:
+```yaml
+stage: breakdown_in_progress
+next_action: complete breakdown
+transitions:
+  - stage: breakdown_in_progress
+    timestamp: {ISO 8601}
+    note: breakdown started
+```
 
-After creating all task files:
+2. Read the brief's breakdown table (Section — Breakdown). If zero rows: stop and ask.
+
+3. Resume detection: count existing `.md` files in `.orchestration/projects/{id}/tasks/slice-{NN}/`. If the count does not match the breakdown table row count: delete all existing task files and regenerate all (idempotent overwrite).
+
+### Task file creation
+
+Create `.orchestration/projects/{id}/tasks/slice-{NN}/{NN}-{slug}.md` for each breakdown table row. Each task file:
+
+```yaml
+---
+spec: .orchestration/projects/{id}/briefs/{NN}-{slug}.md
+slice: {NN}
+step: {step number}
+title: {title}
+status: todo
+depends_on: [{previous task filename}]  # sequential by default; [] if first task or explicitly independent
+agent_type: {derived from work description}
+assigned_at: null
+completed_at: null
+---
+```
+
+Derive `agent_type` from the work description:
+- `architect` — modifying command/prompt/markdown files
+- `server-dev` — Go or other backend code
+- `client-dev` — frontend code
+- `quality` — tests, QA, verification
+
+`depends_on` is sequential by default (each task depends on the previous). Use `[]` only if the brief explicitly marks the step as independent.
+
+### After creating all task files
 
 1. Update slice file frontmatter: `status: tasks_ready`
 2. Update `status.md`:
@@ -325,7 +409,7 @@ transitions:
 3. Commit and push:
    - `git add .orchestration/projects/{id}/tasks/ .orchestration/projects/{id}/slices/{NN}-*.md .orchestration/projects/{id}/status.md`
    - `git commit -m "Tasks ready — {project_id} slice {NN} ({N} tasks)"`
-   - `git push`
+   - `git push` — if push fails, report clearly and continue. Status is committed locally.
 
 4. Output:
 

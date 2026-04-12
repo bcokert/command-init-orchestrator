@@ -3,7 +3,7 @@ spec: specs/briefs/project-sequencing-and-status/03-spec-and-breakdown.md
 slice: 03
 step: 5
 title: Add wrong-command errors for spec and breakdown stages
-status: todo
+status: done
 depends_on: [04-remove-breakdown-command.md]
 agent_type: architect
 assigned_at: null

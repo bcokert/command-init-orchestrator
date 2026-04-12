@@ -123,7 +123,7 @@ Wait. Apply any corrections, confirm, proceed.
 
 ## Phase 4 — Breakdown
 
-Read and follow `.claude/commands/breakdown.md` in full.
+Apply breakdown logic directly (breakdown is internal to /design — no separate command).
 
 Pass the delegation brief path from Phase 3 as input.
 

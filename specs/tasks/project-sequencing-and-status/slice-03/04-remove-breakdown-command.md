@@ -3,7 +3,7 @@ spec: specs/briefs/project-sequencing-and-status/03-spec-and-breakdown.md
 slice: 03
 step: 4
 title: Remove standalone breakdown.md command
-status: todo
+status: done
 depends_on: [03-phase7-breakdown-tasks-gate.md]
 agent_type: architect
 assigned_at: null

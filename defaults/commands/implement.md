@@ -19,7 +19,7 @@ Your job is to read the dashboard, find the next ready task, and give Bdon the e
 
 Read `.orchestration/dashboard/summary.md`. If it doesn't exist, say:
 
-> "No dashboard found. Run /breakdown on a spec first."
+> "No tasks found. Run /design to create tasks first."
 
 Show the active specs and current state.
 

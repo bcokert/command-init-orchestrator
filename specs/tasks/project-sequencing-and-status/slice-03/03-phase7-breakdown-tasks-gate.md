@@ -3,7 +3,7 @@ spec: specs/briefs/project-sequencing-and-status/03-spec-and-breakdown.md
 slice: 03
 step: 3
 title: Wire Phase 7 — breakdown_in_progress, task creation, resume detection, tasks_ready gate
-status: todo
+status: done
 depends_on: [02-spec-md-output-path.md]
 agent_type: architect
 assigned_at: null

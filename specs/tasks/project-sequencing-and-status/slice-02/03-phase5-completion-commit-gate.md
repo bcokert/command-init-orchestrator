@@ -3,7 +3,7 @@ spec: specs/briefs/project-sequencing-and-status/02-slicing-step.md
 slice: 02
 step: 3
 title: Wire Phase 5 completion — slicing_review, commit, push, gate
-status: todo
+status: done
 depends_on: [02-slice-md-path-and-format.md]
 agent_type: architect
 assigned_at: null

@@ -3,7 +3,7 @@ spec: specs/briefs/project-sequencing-and-status/03-spec-and-breakdown.md
 slice: 03
 step: 2
 title: Update spec.md output path
-status: todo
+status: done
 depends_on: [01-phase6-spec-write-and-gate.md]
 agent_type: architect
 assigned_at: null

@@ -3,7 +3,7 @@ spec: specs/briefs/project-sequencing-and-status/02-slicing-step.md
 slice: 02
 step: 4
 title: Add wrong-command errors for slicing stages
-status: todo
+status: done
 depends_on: [03-phase5-completion-commit-gate.md]
 agent_type: architect
 assigned_at: null

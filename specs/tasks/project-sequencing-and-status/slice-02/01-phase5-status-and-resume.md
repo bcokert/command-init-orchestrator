@@ -3,7 +3,7 @@ spec: specs/briefs/project-sequencing-and-status/02-slicing-step.md
 slice: 02
 step: 1
 title: Wire Phase 5 — slicing_in_progress status and resume detection
-status: todo
+status: done
 depends_on: []
 agent_type: architect
 assigned_at: null

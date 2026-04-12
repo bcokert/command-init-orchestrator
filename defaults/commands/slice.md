@@ -80,9 +80,11 @@ Target: as short as the content genuinely allows, max ~200 lines. Do not compres
 
 Each slice is its own file. Target 30–50 lines. Hard cap 100 lines. A slice that can't fit in 100 lines is too big — split it.
 
-The next slice gets full detail. Subsequent slices are intentionally rough until they become next — implementation will reshape them anyway.
+**Slice 01 (next to implement):** full detail — complete Goal, complete Happy path, complete Edge cases.
 
-Path: `{slices-dir}/{NN}-{slug}.md` where `slices-dir` follows the same convention as the design doc location.
+**Slices 02+:** intentionally rough. Goal + 2–3 rough bullets per section, clearly in draft state. Implementation will reshape them before they become next.
+
+Path: `.orchestration/projects/{id}/slices/{NN}-{slug}.md`
 
 ```markdown
 ---
@@ -117,10 +119,7 @@ Apply bdonizer patterns directly to the draft before saving. Do not invoke the b
 - **Phase 1 — Strip AI patterns:** significance inflation, AI vocabulary ("crucial", "highlight", "landscape", "underscore", "vibrant"), em dash overuse, inline-header lists, filler phrases ("in order to", "it is important to note"), excessive hedging, sycophantic tone, chatbot artifacts.
 - **Phase 2 — Tune to voice:** no warmup sentence, short declarative payoffs, deadpan over dramatic, practical framing over emotional, stop when done (no summary sentence). Sentence case headings. Terse fragments are fine.
 
-Save slice files:
-- If `.orchestration/` exists in the project root, save to `.orchestration/specs/slices/[feature-name]/{NN}-{slug}.md`.
-- Otherwise default to `specs/slices/[feature-name]/{NN}-{slug}.md`.
-- One file per slice. Never combine into a single doc.
+Save slice files to `.orchestration/projects/{id}/slices/{NN}-{slug}.md`. One file per slice. Never combine into a single doc.
 
 Write using the full absolute path (never pass `~/...` to Write). Confirm the paths to Bdon.
 

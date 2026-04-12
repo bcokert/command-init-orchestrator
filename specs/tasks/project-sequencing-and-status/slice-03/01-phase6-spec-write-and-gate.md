@@ -3,7 +3,7 @@ spec: specs/briefs/project-sequencing-and-status/03-spec-and-breakdown.md
 slice: 03
 step: 1
 title: Wire Phase 6 — spec_in_progress, slice selection, spec write, spec_review gate
-status: todo
+status: done
 depends_on: []
 agent_type: architect
 assigned_at: null

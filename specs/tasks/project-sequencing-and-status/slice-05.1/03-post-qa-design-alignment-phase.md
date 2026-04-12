@@ -3,11 +3,11 @@ spec: specs/briefs/project-sequencing-and-status/05.1-post-qa-design-alignment.m
 slice: 05.1
 step: 3
 title: Add post-QA design alignment phase to qa.md
-status: todo
+status: done
 depends_on: [02-agent-surfacing-tasks-ready-gate.md]
 agent_type: architect
-assigned_at: null
-completed_at: null
+assigned_at: 2026-04-11T00:00:00Z
+completed_at: 2026-04-11T00:00:00Z
 ---
 
 ## Work

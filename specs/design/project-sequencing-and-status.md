@@ -100,7 +100,7 @@ This redesign introduces a project as a first-class folder, a sequencing ID that
 
 ### Slices as independent units
 
-**Decision:** A project is a set of independent slices. Each slice has its own pipeline: reviewed → specced → tasks_ready → implementing → qa → done. Slices are stored as individual files (one per slice) in `.orchestration/projects/{id}/slices/`. Review feedback creates new slice files added to the project backlog — there is no "run" concept. Tasks from all slices share one flat list with slice metadata and dependency links.
+**Decision:** A project is a set of independent slices. Each slice has its own pipeline: reviewed → specced → tasks_ready → implementing → qa → done. Slices are stored as individual files (one per slice) in `.orchestration/projects/{id}/02-slices/`. Review feedback creates new slice files added to the project backlog — there is no "run" concept. Tasks from all slices share one flat list with slice metadata and dependency links.
 
 Slice files target 30–50 lines, hard cap at 100. A slice that can't be described in 100 lines is too big.
 

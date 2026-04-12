@@ -52,8 +52,8 @@ Read `status.md` if it exists. Route:
 | Status | Action |
 |--------|--------|
 | No project folder | Create project (Step 4), then run interview (Phase 1) |
-| `design_in_progress`, no `design-01.md` | Inform user interview didn't complete, run interview (Phase 1) |
-| `design_in_progress`, `design-01.md` exists | Interview completed but status wasn't advanced — skip to Phase 4 (advance status + gate) |
+| `design_in_progress`, no `01-design/design-01.md` | Inform user interview didn't complete, run interview (Phase 1) |
+| `design_in_progress`, `01-design/design-01.md` exists | Interview completed but status wasn't advanced — skip to Phase 4 (advance status + gate) |
 | `design_review` | Show review gate (Phase 4) |
 | `slicing_in_progress` | Resume slicing (Phase 5) |
 | `slicing_review` | Show slicing gate (Phase 5) |
@@ -180,7 +180,7 @@ status: ready
 [One entry per decision. Decision / Why / Rejected alternatives.]
 ```
 
-Write to `.orchestration/projects/{id}/design-01.md` (or `design-{NN}.md` for run N on a feedback_pending project).
+Write to `.orchestration/projects/{id}/01-design/design-01.md` (or `design-{NN}.md` for run N on a feedback_pending project). Create `01-design/` if it doesn't exist.
 
 ---
 
@@ -199,7 +199,7 @@ transitions:
 ```
 
 2. Commit and push:
-   - `git add .orchestration/projects/{id}/design-{NN}.md .orchestration/projects/{id}/status.md`
+   - `git add .orchestration/projects/{id}/01-design/design-{NN}.md .orchestration/projects/{id}/status.md`
    - `git commit -m "Design interview complete — {project_id}"`
    - `git push` — if push fails, report clearly and continue. Status is committed locally.
 
@@ -208,7 +208,7 @@ transitions:
 ```
 Design interview complete — {project_id}
 
-Saved: .orchestration/projects/{id}/design-01.md
+Saved: .orchestration/projects/{id}/01-design/design-01.md
 
 Highest-leverage review point. Corrections here cost nothing.
 After slicing, corrections require updating slice files.
@@ -238,15 +238,15 @@ Check the current stage before writing anything:
       timestamp: {ISO 8601}
       note: slicing started
   ```
-- **Entering from `slicing_in_progress`** (resume after crash): check `.orchestration/projects/{id}/slices/` for existing files. If any exist: delete them all, log "previous slicing incomplete — regenerating", then proceed. If none exist: proceed.
+- **Entering from `slicing_in_progress`** (resume after crash): check `.orchestration/projects/{id}/02-slices/` for existing files. If any exist: delete them all, log "previous slicing incomplete — regenerating", then proceed. If none exist: proceed.
 
-Always re-read `design-{NN}.md` from disk before slicing. Never use cached content.
+Always re-read `01-design/design-{NN}.md` from disk before slicing. Never use cached content.
 
 ### Slicing
 
 Read and follow `.claude/commands/slice.md` in full.
 
-Pass `design-{NN}.md` as input. Produce individual slice files at `.orchestration/projects/{id}/slices/{NN}-{slug}.md`. Each slice: Goal + Happy path + Edge cases, 30–50 lines, hard cap 100.
+Pass `design-{NN}.md` as input. Produce individual slice files at `.orchestration/projects/{id}/02-slices/{NN}-{slug}.md`. Each slice: Goal + Happy path + Edge cases, 30–50 lines, hard cap 100.
 
 ### After all slice files written
 
@@ -261,7 +261,7 @@ transitions:
 ```
 
 2. Commit and push:
-   - `git add .orchestration/projects/{id}/slices/ .orchestration/projects/{id}/status.md`
+   - `git add .orchestration/projects/{id}/02-slices/ .orchestration/projects/{id}/status.md`
    - `git commit -m "Slicing complete — {project_id} ({N} slices)"`
    - `git push` — if push fails, report clearly and continue. Status is committed locally.
 
@@ -270,7 +270,7 @@ transitions:
 ```
 Slicing complete — {project_id}
 
-{N} slice files in .orchestration/projects/{id}/slices/
+{N} slice files in .orchestration/projects/{id}/02-slices/
 
 Slice 01 is fully detailed. Slices 02+ are intentionally rough — flesh
 them out when they become next.
@@ -313,13 +313,13 @@ Run /review to approve it (marks done) or provide feedback
 ```
 Stop.
 
-Otherwise, select the target slice: the lowest-numbered slice file in `.orchestration/projects/{id}/slices/` with `status: reviewed` that comes after all slices with `status: specced`, `tasks_ready`, `implementing`, or `done`. Never skip a slice.
+Otherwise, select the target slice: the lowest-numbered slice file in `.orchestration/projects/{id}/02-slices/` with `status: reviewed` that comes after all slices with `status: specced`, `tasks_ready`, `implementing`, or `done`. Never skip a slice.
 
 If the next slice has `status: draft` (not yet reviewed):
 ```
 Slice {NN} — {title} — is draft and hasn't been reviewed yet.
 
-Review the slice file at .orchestration/projects/{id}/slices/{NN}-{slug}.md.
+Review the slice file at .orchestration/projects/{id}/02-slices/{NN}-{slug}.md.
 Edit it directly if anything needs changing, then set status: reviewed.
 When ready, run /design to continue to spec.
 ```
@@ -329,7 +329,7 @@ Stop. Do not spec a draft slice.
 
 Read and follow `.claude/commands/spec.md` in full.
 
-Write the delegation brief to `.orchestration/projects/{id}/briefs/{NN}-{slug}.md`.
+Write the delegation brief to `.orchestration/projects/{id}/03-briefs/{NN}-{slug}.md`.
 
 ### After writing
 
@@ -345,7 +345,7 @@ transitions:
 ```
 
 3. Commit and push:
-   - `git add .orchestration/projects/{id}/briefs/ .orchestration/projects/{id}/slices/{NN}-*.md .orchestration/projects/{id}/status.md`
+   - `git add .orchestration/projects/{id}/03-briefs/ .orchestration/projects/{id}/02-slices/{NN}-*.md .orchestration/projects/{id}/status.md`
    - `git commit -m "Spec complete — {project_id} slice {NN}"`
    - `git push` — if push fails, report clearly and continue. Status is committed locally.
 
@@ -354,7 +354,7 @@ transitions:
 ```
 Spec complete — slice {NN}: {title}
 
-Saved: .orchestration/projects/{id}/briefs/{NN}-{slug}.md
+Saved: .orchestration/projects/{id}/03-briefs/{NN}-{slug}.md
 
 Light review — check:
 - Intent gives enough context for an agent with no prior knowledge
@@ -385,15 +385,15 @@ transitions:
 
 2. Read the brief's breakdown table (Section — Breakdown). If zero rows: stop and ask.
 
-3. Resume detection: count existing `.md` files in `.orchestration/projects/{id}/tasks/slice-{NN}/`. If the count does not match the breakdown table row count: delete all existing task files and regenerate all (idempotent overwrite).
+3. Resume detection: count existing `.md` files in `.orchestration/projects/{id}/04-tasks/slice-{NN}/`. If the count does not match the breakdown table row count: delete all existing task files and regenerate all (idempotent overwrite).
 
 ### Task file creation
 
-Create `.orchestration/projects/{id}/tasks/slice-{NN}/{NN}-{slug}.md` for each breakdown table row. Each task file:
+Create `.orchestration/projects/{id}/04-tasks/slice-{NN}/{NN}-{slug}.md` for each breakdown table row. Each task file:
 
 ```yaml
 ---
-spec: .orchestration/projects/{id}/briefs/{NN}-{slug}.md
+spec: .orchestration/projects/{id}/03-briefs/{NN}-{slug}.md
 slice: {NN}
 step: {step number}
 title: {title}
@@ -427,16 +427,30 @@ transitions:
 ```
 
 3. Commit and push:
-   - `git add .orchestration/projects/{id}/tasks/ .orchestration/projects/{id}/slices/{NN}-*.md .orchestration/projects/{id}/status.md`
+   - `git add .orchestration/projects/{id}/04-tasks/ .orchestration/projects/{id}/02-slices/{NN}-*.md .orchestration/projects/{id}/status.md`
    - `git commit -m "Tasks ready — {project_id} slice {NN} ({N} tasks)"`
    - `git push` — if push fails, report clearly and continue. Status is committed locally.
 
-4. Output:
+4. Surface the agent team:
+
+   Read all task files just created. Collect unique `agent_type` values and count tasks per type. Output:
+
+   ```
+   Proposed agent team for slice {NN}:
+     - {agent_type} ({N} tasks)          ← list each type
+     [Single agent] or [Team of N]
+
+   Confirm or adjust before /implement:
+   ```
+
+   Wait for confirmation. User may add or remove agent types. Do not proceed to the output below until confirmed.
+
+5. Output:
 
 ```
 Tasks ready — slice {NN}: {title}
 
-{N} tasks created in .orchestration/projects/{id}/tasks/slice-{NN}/
+{N} tasks created in .orchestration/projects/{id}/04-tasks/slice-{NN}/
 
 Run /implement to start implementation.
 ```

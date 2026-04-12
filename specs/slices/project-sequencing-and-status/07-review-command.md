@@ -13,7 +13,7 @@ status: draft
 ## Happy path
 
 - **Approve:** QA report + slice summary presented → human approves → branch merged to main → `git worktree remove` → project moved to `done/YYYY-MM/{id}/` → `stage: done` committed + pushed
-- **Feedback:** feedback recorded as new slice files in `slices/` with `status: draft` → `stage: feedback_pending` set → output: "feedback recorded — run `/design` to spec the next slice"
+- **Feedback:** feedback recorded as new slice files in `02-slices/` with `status: draft` → `stage: feedback_pending` set → output: "feedback recorded — run `/design` to spec the next slice"
 - All wrong commands at `signoff_review` → "project is in signoff_review — run `/review`"
 
 ## Edge cases

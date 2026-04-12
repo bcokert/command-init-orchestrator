@@ -80,7 +80,7 @@ Check this table before doing any work. `/implement` enforces its own rows.
 
 ## Phase 2 — Agent team
 
-1. Read all task files in `.orchestration/projects/{id}/tasks/slice-*/` with `status: todo`.
+1. Read all task files in `.orchestration/projects/{id}/04-tasks/slice-*/` with `status: todo`.
 2. Collect unique `agent_type` values. Count tasks per type.
 3. Display:
    ```
@@ -107,7 +107,7 @@ Check this table before doing any work. `/implement` enforces its own rows.
        note: task execution started
    ```
 
-2. Build the execution queue: all `todo` tasks ordered by `step`, respecting `depends_on`. A task is runnable only when all tasks named in its `depends_on` list have `status: done`.
+2. Build the execution queue: all `todo` tasks in `.orchestration/projects/{id}/04-tasks/slice-{NN}/` ordered by `step`, respecting `depends_on`. A task is runnable only when all tasks named in its `depends_on` list have `status: done`.
 
 3. If a `depends_on` reference doesn't exist or isn't `done` when required: stop and report which task is blocked and what's blocking it.
 

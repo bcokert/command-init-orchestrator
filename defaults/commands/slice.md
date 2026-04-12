@@ -86,7 +86,7 @@ Each slice is its own file. Target 30–50 lines. Hard cap 100 lines. A slice th
 
 **Follow-up slices** (from signoff review feedback) use dot notation: `slice: 05.1`, `order: 5.1`, filename `05.1-{slug}.md`. The `order` field is the canonical sort key — `5.1` sorts between `5` and `6`.
 
-Path: `.orchestration/projects/{id}/slices/{NN}-{slug}.md` (or `{NN.N}-{slug}.md` for follow-ups)
+Path: `.orchestration/projects/{id}/02-slices/{NN}-{slug}.md` (or `{NN.N}-{slug}.md` for follow-ups)
 
 ```markdown
 ---
@@ -124,7 +124,7 @@ Apply bdonizer patterns directly to the draft before saving. Do not invoke the b
 - **Phase 1 — Strip AI patterns:** significance inflation, AI vocabulary ("crucial", "highlight", "landscape", "underscore", "vibrant"), em dash overuse, inline-header lists, filler phrases ("in order to", "it is important to note"), excessive hedging, sycophantic tone, chatbot artifacts.
 - **Phase 2 — Tune to voice:** no warmup sentence, short declarative payoffs, deadpan over dramatic, practical framing over emotional, stop when done (no summary sentence). Sentence case headings. Terse fragments are fine.
 
-Save slice files to `.orchestration/projects/{id}/slices/{NN}-{slug}.md`. One file per slice. Never combine into a single doc.
+Save slice files to `.orchestration/projects/{id}/02-slices/{NN}-{slug}.md`. One file per slice. Never combine into a single doc.
 
 Write using the full absolute path (never pass `~/...` to Write). Confirm the paths to Bdon.
 

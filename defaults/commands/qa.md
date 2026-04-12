@@ -19,11 +19,9 @@ Your job is to verify that a spec's done signals are met and produce a report.
 
 ## Phase 0 — Load inputs
 
-If a spec-id was passed as argument, use it. If not, ask:
+When called from `/implement`, the project id and slice number are passed as context. When called standalone, read `.orchestration/projects/*/status.md` to find the project in `implementing` or `signoff_review`.
 
-> "Which spec are we QA-ing? (spec-id, e.g. m1-read-path)"
-
-Read the spec file at `.orchestration/specs/briefs/` and all task files in `.orchestration/specs/tasks/{spec-id}/`. Read the spec's Observable Outcomes section — this is the ground truth for what should work.
+Read the brief at `.orchestration/projects/{id}/03-briefs/{NN}-{slug}.md` and all task files in `.orchestration/projects/{id}/04-tasks/slice-{NN}/`. Read the brief's Observable Outcomes section — this is the ground truth for what should work.
 
 ---
 
@@ -53,13 +51,28 @@ For each `fail`:
 3. If stuck after a genuine fix attempt: mark `fail` with a clear description of what was tried.
 4. If the fix requires human judgment, a running service, or information not available: mark `manual` with a note explaining what's needed.
 
-Only write the QA report (Phase 2) when all fixable failures have been resolved. `manual` items do not block the report.
+Only write the QA report (Phase 3) when all fixable failures have been resolved. `manual` items do not block the report.
 
 ---
 
-## Phase 2 — Write QA report
+## Phase 2 — Design alignment
 
-Path: `.orchestration/dashboard/{spec-id}-qa.md`
+After all fixable failures are resolved, review the design doc and future slice files for anything that needs updating based on what was just implemented.
+
+1. Read `.orchestration/projects/{id}/01-design/design-{NN}.md`.
+2. Read all slice files in `.orchestration/projects/{id}/02-slices/` with `status: draft` or `status: reviewed` (future unimplemented slices).
+3. For each, ask: does what was just implemented conflict with, clarify, or invalidate anything here?
+4. If a future slice's scope significantly overlaps with what was just implemented: stop and ask before modifying.
+5. Apply any updates directly. Leave all changes uncommitted.
+6. Produce a summary for the signoff_review output:
+   - If no changes: "no design or slice updates needed"
+   - If changes: one bullet per changed file with one sentence explaining why
+
+---
+
+## Phase 3 — Write QA report
+
+Path: `.orchestration/projects/{id}/05-qa/slice-{NN}-qa-report.md`
 
 ```markdown
 ---
@@ -103,7 +116,7 @@ status: {passed|failed|partial|pending-manual}
 
 ---
 
-## Phase 3 — Advance to signoff_review
+## Phase 4 — Advance to signoff_review
 
 When QA passes (all non-manual checks green):
 
@@ -121,6 +134,9 @@ transitions:
 4. Output:
 ```
 QA passed — slice {NN}: {title}
+
+Design alignment: {summary from Phase 2 — either "no design or slice updates needed"
+or one bullet per changed file}
 
 Review the output. When ready, run /review to approve (marks done)
 or provide feedback (creates new slice in backlog).

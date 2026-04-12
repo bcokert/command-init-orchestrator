@@ -304,7 +304,16 @@ Check the current stage before writing anything:
 
 ### Slice selection
 
-Select the target slice: the lowest-numbered slice file in `.orchestration/projects/{id}/slices/` with `status: reviewed` that comes after all slices with `status: specced`, `tasks_ready`, or `done`. Never skip a slice.
+First, check if any slice has `status: signoff_review`. If so:
+```
+Slice {NN} — {title} — is awaiting signoff review.
+
+Run /review to approve it (marks done) or provide feedback
+(adds a new slice to the backlog) before speccing the next slice.
+```
+Stop.
+
+Otherwise, select the target slice: the lowest-numbered slice file in `.orchestration/projects/{id}/slices/` with `status: reviewed` that comes after all slices with `status: specced`, `tasks_ready`, `implementing`, or `done`. Never skip a slice.
 
 If the next slice has `status: draft` (not yet reviewed):
 ```

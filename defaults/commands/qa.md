@@ -103,10 +103,35 @@ status: {passed|failed|partial|pending-manual}
 
 ---
 
-## Phase 3 — Update dashboard
+## Phase 3 — Advance to signoff_review
 
-Update `.orchestration/dashboard/{spec-id}.md` — add a QA row below the task table.
-Update `.orchestration/dashboard/summary.md` — set the QA column for this spec: `passed`, `failed`, `partial`, or `pending-manual`.
+When QA passes (all non-manual checks green):
+
+1. Update the slice file frontmatter: `status: signoff_review`
+2. Update `status.md`:
+```yaml
+stage: signoff_review
+next_action: run /review to approve or provide feedback
+transitions:
+  - stage: signoff_review
+    timestamp: {ISO 8601}
+    note: QA passed — {N} checks, {M} manual
+```
+3. Commit and push:
+   - `git add` QA report + slice file + `status.md`
+   - `git commit -m "QA passed — {project_id} slice {NN}"`
+   - `git push`
+4. Output:
+```
+QA passed — slice {NN}: {title}
+
+Review the output. When ready, run /review to approve (marks done)
+or provide feedback (creates new slice in backlog).
+
+Do not proceed to the next slice until /review is complete.
+```
+
+**Stop here. Do not proceed to the next slice.**
 
 ---
 

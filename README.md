@@ -1,83 +1,67 @@
-# /init-orchestrator
+# command-init-orchestrator
 
-A Claude Code command that sets up a project-level orchestration layer.
+A Claude Code command that installs a project-level AI orchestration layer — a 4-command system for taking ideas from design through implementation to signoff.
 
 ## What it does
 
-Scaffolds the full orchestration structure — dev team agent definitions, root-context linking, task dashboard, and all orchestration commands — in a single run. Safe to re-run: adds missing components and prompts before replacing anything that already exists.
+Run `/init-orchestrator` in any git repo. It installs 4 commands and creates the project folder structure. Safe to re-run.
+
+## The 4 commands
+
+| Command | What it does |
+|---------|-------------|
+| `/design` | Full planning pipeline: design interview → slicing → spec → breakdown. Stops when tasks are ready for implementation. Commits at each human approval gate. |
+| `/implement` | Execution pipeline: creates a git worktree, runs tasks sequentially, runs QA automatically. Stops at signoff_review for human review. Nothing committed until `/review` approves. |
+| `/review` | Closes the loop: approve (commits everything, merges branch, archives project) or provide feedback (adds new slices to backlog). |
+| `/status` | Shows all active projects in a table: stage, worktree, next action, time in stage. Plus a done-this-week recap. |
+
+## Project lifecycle
 
 ```
-.claude/
-  commands/        # orchestration commands, callable via /command-name
-    pipeline.md, migrate.md, design.md, slice.md, spec.md
-    breakdown.md, implement.md, qa.md, commit.md, learn.md
-
-.orchestration/
-  README.md
-  config.yaml
-  agents/          # dev team role definitions
-  root-context/    # project context for agents
-  specs/           # design docs, slices, briefs, tasks
-  dashboard/       # task state
+/design          /implement       /review
+   │                  │               │
+interview       worktree created   approve ──► merged + archived
+   │                  │               │
+slicing         tasks execute      feedback ──► new slices → /design
+   │                  │
+spec            auto QA
+   │                  │
+breakdown       signoff_review ──► /review
+   │
+tasks_ready
 ```
 
-## How the install works
+Each project lives in `.orchestration/projects/{username}-{seq}-{slug}/`. One folder, all artifacts.
 
-Two stages:
+## Slices
 
-**Stage 1 — install to `~/.claude/` (once, or to update)**
+Work is planned and delivered one slice at a time. A slice is a thin vertical cut — something someone can observe and verify without reading code. Slices 02+ are intentionally rough until they become next; implementation reshapes them.
+
+Human review gates exist after design, after slicing, after spec, and after QA. Nothing advances without a human re-running the command.
+
+## Worktrees
+
+`/implement` creates a git worktree for each project at `.orchestration/worktrees/{id}` on branch `project/{id}`. Multiple projects can run concurrently — each is isolated on its own branch. Main stays clean for planning. On signoff, the branch merges to main and the worktree is removed.
+
+## Install
 
 ```bash
-git clone git@github.com:bcokert/command-init-orchestrator.git
-cd command-init-orchestrator
-./claude-install.sh
-```
-
-Installs:
-- `~/.claude/commands/init-orchestrator.md` — the `/init-orchestrator` command
-- `~/.claude/init-orchestrator/defaults/` — bundled commands, agents, and config (the source of truth for all copies)
-
-Nothing goes into any project yet.
-
-**Stage 2 — init a project (once per project, or to update)**
-
-In any Claude Code session, from your project root:
-
-```
+# In your target project:
 /init-orchestrator
 ```
 
-Reads from `~/.claude/init-orchestrator/defaults/` and writes into the current project:
-- `.claude/commands/` — all 10 orchestration commands, callable via `/command-name`
-- `.orchestration/` — agents, README, config, root-context structure, dashboard
+Installs: `design.md`, `implement.md`, `review.md`, `status.md` → `.claude/commands/`  
+Creates: `.orchestration/projects/`, `.orchestration/worktrees/` (gitignored)
 
-## Updating
-
-To get new command versions into a project:
-
-1. Pull this repo and re-run `./claude-install.sh` — updates `~/.claude/`
-2. Re-run `/init-orchestrator` in each project — version check fires and offers updates for anything that changed
-
-## Workflow
-
-### Starting a feature
+## Quick start
 
 ```
-/pipeline               → new feature: full design interview → slice → spec → breakdown
-/migrate [existing.md]  → existing spec/research: compressed interview → slice → spec → breakdown
+1. /design          — describe what you want to build
+2. Review the design doc, edit if needed, re-run /design to continue
+3. Review slice 01, set status: reviewed, re-run /design
+4. Review the spec, re-run /design to generate tasks
+5. /implement       — confirm agent team, tasks run automatically
+6. /review          — approve or provide feedback
 ```
 
-Both run the full chain in one session with review gates.
-
-### Step by step (manual control)
-
-```
-/design     → structured interview → design doc (~200 lines)
-/slice      → design doc          → vertical slicing plan
-/spec       → slices doc          → delegation brief (agent-ready)
-/breakdown  → delegation brief    → task files in .orchestration/specs/tasks/
-/implement  → dashboard           → guided kickoff prompt per task
-/qa         → completed tasks     → verification report
-/commit     → task file           → scoped git commit + dashboard update
-/learn      → completed spec      → lessons in root-context/lessons/
-```
+Run `/status` at any point to see where everything is.

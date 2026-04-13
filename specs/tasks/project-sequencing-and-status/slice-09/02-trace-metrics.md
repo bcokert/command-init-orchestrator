@@ -3,11 +3,11 @@ spec: specs/briefs/project-sequencing-and-status/09-metrics-quality.md
 slice: 09
 step: 2
 title: Trace each metric against fixture
-status: todo
+status: done
 depends_on: [01-build-fixture.md]
 agent_type: architect
-assigned_at: null
-completed_at: null
+assigned_at: 2026-04-12T00:00:00Z
+completed_at: 2026-04-12T00:00:00Z
 ---
 
 ## Work

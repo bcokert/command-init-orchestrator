@@ -3,11 +3,11 @@ spec: specs/briefs/project-sequencing-and-status/10-init-and-education-audit.md
 slice: 10
 step: 2
 title: Write README
-status: todo
+status: done
 depends_on: [01-init-orchestrator-update.md]
 agent_type: architect
-assigned_at: null
-completed_at: null
+assigned_at: 2026-04-12T00:00:00Z
+completed_at: 2026-04-12T00:00:00Z
 ---
 
 ## Work

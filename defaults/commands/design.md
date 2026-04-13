@@ -402,6 +402,7 @@ depends_on: [{previous task filename}]  # sequential by default; [] if first tas
 agent_type: {derived from work description}
 assigned_at: null
 completed_at: null
+qa_result: null  # set by QA: pass | fixed (passed after QA fixed it) | manual
 ---
 ```
 

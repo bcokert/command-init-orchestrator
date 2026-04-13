@@ -1,6 +1,6 @@
 ---
 description: |
-  Sets up .orchestration/ in the current project. Copies commands to .claude/commands/, creates dev team agents, initializes dashboard and root-context structure. Safe to re-run: adds missing components and asks before replacing anything. Self-contained: no runtime dependency on root commands.
+  Sets up the orchestration layer in the current project. Installs 4 commands to .claude/commands/, creates .orchestration/projects/, adds .orchestration/worktrees/ to .gitignore. Safe to re-run: adds missing components without touching existing project data. Detects and warns about old 7-command installations.
 allowed-tools:
   - Read
   - Write
@@ -11,249 +11,125 @@ allowed-tools:
 
 # Init Orchestrator
 
-Sets up the orchestration layer for a project. Safe to re-run — adds missing components and prompts before replacing anything that already exists.
+Sets up the orchestration layer for a project. Safe to re-run — adds missing components, never overwrites project data, warns before removing old commands.
 
 The structure it creates:
 
 ```
 .claude/
-  commands/                — orchestration commands, callable via /command-name
-    pipeline.md
-    migrate.md
-    design.md
-    slice.md
-    spec.md
-    breakdown.md
-    implement.md
-    learn.md
-    qa.md
-    commit.md
-  agents/                  — dev team role definitions
-    lead.md
-    architect.md
-    standards.md
-    server-dev.md
-    client-dev.md
-    quality.md
+  commands/
+    design.md       — full planning pipeline: interview → slices → spec → breakdown → tasks_ready
+    implement.md    — execution pipeline: worktree creation → tasks → QA → signoff_review
+    review.md       — signoff: approve (merge + archive) or feedback (new slices)
+    status.md       — project status: active projects table + done-this-week recap
 
 .orchestration/
-  README.md              — how to use the system
-  config.yaml            — project-level config
-  root-context/          — project context for agents (separate from user-curated)
-    LINK.md              — pointer to project root-context if one exists
-    lessons/             — /learn outputs go here
-  specs/                 — all planning artifacts, scoped by type
-    design/              — /design outputs (~200 line design docs)
-    slices/              — /slice outputs (slicing plans)
-    briefs/              — /spec outputs (delegation briefs)
-    tasks/               — /breakdown outputs, one folder per spec
-      {spec-id}/
-        NN-{slug}.md
-  dashboard/
-    summary.md           — overall spec/task state (single source of truth)
-    {spec-id}.md         — per-spec task queue
-    {spec-id}-qa.md      — QA reports
+  projects/         — one folder per project, all artifacts inside
+  worktrees/        — git worktrees for in-flight projects (gitignored)
 ```
 
 ---
 
 ## Phase 0 — Check what exists
 
-Check if `.orchestration/` already exists:
+1. Check if `.orchestration/projects/` exists.
+2. Check `.claude/commands/` for existing command files.
+3. Check `.claude/commands/` for old 7-command files: `pipeline.md`, `qa.md`, `breakdown.md`, `slice.md`, `spec.md`, `commit.md`, `learn.md`, `migrate.md`.
 
-```bash
-ls .orchestration/ 2>/dev/null
-```
+If this is a first run (nothing exists): proceed directly to Phase 1 with no prompting.
 
-Also check `.claude/commands/` for existing orchestration commands:
-
-```bash
-ls .claude/commands/ 2>/dev/null
-```
-
-If neither exists: create the full structure (no prompting needed, this is the first run).
-
-If either exists: scan what's there and apply the re-run logic below.
+If re-run: apply the logic in Phase 1.
 
 ---
 
-## Phase 1 — Handle existing components (re-run case)
+## Phase 1 — Handle old commands
 
-For each component, apply this logic:
+If any old command files are found in `.claude/commands/`:
 
-**Commands** — for each command in the set (design, slice, spec, breakdown, implement, learn, qa, commit, pipeline, migrate):
-- Missing from `.claude/commands/`: copy it in, no prompt
-- Same version as source: skip
-- Different version: ask "Command `{name}` is at v{old} locally, v{new} available. Update? (yes/no)"
+List them:
+```
+Old command files found:
+  .claude/commands/pipeline.md
+  .claude/commands/qa.md
+  ...
 
-To check the version, read the `version:` field from the frontmatter of each file. Source versions are in `~/.claude/init-orchestrator/defaults/commands/{name}.md`.
+These are from the previous 7-command system. Remove them? (yes/no)
+```
 
-**Agents** — for each agent file in defaults:
-- Missing from `.claude/agents/`: copy it in, no prompt
-- Exists: ask "Agent `{name}` already exists. Replace with default? (yes/no)"
-
-**README.md**:
-- Missing: write it, no prompt
-- Exists: ask "README.md already exists. Replace? (yes/no)"
-
-**config.yaml**:
-- Missing: write it, no prompt
-- Exists: skip (config is project-specific, never auto-replace)
-
-**dashboard/**:
-- Missing: initialize summary.md, no prompt
-- Exists: skip (dashboard is live state, never touch)
+If yes: delete them. If no: leave them and continue (new commands will coexist).
 
 ---
 
-## Phase 2 — Copy commands
-
-All commands are bundled inside this command's defaults.
+## Phase 2 — Install commands
 
 Source: `~/.claude/init-orchestrator/defaults/commands/`
-Target: `.claude/commands/` in the current project
+Target: `.claude/commands/`
 
-Commands: `pipeline`, `migrate`, `design`, `slice`, `spec`, `breakdown`, `implement`, `learn`, `qa`, `commit`
+Commands to install: `design.md`, `implement.md`, `review.md`, `status.md`
 
-For each: read `~/.claude/init-orchestrator/defaults/commands/{name}.md`, write to `.claude/commands/{name}.md`.
+For each:
+- **Missing:** copy it in, no prompt
+- **Same version** (check `version:` frontmatter field): skip, note "already current"
+- **Different version:** ask "Command `{name}` is at v{old} locally, v{new} available. Update? (yes/no)"
 
 Create `.claude/commands/` if it doesn't exist.
 
-If a source file doesn't exist, note it and skip — don't fail the whole init.
+If a source file is missing from defaults: note it and skip — don't fail the whole init.
 
 ---
 
-## Phase 3 — Write agents
+## Phase 3 — Create project structure
 
-Read each file from `~/.claude/init-orchestrator/defaults/agents/` and write to `.claude/agents/`.
+1. Create `.orchestration/projects/` if it doesn't exist. If it exists: leave it untouched — never delete or overwrite project data.
 
-Files: `lead.md`, `architect.md`, `standards.md`, `server-dev.md`, `client-dev.md`, `quality.md`.
-
-Create `.claude/agents/` if it doesn't exist.
+2. Create `.orchestration/worktrees/` if it doesn't exist. This directory holds git worktrees for in-flight projects — it's local-only and should be gitignored.
 
 ---
 
-## Phase 4 — Write README and config
+## Phase 4 — Update .gitignore
 
-Write `~/.claude/init-orchestrator/defaults/README.md` to `.orchestration/README.md`.
-Write `~/.claude/init-orchestrator/defaults/config.yaml` to `.orchestration/config.yaml` (only if it doesn't exist).
+Check `.gitignore` at the project root.
 
----
-
-## Phase 5 — Handle root context
-
-Check if `.root-context/` exists at the project root:
-
-```bash
-ls .root-context/ 2>/dev/null
-```
-
-**If it exists:**
-
-Ask:
-
-> ".root-context/ exists at the project root. This is dev context the orchestration system should know about. Options:
-> 1. Create a pointer — .orchestration/root-context/LINK.md points to .root-context/ (recommended: keeps them separate)
-> 2. Leave it — I'll note the path but not create any link
->
-> Which? (1 or 2)"
-
-If option 1: write `.orchestration/root-context/LINK.md`:
-
-```markdown
-# Root Context Location
-
-This project's root context lives at `.root-context/` in the project root.
-
-Agents should read those files for architecture, constraints, and decisions before starting any task. Key files:
-- `.root-context/architecture.md` — system design and tech stack
-- `.root-context/CONSTRAINTS.md` — invariants every implementation must preserve
-- `.root-context/DECISIONS.md` — ADR log
-
-Lessons from past work are stored separately in `.orchestration/root-context/lessons/`.
-```
-
-If option 2: create `.orchestration/root-context/LINK.md` with just the path noted, no pointer behavior.
-
-**If `.root-context/` does not exist:**
-
-Create `.orchestration/root-context/README.md`:
-
-```markdown
-# Root Context
-
-No root-context found at project root. Add one at `.root-context/` with:
-- `architecture.md` — system design and tech stack
-- `CONSTRAINTS.md` — invariants every implementation must preserve
-- `DECISIONS.md` — ADR log
-
-Until then, agents will have limited project context.
-```
-
-Create the `lessons/` directory placeholder by writing `.orchestration/root-context/lessons/.gitkeep` (empty file).
-
----
-
-## Phase 6 — Initialize dashboard
-
-If `.orchestration/dashboard/summary.md` doesn't exist, create it:
-
-```markdown
----
-updated: {today}
----
-
-# Orchestration Summary
-
-## Active specs
-
-| ID | Title | Status | Tasks | Done | QA |
-|----|-------|--------|-------|------|----|
-
-## Blocked
-
-*(none)*
-
-## Learning
-
-*(no lessons yet — run /learn after completing a spec)*
-```
-
----
-
-## Phase 7 — Update .gitignore
-
-Check if `.gitignore` exists at the project root:
-
-```bash
-ls .gitignore 2>/dev/null
-```
-
-**If it exists:** Read the file and check if `.orchestration/dashboard/` (or `.orchestration/dashboard`) is already listed. If not, append it:
+Add `.orchestration/worktrees/` if not already present. Append only — never rewrite or reorder existing entries:
 
 ```
-# Orchestration dashboard (live state, not for version control)
-.orchestration/dashboard/
+# Orchestration worktrees (local only — git tracks the branches, not the directories)
+.orchestration/worktrees/
 ```
 
-**If it doesn't exist:** Create `.gitignore` with that entry.
-
-Never modify any other lines in `.gitignore` — only append.
+If `.gitignore` doesn't exist: create it with that entry.
 
 ---
 
-## Phase 8 — Done
+## Phase 5 — Done
 
-Report what was created or updated. Show the full structure with a tree. Remind Bdon of the workflow:
+Report what was created, updated, or skipped. Show the installed commands and their versions.
 
-> "Orchestration ready. Workflow: /design → /slice → /spec → /breakdown → /implement → /qa → /commit → /learn"
+Output:
+```
+Orchestration ready.
+
+Installed:
+  .claude/commands/design.md     v{N}
+  .claude/commands/implement.md  v{N}
+  .claude/commands/review.md     v{N}
+  .claude/commands/status.md     v{N}
+
+Structure:
+  .orchestration/projects/   (project data)
+  .orchestration/worktrees/  (gitignored)
+
+Workflow: /design → /implement → /review
+Run /status at any time to see active projects.
+```
 
 ---
 
 ## Behavior rules
 
-- Never auto-replace config.yaml or dashboard files. Those are live state.
-- Never replace existing files without asking (except first-run where nothing exists).
-- If a source command file is missing from `~/.claude/init-orchestrator/defaults/commands/`, note it and continue — don't fail the whole init.
-- Write files using absolute paths (resolve `~` to the actual home directory via `echo $HOME`).
+- Never delete or overwrite files in `.orchestration/projects/` — that's live project data.
+- Never remove old commands without explicit confirmation.
+- Write files using absolute paths (resolve `~` via `echo $HOME`).
 - When updating `.gitignore`, only append — never rewrite or reorder existing entries.
+- If a source command file is missing from defaults: note it and skip. Don't fail the whole init.
+- Idempotent: running twice produces the same state as running once.

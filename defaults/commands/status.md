@@ -41,7 +41,7 @@ If no argument: proceed to Phase 2 (multi-project scan).
    > "project {id} is done and has been archived to .orchestration/projects/done/"
    Stop.
 
-6. Compute elapsed time in current stage: time since the most recent transition's timestamp. Format human-readable: `2h 14m`, `3d 7h`, etc.
+6. Compute elapsed time in current stage: time since the most recent transition's timestamp. Format human-readable: `2h 14m`, `3d 7h`, etc. If the most recent transition has no `timestamp` field, or if the value is unparseable: show `unknown` — do not crash.
 
 7. Display:
 
@@ -80,7 +80,7 @@ Warning: {field} is missing or unreadable in status.md
    - `stage` from status.md
    - `next_action` from status.md
    - `worktree_path` if set
-   - Elapsed time in current stage: `now - last_transition_timestamp`. If timestamp missing: "unknown"
+   - Elapsed time in current stage: `now - last_transition_timestamp`. If the most recent transition has no timestamp or it's unparseable: "unknown" — do not crash
    - Flag: `worktree_missing` if applicable
 
 4. Proceed to Phase 3.

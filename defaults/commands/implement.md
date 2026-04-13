@@ -120,7 +120,7 @@ Check this table before doing any work. `/implement` enforces its own rows.
 
 2. Build the execution queue: all `todo` tasks in `.orchestration/projects/{id}/04-tasks/slice-{NN}/` ordered by `step`, respecting `depends_on`. A task is runnable only when all tasks named in its `depends_on` list have `status: done`.
 
-3. If a `depends_on` reference doesn't exist or isn't `done` when required: stop and report which task is blocked and what's blocking it.
+3. If a `depends_on` reference doesn't exist or isn't `done` when required: stop and report which task is blocked and what's blocking it. Output: "Fix the task's `depends_on` field or complete the prerequisite task, then re-run /implement."
 
 4. For each task in order:
    - Write `assigned_at: {ISO 8601}` to task file frontmatter.

@@ -25,7 +25,7 @@ If a project ID was passed as argument: read `.orchestration/projects/{id}/statu
 
 If no argument:
 1. Scan `.orchestration/projects/*/status.md` for `stage: signoff_review`.
-2. If none: "No projects awaiting signoff." Stop.
+2. If none: "No projects awaiting signoff. Run /implement to execute tasks, or /design to start a new project." Stop.
 3. If one: use it.
 4. If multiple: list them and prompt selection.
 
@@ -78,7 +78,7 @@ Ask: "Approve and close this slice, or provide feedback?"
    ```bash
    git status --porcelain
    ```
-   If dirty: "Worktree has uncommitted changes at {worktree_path} — resolve before removing." Stop.
+   If dirty: "Worktree has uncommitted changes at {worktree_path}. These should have been committed as part of the approve step — check what's uncommitted with `git status` in the worktree, then re-run /review." Stop.
    If clean:
    ```bash
    git worktree remove .orchestration/worktrees/{id}

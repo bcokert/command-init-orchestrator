@@ -229,9 +229,9 @@ Valid entry points per command:
 **Decision:** The slice is the fundamental unit of measurement. A project is a set of slices; a pipeline run produces 1+ slices; tasks belong to slices. Metrics are tracked at task, slice, and project levels. The transitions log in `status.md` plus timestamps in task files provide the raw data for all of this without additional instrumentation.
 
 **Task-level**
-- Time from task assigned to task done (agent processing time per task)
-- Time per task by agent type (reveals which agent types are slower or have higher rework rates)
-- QA pass/fail per task on first attempt
+- Time from task assigned to task done (agent processing time per task) — derived from `assigned_at` / `completed_at` in task file
+- Time per task by agent type (reveals which agent types are slower or have higher rework rates) — same fields, grouped by `agent_type`
+- QA pass/fail per task on first attempt — derived from `qa_result` field in task file (`pass` = first pass, `fixed` = failed and fixed during QA, `manual` = required human)
 
 **Slice-level** (the primary unit)
 - Total time per slice: from slice creation to slice QA pass

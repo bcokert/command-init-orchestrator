@@ -40,6 +40,11 @@ Only check what the done signal specifies. Don't invent tests.
 
 Mark each check: `pass`, `fail`, or `manual` (requires human or running service).
 
+After verification (and after any fixes in Phase 1.5), write `qa_result` to each task file frontmatter:
+- `pass` — passed on first check
+- `fixed` — failed initially, fixed during QA, re-verified as passing
+- `manual` — marked manual (requires human or running service)
+
 ---
 
 ## Phase 1.5 — Fix failures and re-verify

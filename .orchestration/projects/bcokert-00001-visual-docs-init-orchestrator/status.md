@@ -1,7 +1,13 @@
-stage: slicing_review
+stage: spec_review
 project_id: bcokert-00001-visual-docs-init-orchestrator
-next_action: review slice files and run /design to continue to spec
+next_action: review brief and run /design to continue to breakdown
 transitions:
+  - stage: spec_review
+    timestamp: 2026-04-13T12:15:00-07:00
+    note: spec written for slice 01
+  - stage: spec_in_progress
+    timestamp: 2026-04-13T12:10:00-07:00
+    note: spec started
   - stage: slicing_review
     timestamp: 2026-04-13T12:01:00-07:00
     note: 3 slices created

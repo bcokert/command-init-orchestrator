@@ -233,7 +233,11 @@ When ready, run /design to continue to slicing.
 
 Check the current stage before writing anything:
 
-- **Entering from `slicing_review`** (stage is already `slicing_review`): skip straight to the slicing gate below. No re-slicing, no file changes.
+- **Entering from `slicing_review`** (stage is already `slicing_review`): commit any pending changes to slice files before proceeding:
+  - `git add .orchestration/projects/{id}/02-slices/`
+  - `git commit -m "Slices approved — {project_id}"` — only if files have changes; skip if clean
+  - `git push`
+  Then skip straight to the slicing gate below. No re-slicing.
 - **Entering from `design_review`**: commit any pending changes to the design doc before doing anything else:
   - `git add .orchestration/projects/{id}/01-design/design-{NN}.md`
   - `git commit -m "Design approved — {project_id}"` — only if the file has changes; skip if clean
@@ -299,7 +303,11 @@ When ready, run /design to continue to spec.
 
 Check the current stage before writing anything:
 
-- **Entering from `spec_review`** (stage is already `spec_review`): skip straight to the spec gate below. No re-spec, no file changes.
+- **Entering from `spec_review`** (stage is already `spec_review`): commit any pending changes to the brief before proceeding:
+  - `git add .orchestration/projects/{id}/03-briefs/{NN}-*.md`
+  - `git commit -m "Spec approved — {project_id} slice {NN}"` — only if the file has changes; skip if clean
+  - `git push`
+  Then skip straight to the spec gate below. No re-spec.
 - **Entering from `slicing_review`**: write `spec_in_progress` to `status.md` first:
   ```yaml
   stage: spec_in_progress

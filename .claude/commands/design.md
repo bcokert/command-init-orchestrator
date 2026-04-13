@@ -234,7 +234,11 @@ When ready, run /design to continue to slicing.
 Check the current stage before writing anything:
 
 - **Entering from `slicing_review`** (stage is already `slicing_review`): skip straight to the slicing gate below. No re-slicing, no file changes.
-- **Entering from `design_review`**: write `slicing_in_progress` to `status.md` first:
+- **Entering from `design_review`**: commit any pending changes to the design doc before doing anything else:
+  - `git add .orchestration/projects/{id}/01-design/design-{NN}.md`
+  - `git commit -m "Design approved — {project_id}"` — only if the file has changes; skip if clean
+  - `git push`
+  Then write `slicing_in_progress` to `status.md`:
   ```yaml
   stage: slicing_in_progress
   next_action: complete slicing

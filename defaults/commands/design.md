@@ -178,6 +178,11 @@ status: ready
 
 ## Resolved design decisions
 [One entry per decision. Decision / Why / Rejected alternatives.]
+
+## Agent decisions
+[Decisions made implicitly by the agent based on context — not explicitly discussed with the human. Listed for review to catch unexamined assumptions. One entry per decision.
+
+Format: **Decision made.** Context: why this call seemed obvious. Alternative: what else could have been chosen.]
 ```
 
 Write to `.orchestration/projects/{id}/01-design/design-01.md` (or `design-{NN}.md` for run N on a feedback_pending project). Create `01-design/` if it doesn't exist.
@@ -468,5 +473,5 @@ Run /implement to start implementation.
 - Status update is always the last step of any stage. Never advance status before all artifacts for that stage are written.
 - Never commit or push mid-stage — only at gates, on approval. "On approval" means when the human re-runs the command after reviewing, not when the gate is first reached.
 - The execution pipeline (implement → QA → signoff_review) has its own commit cadence: nothing is committed until the human runs /review and approves. All implementation changes, task status updates, QA reports, and slice status changes stay uncommitted so the human can see the full diff at review time.
-- After any change to the design doc, do a full cohesion pass before saving: check every section for contradictions with the change. A new decision at the bottom does not automatically update the sections above.
+- After any change to the design doc — whether during writing or during design_review — do a full cohesion pass before saving: check every section for contradictions with the change. A new decision at the bottom does not automatically update the sections above. This applies to edits made in response to human feedback during review, not just initial writing.
 - Resuming: always re-read files from disk. Never use cached content from earlier in the session.

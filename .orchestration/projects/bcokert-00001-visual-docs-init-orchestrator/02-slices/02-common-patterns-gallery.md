@@ -24,7 +24,7 @@ status: draft
 
 ## Edge cases
 
-- Depends on slice 01 README structure — "Common patterns" section is inserted after the lifecycle state machine; don't assume a specific line number, locate by section heading
+- Depends on slice 01 README structure — "Common patterns" section is inserted after `## How a project flows` (the section containing the two core diagrams), before `## Install`; locate by section heading, not line number
 - Each mini-flowchart is ~10-15 nodes — if any diagram grows beyond that, it's a sign the case is too complex and should be simplified or split
 - Folder structure diagram: if d2 tree syntax doesn't render well for a file tree, fall back to a markdown code block with annotations — clarity beats format consistency
 - All 5 diagrams must use the same `vars` styling as slice 01 diagrams

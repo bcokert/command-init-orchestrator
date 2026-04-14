@@ -4,7 +4,7 @@ slice: 01
 order: 1
 project: visual-docs-init-orchestrator
 design: .orchestration/projects/bcokert-00001-visual-docs-init-orchestrator/01-design/design-01.md
-status: tasks_ready
+status: signoff_review
 ---
 
 # Slice 01 — README rewrite + core diagrams

@@ -4,7 +4,7 @@ slice: 02
 order: 2
 project: visual-docs-init-orchestrator
 design: .orchestration/projects/bcokert-00001-visual-docs-init-orchestrator/01-design/design-01.md
-status: draft
+status: specced
 ---
 
 # Slice 02 — Common patterns gallery

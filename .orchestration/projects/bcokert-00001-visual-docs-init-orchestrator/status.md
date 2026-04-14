@@ -1,8 +1,14 @@
-stage: feedback_pending
+stage: spec_review
 project_id: bcokert-00001-visual-docs-init-orchestrator
-next_action: run /design to review and spec the next slice
+next_action: review brief and run /design to continue to breakdown
 branch: project/bcokert-00001-visual-docs-init-orchestrator
 transitions:
+  - stage: spec_review
+    timestamp: 2026-04-14T10:05:00-07:00
+    note: spec written for slice 02
+  - stage: spec_in_progress
+    timestamp: 2026-04-14T10:00:00-07:00
+    note: spec started for slice 02
   - stage: feedback_pending
     timestamp: 2026-04-13T13:15:00-07:00
     note: slice 01 approved — 3 feedback slices added (04, 05, 06)

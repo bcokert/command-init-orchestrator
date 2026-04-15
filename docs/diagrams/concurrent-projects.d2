@@ -1,0 +1,108 @@
+vars: {
+  d2-config: {
+    layout-engine: dagre
+  }
+  colors: {
+    design: "#e3f2fd"
+    design-border: "#1976D2"
+    impl: "#f5f5f5"
+    impl-border: "#9e9e9e"
+    qa: "#f3e5f5"
+    qa-border: "#7B1FA2"
+    archive: "#e8f5e9"
+    archive-border: "#388E3C"
+    feedback: "#fff3e0"
+    feedback-border: "#FF9800"
+    lc: "#555555"
+  }
+}
+
+grid: "" {
+  grid-rows: 3
+  grid-gap: 12
+  style.stroke: transparent
+  style.fill: transparent
+
+  row1: "" {
+    direction: right
+    style.fill: "#fafafa"
+    style.stroke: "#dddddd"
+
+    imp_a: /implement {
+      style.fill: ${colors.design}
+      style.stroke: ${colors.design-border}
+    }
+    wt_a: "worktree A\n(branch project/A)" {
+      style.fill: ${colors.impl}
+      style.stroke: ${colors.impl-border}
+    }
+    tasks_a: implementing {
+      style.fill: ${colors.impl}
+      style.stroke: ${colors.impl-border}
+    }
+    _lbl: project A {
+      shape: text
+      style.font-size: 11
+      style.bold: true
+      style.font-color: ${colors.lc}
+    }
+
+    imp_a -> wt_a
+    wt_a -> tasks_a
+    tasks_a -> _lbl { style.stroke-width: 0 }
+  }
+
+  row2: "" {
+    direction: right
+    style.fill: "#fafafa"
+    style.stroke: "#dddddd"
+
+    imp_b: /implement {
+      style.fill: ${colors.design}
+      style.stroke: ${colors.design-border}
+    }
+    wt_b: "worktree B\n(branch project/B)" {
+      style.fill: ${colors.impl}
+      style.stroke: ${colors.impl-border}
+    }
+    tasks_b: implementing {
+      style.fill: ${colors.impl}
+      style.stroke: ${colors.impl-border}
+    }
+    _lbl: project B {
+      shape: text
+      style.font-size: 11
+      style.bold: true
+      style.font-color: ${colors.lc}
+    }
+
+    imp_b -> wt_b
+    wt_b -> tasks_b
+    tasks_b -> _lbl { style.stroke-width: 0 }
+  }
+
+  row3: "" {
+    direction: right
+    style.fill: "#fafafa"
+    style.stroke: "#dddddd"
+
+    status: /status {
+      style.fill: ${colors.design}
+      style.stroke: ${colors.design-border}
+    }
+    table: "project A — implementing\nproject B — implementing\n(main branch untouched)" {
+      shape: page
+      style.fill: ${colors.impl}
+      style.stroke: ${colors.impl-border}
+    }
+    _lbl: both visible {
+      shape: text
+      style.font-size: 11
+      style.bold: true
+      style.font-color: ${colors.lc}
+    }
+
+    status -> table
+    table -> _lbl { style.stroke-width: 0 }
+  }
+}

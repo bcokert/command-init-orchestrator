@@ -4,6 +4,9 @@ next_action: run /design to review and spec the next slice
 branch: project/bcokert-00001-visual-docs-init-orchestrator
 transitions:
   - stage: feedback_pending
+    timestamp: 2026-04-15T10:05:00-07:00
+    note: slice 07 added to backlog (state change recap output)
+  - stage: feedback_pending
     timestamp: 2026-04-15T10:00:00-07:00
     note: slice 03 approved — slices 04-06 remain in backlog
   - stage: signoff_review

@@ -3,11 +3,11 @@ spec: .orchestration/projects/bcokert-00001-visual-docs-init-orchestrator/03-bri
 slice: 02
 step: 5
 title: Add Common patterns section to README
-status: todo
+status: done
 depends_on: [04-feedback-loop-diagram.md]
 agent_type: architect
-assigned_at: null
-completed_at: null
+assigned_at: 2026-04-14T10:19:00-07:00
+completed_at: 2026-04-14T10:21:00-07:00
 qa_result: null
 ---
 

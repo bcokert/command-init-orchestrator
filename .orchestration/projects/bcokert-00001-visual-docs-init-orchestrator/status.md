@@ -1,8 +1,20 @@
-stage: tasks_ready
+stage: feedback_pending
 project_id: bcokert-00001-visual-docs-init-orchestrator
-next_action: run /implement to start implementation
+next_action: run /design to review and spec the next slice
 branch: project/bcokert-00001-visual-docs-init-orchestrator
 transitions:
+  - stage: feedback_pending
+    timestamp: 2026-04-14T10:25:00-07:00
+    note: slice 02 approved — slices 03-06 remain in backlog
+  - stage: signoff_review
+    timestamp: 2026-04-14T10:22:00-07:00
+    note: QA passed — 5 checks, 0 manual
+  - stage: implementing
+    timestamp: 2026-04-14T10:11:00-07:00
+    note: task execution started
+  - stage: worktree_created
+    timestamp: 2026-04-14T10:10:00-07:00
+    note: worktree created at .orchestration/worktrees/bcokert-00001-visual-docs-init-orchestrator
   - stage: tasks_ready
     timestamp: 2026-04-14T10:08:00-07:00
     note: 5 tasks created for slice 02

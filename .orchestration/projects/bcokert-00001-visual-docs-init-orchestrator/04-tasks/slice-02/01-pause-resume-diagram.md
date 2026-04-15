@@ -3,11 +3,11 @@ spec: .orchestration/projects/bcokert-00001-visual-docs-init-orchestrator/03-bri
 slice: 02
 step: 1
 title: Write pause-resume diagram
-status: todo
+status: done
 depends_on: []
 agent_type: architect
-assigned_at: null
-completed_at: null
+assigned_at: 2026-04-14T10:11:00-07:00
+completed_at: 2026-04-14T10:13:00-07:00
 qa_result: null
 ---
 

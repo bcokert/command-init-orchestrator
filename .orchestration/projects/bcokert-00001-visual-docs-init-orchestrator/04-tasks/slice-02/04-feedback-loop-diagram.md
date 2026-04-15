@@ -3,11 +3,11 @@ spec: .orchestration/projects/bcokert-00001-visual-docs-init-orchestrator/03-bri
 slice: 02
 step: 4
 title: Write feedback-loop diagram
-status: todo
+status: done
 depends_on: [03-multi-slice-sequence-diagram.md]
 agent_type: architect
-assigned_at: null
-completed_at: null
+assigned_at: 2026-04-14T10:17:00-07:00
+completed_at: 2026-04-14T10:19:00-07:00
 qa_result: null
 ---
 

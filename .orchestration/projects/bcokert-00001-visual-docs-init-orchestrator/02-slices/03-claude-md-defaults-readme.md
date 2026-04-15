@@ -4,7 +4,7 @@ slice: 03
 order: 3
 project: visual-docs-init-orchestrator
 design: .orchestration/projects/bcokert-00001-visual-docs-init-orchestrator/01-design/design-01.md
-status: reviewed
+status: specced
 ---
 
 # Slice 03 — CLAUDE.md + defaults/README.md

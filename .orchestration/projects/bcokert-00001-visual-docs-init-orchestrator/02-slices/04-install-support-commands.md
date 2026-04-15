@@ -4,7 +4,7 @@ slice: 4
 order: 4
 project: bcokert-00001-visual-docs-init-orchestrator
 design: .orchestration/projects/bcokert-00001-visual-docs-init-orchestrator/01-design/design-01.md
-status: draft
+status: specced
 follow_up_of: 01
 ---
 

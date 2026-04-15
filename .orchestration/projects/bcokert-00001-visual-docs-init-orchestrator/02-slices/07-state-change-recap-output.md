@@ -4,7 +4,7 @@ slice: 7
 order: 7
 project: bcokert-00001-visual-docs-init-orchestrator
 design: .orchestration/projects/bcokert-00001-visual-docs-init-orchestrator/01-design/design-01.md
-status: draft
+status: specced
 ---
 
 # Slice 7 — State change recap output

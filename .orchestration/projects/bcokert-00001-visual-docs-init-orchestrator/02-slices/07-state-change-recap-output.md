@@ -15,7 +15,7 @@ status: draft
 
 - Format: `※ Slice {NN} · stage {N}/10 {stage_name} · {last event} → {next action} {emoji}`
 - Trailing emoji is one of two: 📄 = human must review something before proceeding, ▶️ = just run the next command
-- Stage numbering (1–10): design_in_progress(1), design_review(2), slicing_in_progress(3), slicing_review(4), spec_in_progress(5), spec_review(6), breakdown_in_progress(7), tasks_ready(8), implementing(9), signoff_review(10)
+- Stage numbering is derived from the ordered stage list in the command — not hardcoded as "/10". If stages are added or removed, the denominator updates automatically. Current sequence has 10 stages; the format is `{N}/{total}` where total = length of the stage list.
 - Examples:
   - `※ Slice 03 · stage 10/10 signoff_review · QA passed → /review to approve 📄`
   - `※ Slice 03 · stage 9/10 implementing · task execution started → QA running ▶️`

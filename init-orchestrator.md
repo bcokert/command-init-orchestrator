@@ -1,6 +1,6 @@
 ---
 description: |
-  Sets up the orchestration layer in the current project. Installs 4 commands to .claude/commands/, creates .orchestration/projects/, adds .orchestration/worktrees/ to .gitignore. Safe to re-run: adds missing components without touching existing project data. Detects and warns about old 7-command installations.
+  Sets up the orchestration layer in the current project. Installs 4 commands to .claude/commands/ and 3 support files to .orchestration/support/, creates .orchestration/projects/, adds .orchestration/worktrees/ to .gitignore. Safe to re-run: adds missing components without touching existing project data. Detects and warns about old 7-command installations.
 allowed-tools:
   - Read
   - Write
@@ -18,13 +18,14 @@ The structure it creates:
 ```
 .claude/
   commands/
-    design.md       — full planning pipeline: interview → slices → spec → breakdown → tasks_ready
+    plan-project.md       — full planning pipeline: interview → slices → spec → breakdown → tasks_ready
     implement.md    — execution pipeline: worktree creation → tasks → QA → signoff_review
     review.md       — signoff: approve (merge + archive) or feedback (new slices)
     status.md       — project status: active projects table + done-this-week recap
 
 .orchestration/
   projects/         — one folder per project, all artifacts inside
+  support/          — support commands read by the main commands at runtime
   worktrees/        — git worktrees for in-flight projects (gitignored)
 ```
 
@@ -60,12 +61,13 @@ If yes: delete them. If no: leave them and continue (new commands will coexist).
 
 ---
 
-## Phase 2 — Install commands
+## Phase 2 — Install commands and support files
 
 Source: `~/.claude/init-orchestrator/defaults/commands/`
-Target: `.claude/commands/`
 
-Commands to install: `design.md`, `implement.md`, `review.md`, `status.md`
+**User commands** — target: `.claude/commands/`
+
+Install: `plan-project.md`, `implement.md`, `review.md`, `status.md`
 
 For each:
 - **Missing:** copy it in, no prompt
@@ -73,6 +75,17 @@ For each:
 - **Different version:** ask "Command `{name}` is at v{old} locally, v{new} available. Update? (yes/no)"
 
 Create `.claude/commands/` if it doesn't exist.
+
+**Support files** — target: `.orchestration/support/`
+
+Install: `slice.md`, `spec.md`, `qa.md`
+
+For each:
+- **Missing:** copy it in, no prompt
+- **Same version** (check `version:` frontmatter field): skip, note "already current"
+- **Different version:** ask "Support file `{name}` is at v{old} locally, v{new} available. Update? (yes/no)"
+
+Create `.orchestration/support/` if it doesn't exist.
 
 If a source file is missing from defaults: note it and skip — don't fail the whole init.
 
@@ -82,7 +95,9 @@ If a source file is missing from defaults: note it and skip — don't fail the w
 
 1. Create `.orchestration/projects/` if it doesn't exist. If it exists: leave it untouched — never delete or overwrite project data.
 
-2. Create `.orchestration/worktrees/` if it doesn't exist. This directory holds git worktrees for in-flight projects — it's local-only and should be gitignored.
+2. Create `.orchestration/support/` if it doesn't exist. (Support files are installed here in Phase 2.)
+
+3. Create `.orchestration/worktrees/` if it doesn't exist. This directory holds git worktrees for in-flight projects — it's local-only and should be gitignored.
 
 ---
 
@@ -109,17 +124,23 @@ Output:
 ```
 Orchestration ready.
 
-Installed:
-  .claude/commands/design.md     v{N}
+Commands:
+  .claude/commands/plan-project.md     v{N}
   .claude/commands/implement.md  v{N}
   .claude/commands/review.md     v{N}
   .claude/commands/status.md     v{N}
 
+Support:
+  .orchestration/support/slice.md  v{N}
+  .orchestration/support/spec.md   v{N}
+  .orchestration/support/qa.md     v{N}
+
 Structure:
   .orchestration/projects/   (project data)
+  .orchestration/support/    (support files)
   .orchestration/worktrees/  (gitignored)
 
-Workflow: /design → /implement → /review
+Workflow: /plan-project → /implement → /review
 Run /status at any time to see active projects.
 ```
 

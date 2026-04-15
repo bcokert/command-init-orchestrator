@@ -40,7 +40,7 @@ If no file was passed, ask: "Which existing doc are we migrating? (path to file)
 
 ## Phase 1 — Design interview
 
-Read and follow `.claude/commands/design.md` in full.
+Read and follow `.claude/commands/plan-project.md` in full.
 
 Seed the context log with facts from Phase 0 as `resolved` items before starting the interview. Only ask about what's genuinely missing or ambiguous — the existing doc compresses the interview significantly.
 
@@ -71,7 +71,7 @@ Wait. Apply any corrections, confirm, proceed.
 
 ## Phase 2 — Slice
 
-Read and follow `.claude/commands/slice.md` in full.
+Read and follow `.orchestration/support/slice.md` in full.
 
 Pass the design doc path from Phase 1 as input. When the slices doc is written and saved, proceed to the review gate.
 
@@ -97,7 +97,7 @@ Wait. Apply any corrections, confirm, proceed.
 
 ## Phase 3 — Spec
 
-Read and follow `.claude/commands/spec.md` in full.
+Read and follow `.orchestration/support/spec.md` in full.
 
 Pass the slices doc path from Phase 2 as input. When the delegation brief is written and saved, proceed to the review gate.
 
@@ -123,7 +123,7 @@ Wait. Apply any corrections, confirm, proceed.
 
 ## Phase 4 — Breakdown
 
-Apply breakdown logic directly (breakdown is internal to /design — no separate command).
+Apply breakdown logic directly (breakdown is internal to /plan-project — no separate command).
 
 Pass the delegation brief path from Phase 3 as input.
 

@@ -90,7 +90,7 @@ Warning: {field} is missing or unreadable in status.md
 ## Phase 3 — Summary table
 
 If no active projects found:
-> "no active projects — run `/design` to start one"
+> "no active projects — run `/plan-project` to start one"
 Skip to Phase 4 (done-this-week recap still runs).
 
 Otherwise, render the table:
@@ -103,9 +103,9 @@ Otherwise, render the table:
 
 Below the table:
 - For each project in a `*_review` stage: one line — "• {id}: run /{command} to continue"
-  - `design_review` → `/design`
-  - `slicing_review` → `/design`
-  - `spec_review` → `/design`
+  - `design_review` → `/plan-project`
+  - `slicing_review` → `/plan-project`
+  - `spec_review` → `/plan-project`
   - `signoff_review` → `/review`
 - For each `worktree_missing` project: "• {id}: worktree missing at {path} — run `git worktree prune`"
 - For each `status.md` with missing required fields: show project row with "⚠ malformed status.md" in the stage column

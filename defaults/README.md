@@ -6,7 +6,7 @@
 
 | Command | What it does |
 |---------|-------------|
-| `/design` | Full planning pipeline: design interview → slicing → spec → breakdown. Commits at each human approval gate. |
+| `/plan-project` | Full planning pipeline: design interview → slicing → spec → breakdown. Commits at each human approval gate. |
 | `/implement` | Creates a git worktree, runs tasks sequentially, runs QA automatically. Stops at signoff for human review. |
 | `/review` | Approve (commits, merges, archives) or provide feedback (adds new slice to backlog). |
 | `/status` | All active projects: stage, worktree, next action, time in stage. Plus done-this-week recap. |
@@ -27,7 +27,7 @@
 | `tasks_ready` | Tasks ready — run `/implement` |
 | `implementing` | Tasks executing in worktree |
 | `signoff_review` | QA passed — run `/review` |
-| `feedback_pending` | Feedback slices added — run `/design` |
+| `feedback_pending` | Feedback slices added — run `/plan-project` |
 | `done` | Slice approved, archived |
 
 ---
@@ -37,7 +37,7 @@
 ```
 .claude/
   commands/
-    design.md          ← /design command
+    plan-project.md    ← /plan-project command
     implement.md       ← /implement command
     review.md          ← /review command
     status.md          ← /status command

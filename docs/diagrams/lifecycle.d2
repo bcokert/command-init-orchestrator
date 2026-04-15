@@ -52,16 +52,16 @@ grid: "" {
       style.stroke-width: 3
       style.font-size: 11
     }
-    _lbl: /design — design + slicing {
+    _lbl: /plan-project — design + slicing {
       shape: text
       style.font-size: 10
       style.bold: true
       style.font-color: ${colors.lc}
     }
 
-    d_ip -> d_rv: /design
-    d_rv -> s_ip: /design
-    s_ip -> s_rv: /design
+    d_ip -> d_rv: /plan-project
+    d_rv -> s_ip: /plan-project
+    s_ip -> s_rv: /plan-project
     d_rv -> d_rv: edit + retry {
       style.stroke: "#FF9800"
       style.font-size: 10
@@ -99,16 +99,16 @@ grid: "" {
       style.fill: ${colors.auto}
       style.stroke: ${colors.auto-border}
     }
-    _lbl: /design — spec + breakdown {
+    _lbl: /plan-project — spec + breakdown {
       shape: text
       style.font-size: 10
       style.bold: true
       style.font-color: ${colors.lc}
     }
 
-    p_ip -> p_rv: /design
-    p_rv -> b_ip: /design
-    b_ip -> tr: /design
+    p_ip -> p_rv: /plan-project
+    p_rv -> b_ip: /plan-project
+    b_ip -> tr: /plan-project
     p_rv -> p_rv: edit + retry {
       style.stroke: "#FF9800"
       style.font-size: 10
@@ -138,7 +138,7 @@ grid: "" {
       style.fill: ${colors.terminal}
       style.stroke: ${colors.terminal-border}
     }
-    fb: "feedback_pending\n(↻ /design)" {
+    fb: "feedback_pending\n(↻ /plan-project)" {
       style.fill: ${colors.feedback}
       style.stroke: ${colors.feedback-border}
     }
@@ -156,5 +156,5 @@ grid: "" {
   }
 }
 
-grid.row1.s_rv -> grid.row2.p_ip: /design
+grid.row1.s_rv -> grid.row2.p_ip: /plan-project
 grid.row2.tr -> grid.row3.impl: /implement

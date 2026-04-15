@@ -107,6 +107,7 @@ Ask: "Approve and close this slice, or provide feedback?"
 7. **Push final state:**
    ```bash
    git add .orchestration/projects/done/YYYY-MM/{id}/
+   git add .orchestration/projects/{id}/
    git commit -m "Slice {NN} done — {project_id}"
    git push
    ```

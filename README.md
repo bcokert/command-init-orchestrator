@@ -75,6 +75,43 @@ Every project moves through these stages, with human review gates and retry loop
 
 ---
 
+## Common patterns
+
+A few patterns worth knowing before you hit them in the wild.
+
+**Pause and resume** — interrupt mid-implementation, re-run picks up from the last completed task:
+
+![Pause and resume: /implement interrupted, re-run picks up from last completed task](docs/diagrams/pause-resume.svg)
+
+**Concurrent projects** — two projects running in parallel on separate worktree branches, both visible in `/status`:
+
+![Concurrent projects: two worktrees, two branches, main untouched](docs/diagrams/concurrent-projects.svg)
+
+**Multi-slice sequence** — backlog advancing in order; future slices stay rough until they become next:
+
+![Multi-slice sequence: slice 01 done, slice 02 current, slice 03+ rough until needed](docs/diagrams/multi-slice-sequence.svg)
+
+**Feedback loop** — `/review` feedback creates a new slice, which flows back through design and implementation:
+
+![Feedback loop: /review feedback → new slice → /design → /implement → /review](docs/diagrams/feedback-loop.svg)
+
+**Project folder layout** — every artifact for a project lives under one directory:
+
+```
+.orchestration/projects/{id}/
+├── 01-design/          ← design doc (written during /design interview)
+├── 02-slices/          ← slice files (one per unit of work)
+├── 03-briefs/          ← delegation briefs (one per specced slice)
+├── 04-tasks/           ← task files, organised by slice
+│   └── slice-01/
+├── 05-qa/              ← QA reports (written automatically after /implement)
+└── status.md           ← ground truth: current stage, transitions, worktree path
+
+.orchestration/projects/done/YYYY-MM/{id}/   ← archived after /review approve
+```
+
+---
+
 ## Install
 
 ```bash

@@ -1,8 +1,14 @@
-stage: spec_review
+stage: tasks_ready
 project_id: bcokert-00001-visual-docs-init-orchestrator
-next_action: review briefs and run /design to continue to breakdown
+next_action: run /implement to start implementation
 branch: project/bcokert-00001-visual-docs-init-orchestrator
 transitions:
+  - stage: tasks_ready
+    timestamp: 2026-04-15T10:25:00-07:00
+    note: 16 tasks created for slices 04-07 (5 + 4 + 4 + 3)
+  - stage: breakdown_in_progress
+    timestamp: 2026-04-15T10:20:00-07:00
+    note: breakdown started for slices 04-07
   - stage: spec_review
     timestamp: 2026-04-15T10:15:00-07:00
     note: specs written for slices 04-07

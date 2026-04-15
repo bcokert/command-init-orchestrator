@@ -31,7 +31,7 @@ If no argument:
    - List the implementing projects with their worktree paths.
    - Output: "No projects ready to start. Pass a project ID to resume one of the above."
    - Stop.
-5. If both lists are empty: "No projects ready — run /design to start one." Stop.
+5. If both lists are empty: "No projects ready — run /plan-project to start one." Stop.
 
 ### Step 2 — Wrong-command routing table
 
@@ -39,10 +39,10 @@ Check this table before doing any work. `/implement` enforces its own rows.
 
 | Stage | Wrong command | Error message |
 |-------|---------------|---------------|
-| `design_in_progress`, `design_review`, `slicing_in_progress`, `slicing_review`, `spec_in_progress`, `spec_review`, `breakdown_in_progress` | `/implement` | "Project '{id}' is in {stage} — run `/design` to continue." |
-| `implementing` | `/design` or `/review` | "Project '{id}' is implementing in worktree {worktree_path} — run `/implement` to resume, or `/review` once QA is complete." |
+| `design_in_progress`, `design_review`, `slicing_in_progress`, `slicing_review`, `spec_in_progress`, `spec_review`, `breakdown_in_progress` | `/implement` | "Project '{id}' is in {stage} — run `/plan-project` to continue." |
+| `implementing` | `/plan-project` or `/review` | "Project '{id}' is implementing in worktree {worktree_path} — run `/implement` to resume, or `/review` once QA is complete." |
 | `signoff_review` | `/implement` with this specific project ID | "Project '{id}' is awaiting signoff — run `/review` to approve or provide feedback." |
-| `feedback_pending` | `/implement` | "Project '{id}' has unprocessed feedback — run `/design` to spec the next slice." |
+| `feedback_pending` | `/implement` | "Project '{id}' has unprocessed feedback — run `/plan-project` to spec the next slice." |
 
 ### Step 3 — Route by current stage
 
@@ -134,7 +134,7 @@ Check this table before doing any work. `/implement` enforces its own rows.
 
 ## Phase 4 — QA and signoff
 
-Read and follow `defaults/commands/qa.md` in full. QA runs automatically — no prompt.
+Read and follow `.orchestration/support/qa.md` in full. QA runs automatically — no prompt.
 
 On QA pass:
 1. Slice file frontmatter: `status: signoff_review`
@@ -153,6 +153,7 @@ On QA pass:
 
    Review the output. When ready, run /review to approve (marks done)
    or provide feedback (creates a new slice in the backlog).
+   ※ Slice {NN} · stage 10/10 signoff_review · QA passed → run /review to approve 📄
    ```
 4. Stop. No commit — that happens in `/review` on approval.
 

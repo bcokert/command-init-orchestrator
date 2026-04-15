@@ -13,7 +13,7 @@ allowed-tools:
 
 # Review — Signoff and close
 
-Your job is to close out a project at `signoff_review`: either approve it (commit, merge, archive) or capture feedback (new slice files, back to `/design`).
+Your job is to close out a project at `signoff_review`: either approve it (commit, merge, archive) or capture feedback (new slice files, back to `/plan-project`).
 
 ---
 
@@ -25,7 +25,7 @@ If a project ID was passed as argument: read `.orchestration/projects/{id}/statu
 
 If no argument:
 1. Scan `.orchestration/projects/*/status.md` for `stage: signoff_review`.
-2. If none: "No projects awaiting signoff. Run /implement to execute tasks, or /design to start a new project." Stop.
+2. If none: "No projects awaiting signoff. Run /implement to execute tasks, or /plan-project to start a new project." Stop.
 3. If one: use it.
 4. If multiple: list them and prompt selection.
 
@@ -33,9 +33,9 @@ If no argument:
 
 | Stage | Error message |
 |-------|---------------|
-| `design_in_progress`, `design_review`, `slicing_in_progress`, `slicing_review`, `spec_in_progress`, `spec_review`, `breakdown_in_progress`, `tasks_ready` | "Project '{id}' is in {stage} — run `/design` to continue." |
+| `design_in_progress`, `design_review`, `slicing_in_progress`, `slicing_review`, `spec_in_progress`, `spec_review`, `breakdown_in_progress`, `tasks_ready` | "Project '{id}' is in {stage} — run `/plan-project` to continue." |
 | `implementing` | "Project '{id}' is still implementing in worktree {worktree_path} — run `/implement` to resume, or wait for QA to complete." |
-| `feedback_pending` + `/implement` attempt | "Project '{id}' has unprocessed feedback — run `/design` to spec the next slice." |
+| `feedback_pending` + `/implement` attempt | "Project '{id}' has unprocessed feedback — run `/plan-project` to spec the next slice." |
 | `done` | "Project '{id}' is already done." |
 
 ---
@@ -106,7 +106,7 @@ Ask: "Approve and close this slice, or provide feedback?"
 
 7. **Push final state:**
    ```bash
-   git add .orchestration/projects/done/YYYY-MM/{id}/status.md
+   git add .orchestration/projects/done/YYYY-MM/{id}/
    git commit -m "Slice {NN} done — {project_id}"
    git push
    ```
@@ -117,6 +117,7 @@ Ask: "Approve and close this slice, or provide feedback?"
 
    Archived to .orchestration/projects/done/YYYY-MM/{id}/
    Branch project/{id} merged to main.
+   ※ Slice {NN} · done · slice {NN} approved → project complete
    ```
 
 ---
@@ -157,7 +158,7 @@ For each piece of feedback:
 4. Update `status.md`:
    ```yaml
    stage: feedback_pending
-   next_action: run /design to review and spec the next slice
+   next_action: run /plan-project to review and spec the next slice
    transitions:
      - stage: feedback_pending
        timestamp: {ISO 8601}
@@ -168,10 +169,11 @@ For each piece of feedback:
    ```
    Feedback recorded — {N} new slice(s) added to backlog.
 
-   Run /design to review and spec the next slice.
+   Run /plan-project to review and spec the next slice.
+   ※ Slice {NN} · feedback_pending · {N} feedback slice(s) added → run /plan-project to spec next 📄
    ```
 
-No commit. Feedback slices are reviewed via `/design` before anything is committed.
+No commit. Feedback slices are reviewed via `/plan-project` before anything is committed.
 
 ---
 
@@ -182,5 +184,5 @@ No commit. Feedback slices are reviewed via `/design` before anything is committ
 - Never remove the worktree until the merge succeeds. A failed merge leaves the project at `signoff_review` with the worktree intact.
 - Check for uncommitted changes before `git worktree remove`. If dirty, stop and warn — do not force-remove.
 - Never overwrite an existing archive target. Fail with clear instructions.
-- Feedback path: no commit. The slice files are `draft` and require human review via `/design` before any commit happens.
+- Feedback path: no commit. The slice files are `draft` and require human review via `/plan-project` before any commit happens.
 - Always re-read `status.md` and slice files from disk. Never use session-cached state.

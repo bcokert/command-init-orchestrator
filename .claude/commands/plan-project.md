@@ -12,7 +12,7 @@ allowed-tools:
   - Skill
 ---
 
-# Design — Full planning pipeline
+# Plan-project — Full planning pipeline
 
 Your job is to take a project from idea to tasks_ready. You own the full planning pipeline: design interview → slicing → spec → breakdown. You resume from wherever the project last stopped.
 
@@ -32,16 +32,16 @@ If no argument:
 
 ### Step 2 — Wrong-command routing table
 
-Full routing table for all commands and stages. `/design` enforces its own rows; `/implement` and `/review` enforce theirs. Check this table first — if the current command is wrong for the current stage, output the error and stop.
+Full routing table for all commands and stages. `/plan-project` enforces its own rows; `/implement` and `/review` enforce theirs. Check this table first — if the current command is wrong for the current stage, output the error and stop.
 
 | Stage | Wrong command | Error message |
 |-------|---------------|---------------|
-| `slicing_in_progress`, `slicing_review` | `/implement` or `/review` | "Project '{id}' is in {stage} — run `/design` to continue." |
-| `spec_in_progress`, `spec_review` | `/implement` or `/review` | "Project '{id}' is in {stage} — run `/design` to continue." |
-| `breakdown_in_progress` | `/implement` or `/review` | "Project '{id}' is in {stage} — run `/design` to continue." |
+| `slicing_in_progress`, `slicing_review` | `/implement` or `/review` | "Project '{id}' is in {stage} — run `/plan-project` to continue." |
+| `spec_in_progress`, `spec_review` | `/implement` or `/review` | "Project '{id}' is in {stage} — run `/plan-project` to continue." |
+| `breakdown_in_progress` | `/implement` or `/review` | "Project '{id}' is in {stage} — run `/plan-project` to continue." |
 | `tasks_ready` | `/review` | "Project '{id}' is in tasks_ready — run `/implement` to start implementation." |
-| `tasks_ready` | `/design` | "Project '{id}' is in tasks_ready — run `/implement` to start implementation." |
-| `implementing`, `qa_in_progress`, `signoff_review`, `feedback_pending` | `/design` | "Project '{id}' is in {stage} — run `/implement` to execute tasks, or `/review` once implementation is complete." |
+| `tasks_ready` | `/plan-project` | "Project '{id}' is in tasks_ready — run `/implement` to start implementation." |
+| `implementing`, `qa_in_progress`, `signoff_review`, `feedback_pending` | `/plan-project` | "Project '{id}' is in {stage} — run `/implement` to execute tasks, or `/review` once implementation is complete." |
 
 Stop after outputting the error. Do no further work.
 
@@ -196,7 +196,7 @@ After writing the design doc:
 1. Append to `status.md` transitions and update stage:
 ```yaml
 stage: design_review
-next_action: review design doc and run /design to continue to slicing
+next_action: review design doc and run /plan-project to continue to slicing
 transitions:
   - stage: design_review
     timestamp: {ISO 8601}
@@ -220,7 +220,8 @@ After slicing, corrections require updating slice files.
 After implementation, corrections cost the most.
 
 Review the design doc. Edit it directly if anything needs changing.
-When ready, run /design to continue to slicing.
+When ready, run /plan-project to continue to slicing.
+※ stage 2/10 design_review · design interview complete → review doc and re-run /plan-project 📄
 ```
 
 **Wait here.** Do not proceed to slicing until Bdon says to continue.
@@ -257,7 +258,7 @@ Always re-read `01-design/design-{NN}.md` from disk before slicing. Never use ca
 
 ### Slicing
 
-Read and follow `.claude/commands/slice.md` in full.
+Read and follow `.orchestration/support/slice.md` in full.
 
 Pass `design-{NN}.md` as input. Produce individual slice files at `.orchestration/projects/{id}/02-slices/{NN}-{slug}.md`. Each slice: Goal + Happy path + Edge cases, 30–50 lines, hard cap 100.
 
@@ -266,7 +267,7 @@ Pass `design-{NN}.md` as input. Produce individual slice files at `.orchestratio
 1. Update `status.md`:
 ```yaml
 stage: slicing_review
-next_action: review slice files and run /design to continue to spec
+next_action: review slice files and run /plan-project to continue to spec
 transitions:
   - stage: slicing_review
     timestamp: {ISO 8601}
@@ -290,7 +291,8 @@ them out when they become next.
 
 Every slice requires human review before it can be specced.
 Review slice 01, edit directly if needed, then set status: reviewed.
-When ready, run /design to continue to spec.
+When ready, run /plan-project to continue to spec.
+※ Slice 01 · stage 4/10 slicing_review · slicing complete → review slices and re-run /plan-project 📄
 ```
 
 **Wait here.**
@@ -338,13 +340,13 @@ Slice {NN} — {title} — is draft and hasn't been reviewed yet.
 
 Review the slice file at .orchestration/projects/{id}/02-slices/{NN}-{slug}.md.
 Edit it directly if anything needs changing, then set status: reviewed.
-When ready, run /design to continue to spec.
+When ready, run /plan-project to continue to spec.
 ```
 Stop. Do not spec a draft slice.
 
 ### Writing the brief
 
-Read and follow `.claude/commands/spec.md` in full.
+Read and follow `.orchestration/support/spec.md` in full.
 
 Write the delegation brief to `.orchestration/projects/{id}/03-briefs/{NN}-{slug}.md`.
 
@@ -354,7 +356,7 @@ Write the delegation brief to `.orchestration/projects/{id}/03-briefs/{NN}-{slug
 2. Update `status.md`:
 ```yaml
 stage: spec_review
-next_action: review brief and run /design to continue to breakdown
+next_action: review brief and run /plan-project to continue to breakdown
 transitions:
   - stage: spec_review
     timestamp: {ISO 8601}
@@ -379,7 +381,8 @@ Light review — check:
 - Constraints are specific enough to enforce
 - Breakdown maps cleanly to the slice
 
-Run /design to continue to breakdown, or edit the brief directly first.
+Run /plan-project to continue to breakdown, or edit the brief directly first.
+※ Slice {NN} · stage 6/10 spec_review · spec complete → review brief and re-run /plan-project 📄
 ```
 
 **Wait here.**
@@ -471,7 +474,26 @@ Tasks ready — slice {NN}: {title}
 {N} tasks created in .orchestration/projects/{id}/04-tasks/slice-{NN}/
 
 Run /implement to start implementation.
+※ Slice {NN} · stage 8/10 tasks_ready · breakdown complete → run /implement 📄
 ```
+
+---
+
+## Stage sequence
+
+Ordered pipeline stages — used to derive recap denominator:
+
+```
+design_in_progress, design_review, slicing_in_progress, slicing_review,
+spec_in_progress, spec_review, breakdown_in_progress, tasks_ready,
+implementing, signoff_review
+```
+
+Count = 10. Recap format: `※ [Slice {NN} · ] stage {N}/{count} {stage_name} · {last event} → {next action} {emoji}`
+- 📄 = human must review something before proceeding
+- ▶️ = just run the next command
+- Omit slice number if no slice has been assigned yet (e.g. design_review on a new project)
+- `feedback_pending` and `done` are outside the main sequence — render without stage number
 
 ---
 

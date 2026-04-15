@@ -41,7 +41,7 @@ grid: "" {
       style.fill: ${colors.feedback}
       style.stroke: ${colors.feedback-border}
     }
-    design: /design {
+    design: /plan-project {
       style.fill: ${colors.design}
       style.stroke: ${colors.design-border}
     }
@@ -57,7 +57,7 @@ grid: "" {
     }
 
     review -> new_slice: feedback
-    new_slice -> design: run /design
+    new_slice -> design: run /plan-project
     design -> spec
     spec -> _lbl { style.stroke-width: 0 }
   }

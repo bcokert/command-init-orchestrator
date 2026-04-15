@@ -26,7 +26,7 @@ Run `/init-orchestrator` in any git repo. You get a 4-command system for taking 
 
 | Command | What it does |
 |---------|-------------|
-| `/design` | Full planning pipeline: design interview → slicing → spec → breakdown. Stops when tasks are ready. Commits at each human approval gate. |
+| `/plan-project` | Full planning pipeline: design interview → slicing → spec → breakdown. Stops when tasks are ready. Commits at each human approval gate. |
 | `/implement` | Execution pipeline: creates a git worktree, runs tasks sequentially, runs QA automatically. Stops at signoff for human review. Nothing committed until `/review` approves. |
 | `/review` | Closes the loop: approve (commits everything, merges branch, archives project) or provide feedback (adds new slices to backlog). |
 | `/status` | All active projects in a table: stage, worktree, next action, time in stage. Plus a done-this-week recap. |
@@ -46,9 +46,9 @@ Run `/init-orchestrator` in any git repo. You get a 4-command system for taking 
 ## Quick start
 
 ```
-1. /design — describe what you want to build
+1. /plan-project — describe what you want to build
 2. Review the design doc, edit if needed, iterate until it's right
-   Approve: re-run /design to continue to slicing
+   Approve: re-run /plan-project to continue to slicing
 3. Review slice 01, iterate
    Approve: generates the spec (implementation plan)
 4. Review the spec — light pass, the heavy lifting is in design and slicing
@@ -93,13 +93,13 @@ A few patterns worth knowing before you hit them in the wild.
 
 **Feedback loop** — `/review` feedback creates a new slice, which flows back through design and implementation:
 
-![Feedback loop: /review feedback → new slice → /design → /implement → /review](docs/diagrams/feedback-loop.svg)
+![Feedback loop: /review feedback → new slice → /plan-project → /implement → /review](docs/diagrams/feedback-loop.svg)
 
 **Project folder layout** — every artifact for a project lives under one directory:
 
 ```
 .orchestration/projects/{id}/
-├── 01-design/          ← design doc (written during /design interview)
+├── 01-design/          ← design doc (written during /plan-project interview)
 ├── 02-slices/          ← slice files (one per unit of work)
 ├── 03-briefs/          ← delegation briefs (one per specced slice)
 ├── 04-tasks/           ← task files, organised by slice

@@ -4,7 +4,7 @@ slice: 04
 order: 4
 project: status-per-slice-view
 design: .orchestration/projects/bcokert-00002-status-per-slice-view/01-design/design-01.md
-status: reviewed
+status: specced
 ---
 
 # Slice 04 — docs and diagrams: reflect extended slice state machine

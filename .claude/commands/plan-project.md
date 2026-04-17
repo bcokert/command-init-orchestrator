@@ -1,5 +1,5 @@
 ---
-version: 2.1.0
+version: 2.2.0
 description: |
   Full planning pipeline for a single project: design interview → slicing → spec → breakdown → tasks_ready. Resumes from wherever the project left off. Commits and pushes at each human approval gate. Ends when tasks are ready for /implement.
 allowed-tools:
@@ -508,4 +508,5 @@ Count = 10. Recap format: `※ [Slice {NN} · ] stage {N}/{count} {stage_name} �
 - Never commit or push mid-stage — only at gates, on approval. "On approval" means when the human re-runs the command after reviewing, not when the gate is first reached.
 - The execution pipeline (implement → QA → signoff_review) has its own commit cadence: nothing is committed until the human runs /review and approves. All implementation changes, task status updates, QA reports, and slice status changes stay uncommitted so the human can see the full diff at review time.
 - After any change to the design doc — whether during writing or during design_review — do a full cohesion pass before saving: check every section for contradictions with the change. A new decision at the bottom does not automatically update the sections above. This applies to edits made in response to human feedback during review, not just initial writing.
+- **Root context conflicts require a prompt, not a note.** If a design decision contradicts or supersedes something in the project's root context (`.root-context/*`) or `CLAUDE.md`, do not leave a note in the design doc. Ask: "This decision conflicts with [file] — [what it says]. Update [root context|CLAUDE.md] to reflect the new direction?" If yes: update the file, note what changed at the bottom of the design doc under "Root context updates made". If no: record the conflict in the design doc as an open question. Never update root context silently. Always ask first — root context varies by project and may be shared or sensitive.
 - Resuming: always re-read files from disk. Never use cached content from earlier in the session.

@@ -28,7 +28,8 @@ weeks away ("what is the state of everything, from scratch?").
 - No slice-level visibility in either view.
 - Done-this-week section runs at the end of Phase 2.
 - Slice files store `status` (draft → reviewed → specced → tasks_ready → implementing → done)
-  but no timestamp on status changes.
+  but no timestamp on status changes. `qa_in_progress` and `signoff_review` are project-level
+  stages set by implement — they are not currently reflected in slice file status.
 - Task files store `assigned_at` and `completed_at`.
 
 ## Desired end state
@@ -43,8 +44,16 @@ weeks away ("what is the state of everything, from scratch?").
 - Done-this-week section removed.
 - Slice state timestamps are stored on write — requires adding `status_updated_at`
   to slice file frontmatter wherever slice status changes (plan-project, implement).
+- The full slice state machine is extended to include QA and signoff:
+  `draft → reviewed → specced → tasks_ready → implementing → qa_in_progress → signoff_review → done`.
+  The implement command sets `qa_in_progress` when QA begins and `signoff_review` when QA passes.
+  This makes QA state visible in the status view and machine-readable for a future dashboard.
 - Single-project view (Phase 1) is unchanged for now. Filter/sort args (`--owner`, `--sort`)
   are a future extension and are out of scope here.
+- Diagram and README updates are in scope: the lifecycle diagram (`lifecycle.d2`) needs the
+  two new slice states, `artifacts.d2` needs the updated slice frontmatter fields, and both
+  `README.md` and `defaults/README.md` need prose updated if they describe the slice state
+  machine or implement flow.
 - Default sort order for projects: most recently updated first (latest transition timestamp
   across any slice in the project). Secondary sort: project id descending.
 
@@ -52,13 +61,14 @@ weeks away ("what is the state of everything, from scratch?").
 
 - Read-only command. Status never modifies a file.
 - Partial reads over crashes — missing field produces a warning inline, not a stop.
-- Slice state machine is: `draft → reviewed → specced → tasks_ready → implementing → done`.
+- Slice state machine is:
+  `draft → reviewed → specced → tasks_ready → implementing → qa_in_progress → signoff_review → done`.
   Next action is derived from current state (deterministic mapping below).
 - Task counts come from counting `.md` files in `04-tasks/slice-{NN}/`. Done task count
   comes from files where `status: done` in frontmatter. No assumption about file naming.
 - The `status_updated_at` write happens in plan-project (slice status changes) and
-  implement (slice transitions to `implementing` and `done`). Other commands don't touch
-  slice status.
+  implement (slice transitions to `implementing`, `qa_in_progress`, `signoff_review`, and `done`).
+  Other commands don't touch slice status.
 - Don't add filter/sort to Phase 2 in this pass — keep scope tight.
 
 ## Derived next-action mapping
@@ -70,6 +80,8 @@ weeks away ("what is the state of everything, from scratch?").
 | `specced`           | run `/plan-project` to break down |
 | `tasks_ready`       | run `/implement` to start |
 | `implementing`      | in progress — run `/implement` to resume |
+| `qa_in_progress`    | QA running — run `/implement` to resume |
+| `signoff_review`    | QA passed — run `/review` to approve or give feedback |
 | `done`              | (condensed row — no next action shown) |
 
 ## Key edge cases
@@ -83,6 +95,7 @@ weeks away ("what is the state of everything, from scratch?").
 - All projects done: "no active projects — run `/plan-project` to start one".
 - Most-recently-updated sort: if a project has no transitions at all (malformed), sort it last.
 - Done slice with missing done timestamp: show `done —` rather than crashing.
+- Slice in `signoff_review`: treated as active (not condensed), shows next action "run `/review`".
 
 ## Resolved design decisions
 

@@ -1,4 +1,5 @@
 ---
+version: 1.0.0
 description: |
   Sets up the orchestration layer in the current project. Installs 4 commands to .claude/commands/ and 3 support files to .orchestration/support/, creates .orchestration/projects/, adds .orchestration/worktrees/ to .gitignore. Safe to re-run: adds missing components without touching existing project data. Detects and warns about old 7-command installations.
 allowed-tools:

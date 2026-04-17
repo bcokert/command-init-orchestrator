@@ -24,6 +24,8 @@ review gates the system was built to enforce.
 
 If you change `defaults/commands/`, also sync `.claude/commands/` so the change applies locally (enables dogfooding the update immediately).
 
+**Version bumping is required** whenever you modify any file in `defaults/` or `init-orchestrator.md`. Clients compare `version:` fields to decide whether to self-update — a content change with no version bump is invisible to them. Bump patch for fixes, minor for new behaviour, major for breaking changes.
+
 ## Diagrams
 
 `docs/diagrams/*.d2` — source of truth. Never edit SVGs directly.

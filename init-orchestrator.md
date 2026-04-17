@@ -1,7 +1,7 @@
 ---
-version: 1.0.0
+version: 1.1.0
 description: |
-  Sets up the orchestration layer in the current project. Installs 4 commands to .claude/commands/ and 3 support files to .orchestration/support/, creates .orchestration/projects/, adds .orchestration/worktrees/ to .gitignore. Safe to re-run: adds missing components without touching existing project data. Detects and warns about old 7-command installations.
+  Sets up the orchestration layer in the current project. Installs 4 commands to .claude/commands/, 6 agents to .claude/agents/, and 3 support files to .orchestration/support/, creates .orchestration/projects/, adds .orchestration/worktrees/ to .gitignore. Safe to re-run: adds missing components without touching existing project data. Detects and warns about old 7-command installations.
 allowed-tools:
   - Read
   - Write
@@ -19,15 +19,22 @@ The structure it creates:
 ```
 .claude/
   commands/
-    plan-project.md       — full planning pipeline: interview → slices → spec → breakdown → tasks_ready
-    implement.md    — execution pipeline: worktree creation → tasks → QA → signoff_review
-    review.md       — signoff: approve (merge + archive) or feedback (new slices)
-    status.md       — project status: active projects table + done-this-week recap
+    plan-project.md  — full planning pipeline: interview → slices → spec → breakdown → tasks_ready
+    implement.md     — execution pipeline: worktree creation → tasks → QA → signoff_review
+    review.md        — signoff: approve (merge + archive) or feedback (new slices)
+    status.md        — project status: active projects table + done-this-week recap
+  agents/
+    architect.md     — structural decisions and design review
+    client-dev.md    — frontend implementation
+    lead.md          — dev team orchestration
+    quality.md       — testing, QA, and verification
+    server-dev.md    — backend implementation
+    standards.md     — code quality and convention enforcement
 
 .orchestration/
-  projects/         — one folder per project, all artifacts inside
-  support/          — support commands read by the main commands at runtime
-  worktrees/        — git worktrees for in-flight projects (gitignored)
+  projects/          — one folder per project, all artifacts inside
+  support/           — support commands read by the main commands at runtime
+  worktrees/         — git worktrees for in-flight projects (gitignored)
 ```
 
 ---
@@ -87,6 +94,17 @@ For each:
 - **Different version:** ask "Support file `{name}` is at v{old} locally, v{new} available. Update? (yes/no)"
 
 Create `.orchestration/support/` if it doesn't exist.
+
+**Agent files** — source: `~/.claude/init-orchestrator/defaults/agents/` — target: `.claude/agents/`
+
+Install: `architect.md`, `client-dev.md`, `lead.md`, `quality.md`, `server-dev.md`, `standards.md`
+
+For each:
+- **Missing:** copy it in, no prompt
+- **Same version** (check `version:` frontmatter field): skip, note "already current"
+- **Different version:** ask "Agent `{name}` is at v{old} locally, v{new} available. Update? (yes/no)"
+
+Create `.claude/agents/` if it doesn't exist.
 
 If a source file is missing from defaults: note it and skip — don't fail the whole init.
 
@@ -180,6 +198,14 @@ Support:
   .orchestration/support/slice.md  v{N}
   .orchestration/support/spec.md   v{N}
   .orchestration/support/qa.md     v{N}
+
+Agents:
+  .claude/agents/architect.md    v{N}
+  .claude/agents/client-dev.md   v{N}
+  .claude/agents/lead.md         v{N}
+  .claude/agents/quality.md      v{N}
+  .claude/agents/server-dev.md   v{N}
+  .claude/agents/standards.md    v{N}
 
 Structure:
   .orchestration/projects/   (project data)

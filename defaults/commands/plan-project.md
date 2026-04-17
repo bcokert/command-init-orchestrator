@@ -203,12 +203,7 @@ transitions:
     note: design interview complete
 ```
 
-2. Commit and push:
-   - `git add .orchestration/projects/{id}/01-design/design-{NN}.md .orchestration/projects/{id}/status.md`
-   - `git commit -m "Design interview complete — {project_id}"`
-   - `git push` — if push fails, report clearly and continue. Status is committed locally.
-
-3. Show the review gate:
+2. Show the review gate:
 
 ```
 Design interview complete — {project_id}
@@ -234,14 +229,14 @@ When ready, run /plan-project to continue to slicing.
 
 Check the current stage before writing anything:
 
-- **Entering from `slicing_review`** (stage is already `slicing_review`): commit any pending changes to slice files before proceeding:
-  - `git add .orchestration/projects/{id}/02-slices/`
+- **Entering from `slicing_review`** (stage is already `slicing_review`): commit any pending changes to slice files (original generated content + any edits made during review):
+  - `git add .orchestration/projects/{id}/02-slices/ .orchestration/projects/{id}/status.md`
   - `git commit -m "Slices approved — {project_id}"` — only if files have changes; skip if clean
   - `git push`
-  Then skip straight to the slicing gate below. No re-slicing.
-- **Entering from `design_review`**: commit any pending changes to the design doc before doing anything else:
-  - `git add .orchestration/projects/{id}/01-design/design-{NN}.md`
-  - `git commit -m "Design approved — {project_id}"` — only if the file has changes; skip if clean
+  Then proceed directly to Phase 6 (spec). Do not re-slice, do not show the slicing gate again.
+- **Entering from `design_review`**: commit any pending changes to the design doc (original + any edits made during review):
+  - `git add .orchestration/projects/{id}/01-design/design-{NN}.md .orchestration/projects/{id}/status.md`
+  - `git commit -m "Design approved — {project_id}"` — only if files have changes; skip if clean
   - `git push`
   Then write `slicing_in_progress` to `status.md`:
   ```yaml
@@ -274,12 +269,7 @@ transitions:
     note: {N} slices created
 ```
 
-2. Commit and push:
-   - `git add .orchestration/projects/{id}/02-slices/ .orchestration/projects/{id}/status.md`
-   - `git commit -m "Slicing complete — {project_id} ({N} slices)"`
-   - `git push` — if push fails, report clearly and continue. Status is committed locally.
-
-3. Show the slicing gate:
+2. Show the slicing gate:
 
 ```
 Slicing complete — {project_id}
@@ -305,11 +295,11 @@ When ready, run /plan-project to continue to spec.
 
 Check the current stage before writing anything:
 
-- **Entering from `spec_review`** (stage is already `spec_review`): commit any pending changes to the brief before proceeding:
-  - `git add .orchestration/projects/{id}/03-briefs/{NN}-*.md`
-  - `git commit -m "Spec approved — {project_id} slice {NN}"` — only if the file has changes; skip if clean
+- **Entering from `spec_review`** (stage is already `spec_review`): commit any pending changes to the brief (original + any edits made during review):
+  - `git add .orchestration/projects/{id}/03-briefs/{NN}-*.md .orchestration/projects/{id}/02-slices/{NN}-*.md .orchestration/projects/{id}/status.md`
+  - `git commit -m "Spec approved — {project_id} slice {NN}"` — only if files have changes; skip if clean
   - `git push`
-  Then skip straight to the spec gate below. No re-spec.
+  Then proceed directly to Phase 7 (breakdown). Do not re-spec, do not show the spec gate again.
 - **Entering from `slicing_review`**: write `spec_in_progress` to `status.md` first:
   ```yaml
   stage: spec_in_progress
@@ -363,12 +353,7 @@ transitions:
     note: spec written for slice {NN}
 ```
 
-3. Commit and push:
-   - `git add .orchestration/projects/{id}/03-briefs/ .orchestration/projects/{id}/02-slices/{NN}-*.md .orchestration/projects/{id}/status.md`
-   - `git commit -m "Spec complete — {project_id} slice {NN}"`
-   - `git push` — if push fails, report clearly and continue. Status is committed locally.
-
-4. Show the spec gate (light review):
+3. Show the spec gate (light review):
 
 ```
 Spec complete — slice {NN}: {title}

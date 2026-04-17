@@ -4,7 +4,7 @@ slice: 01
 order: 1
 project: status-per-slice-view
 design: .orchestration/projects/bcokert-00002-status-per-slice-view/01-design/design-01.md
-status: reviewed
+status: specced
 ---
 
 # Slice 01 — plan-project: write status_updated_at on slice status changes

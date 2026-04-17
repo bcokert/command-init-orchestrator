@@ -4,7 +4,7 @@ slice: 03
 order: 3
 project: status-per-slice-view
 design: .orchestration/projects/bcokert-00002-status-per-slice-view/01-design/design-01.md
-status: draft
+status: reviewed
 ---
 
 # Slice 03 — status command: per-slice grouped view

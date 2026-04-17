@@ -1,5 +1,21 @@
 # Agent context — command-init-orchestrator
 
+## IMPORTANT — Orchestration change tracking
+<!-- installed by init-orchestrator -->
+
+Before making any code, document, or artifact changes in this repository, verify the work
+is covered by an active project and slice in `.orchestration/projects/`.
+
+If there is no active project covering the change:
+1. Ask the user whether to create a new project (`/plan-project`) or add it as a slice to an existing one.
+2. Only proceed without a project if the user explicitly confirms this is a one-off change.
+
+This rule exists to prevent commits from bypassing the planning and review process. Changes
+made outside the orchestration system skip spec, breakdown, QA, and signoff — the exact
+review gates the system was built to enforce.
+
+---
+
 ## Two sets of command files
 
 `.claude/commands/` — local install. Changes here affect only this repo.

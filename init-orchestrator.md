@@ -116,7 +116,52 @@ If `.gitignore` doesn't exist: create it with that entry.
 
 ---
 
-## Phase 5 — Done
+## Phase 5 — CLAUDE.md tracking rule
+
+Check `CLAUDE.md` at the project root for the line `<!-- installed by init-orchestrator -->`.
+
+If found: skip this phase — note "CLAUDE.md tracking rule already present".
+
+If not found, tell the user:
+
+```
+The orchestration system works best when all changes are tracked through projects and
+slices. Without a tracking rule in CLAUDE.md, the agent can make ad-hoc commits that
+bypass planning, spec, QA, and signoff — the exact gates the system is built to enforce.
+
+A tracking rule tells the agent to always check for an active project before making
+changes, and to ask you before proceeding without one.
+```
+
+Ask: "Add orchestration tracking rule to CLAUDE.md? (yes/no)"
+
+If yes: append the following section to `CLAUDE.md`. If `CLAUDE.md` doesn't exist: create it with only this section.
+
+```markdown
+## IMPORTANT — Orchestration change tracking
+<!-- installed by init-orchestrator -->
+
+Before making any code, document, or artifact changes in this repository, verify the work
+is covered by an active project and slice in `.orchestration/projects/`.
+
+If there is no active project covering the change:
+1. Ask the user whether to create a new project (`/plan-project`) or add it as a slice to an existing one.
+2. Only proceed without a project if the user explicitly confirms this is a one-off change.
+
+This rule exists to prevent commits from bypassing the planning and review process. Changes
+made outside the orchestration system skip spec, breakdown, QA, and signoff — the exact
+review gates the system was built to enforce.
+```
+
+If no: skip. Note:
+```
+Skipped. You can add it later by re-running /init-orchestrator, or paste the section
+manually — look for "Orchestration change tracking" in the init-orchestrator docs.
+```
+
+---
+
+## Phase 6 — Done
 
 Report what was created, updated, or skipped. Show the installed commands and their versions.
 
@@ -140,6 +185,9 @@ Structure:
   .orchestration/support/    (support files)
   .orchestration/worktrees/  (gitignored)
 
+CLAUDE.md:
+  tracking rule installed     (or "skipped — re-run /init-orchestrator to add")
+
 Workflow: /plan-project → /implement → /review
 Run /status at any time to see active projects.
 ```
@@ -154,3 +202,5 @@ Run /status at any time to see active projects.
 - When updating `.gitignore`, only append — never rewrite or reorder existing entries.
 - If a source command file is missing from defaults: note it and skip. Don't fail the whole init.
 - Idempotent: running twice produces the same state as running once.
+- Never modify the CLAUDE.md tracking rule section once installed — if it exists, skip Phase 5.
+- Detect the tracking rule by the comment marker `<!-- installed by init-orchestrator -->`, not by heading text (headings may be edited by the user).

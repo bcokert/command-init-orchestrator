@@ -1,6 +1,7 @@
 vars: {
   d2-config: {
     layout-engine: dagre
+    pad: 0
   }
   colors: {
     design: "#e3f2fd"
@@ -23,10 +24,13 @@ grid: "" {
   style.stroke: transparent
   style.fill: transparent
 
-  row1: "" {
+  row1: "project A" {
     direction: right
     style.fill: "#fafafa"
     style.stroke: "#dddddd"
+    style.font-size: 11
+    style.bold: true
+    style.font-color: ${colors.lc}
 
     imp_a: /implement {
       style.fill: ${colors.design}
@@ -40,22 +44,18 @@ grid: "" {
       style.fill: ${colors.impl}
       style.stroke: ${colors.impl-border}
     }
-    _lbl: project A {
-      shape: text
-      style.font-size: 11
-      style.bold: true
-      style.font-color: ${colors.lc}
-    }
 
     imp_a -> wt_a
     wt_a -> tasks_a
-    tasks_a -> _lbl { style.stroke-width: 0 }
   }
 
-  row2: "" {
+  row2: "project B" {
     direction: right
     style.fill: "#fafafa"
     style.stroke: "#dddddd"
+    style.font-size: 11
+    style.bold: true
+    style.font-color: ${colors.lc}
 
     imp_b: /implement {
       style.fill: ${colors.design}
@@ -69,22 +69,18 @@ grid: "" {
       style.fill: ${colors.impl}
       style.stroke: ${colors.impl-border}
     }
-    _lbl: project B {
-      shape: text
-      style.font-size: 11
-      style.bold: true
-      style.font-color: ${colors.lc}
-    }
 
     imp_b -> wt_b
     wt_b -> tasks_b
-    tasks_b -> _lbl { style.stroke-width: 0 }
   }
 
-  row3: "" {
+  row3: "both visible" {
     direction: right
     style.fill: "#fafafa"
     style.stroke: "#dddddd"
+    style.font-size: 11
+    style.bold: true
+    style.font-color: ${colors.lc}
 
     status: /status {
       style.fill: ${colors.design}
@@ -95,14 +91,7 @@ grid: "" {
       style.fill: ${colors.impl}
       style.stroke: ${colors.impl-border}
     }
-    _lbl: both visible {
-      shape: text
-      style.font-size: 11
-      style.bold: true
-      style.font-color: ${colors.lc}
-    }
 
     status -> table
-    table -> _lbl { style.stroke-width: 0 }
   }
 }

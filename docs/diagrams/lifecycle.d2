@@ -1,6 +1,7 @@
 vars: {
   d2-config: {
     layout-engine: dagre
+    pad: 0
   }
   colors: {
     gate: "#e8f4f8"
@@ -21,10 +22,13 @@ grid: "" {
   style.stroke: transparent
   style.fill: transparent
 
-  row1: "" {
+  row1: "/plan-project — design + slicing" {
     direction: right
     style.fill: "#fafafa"
     style.stroke: "#dddddd"
+    style.font-size: 11
+    style.bold: true
+    style.font-color: ${colors.lc}
 
     d_ip: design_in_progress {
       style.fill: ${colors.auto}
@@ -52,31 +56,33 @@ grid: "" {
       style.stroke-width: 3
       style.font-size: 11
     }
-    _lbl: /plan-project — design + slicing {
-      shape: text
-      style.font-size: 10
-      style.bold: true
-      style.font-color: ${colors.lc}
-    }
 
-    d_ip -> d_rv: /plan-project
-    d_rv -> s_ip: /plan-project
-    s_ip -> s_rv: /plan-project
-    d_rv -> d_rv: edit + retry {
-      style.stroke: "#FF9800"
-      style.font-size: 10
+    d_ip -> d_rv: /plan-project {
+      style.font-size: 9
     }
-    s_rv -> s_rv: edit + retry {
-      style.stroke: "#FF9800"
-      style.font-size: 10
+    d_rv -> s_ip: /plan-project {
+      style.font-size: 9
     }
-    s_rv -> _lbl { style.stroke-width: 0 }
+    s_ip -> s_rv: /plan-project {
+      style.font-size: 9
+    }
+    d_rv -> d_rv: "edit + retry" {
+      style.stroke: "#FF9800"
+      style.font-size: 9
+    }
+    s_rv -> s_rv: "edit + retry" {
+      style.stroke: "#FF9800"
+      style.font-size: 9
+    }
   }
 
-  row2: "" {
+  row2: "/plan-project — spec + breakdown" {
     direction: right
     style.fill: "#fafafa"
     style.stroke: "#dddddd"
+    style.font-size: 11
+    style.bold: true
+    style.font-color: ${colors.lc}
 
     p_ip: spec_in_progress {
       style.fill: ${colors.auto}
@@ -99,27 +105,29 @@ grid: "" {
       style.fill: ${colors.auto}
       style.stroke: ${colors.auto-border}
     }
-    _lbl: /plan-project — spec + breakdown {
-      shape: text
-      style.font-size: 10
-      style.bold: true
-      style.font-color: ${colors.lc}
-    }
 
-    p_ip -> p_rv: /plan-project
-    p_rv -> b_ip: /plan-project
-    b_ip -> tr: /plan-project
-    p_rv -> p_rv: edit + retry {
-      style.stroke: "#FF9800"
-      style.font-size: 10
+    p_ip -> p_rv: /plan-project {
+      style.font-size: 9
     }
-    tr -> _lbl { style.stroke-width: 0 }
+    p_rv -> b_ip: /plan-project {
+      style.font-size: 9
+    }
+    b_ip -> tr: /plan-project {
+      style.font-size: 9
+    }
+    p_rv -> p_rv: "edit + retry" {
+      style.stroke: "#FF9800"
+      style.font-size: 9
+    }
   }
 
-  row3: "" {
+  row3: "/implement + /review" {
     direction: right
     style.fill: "#fafafa"
     style.stroke: "#dddddd"
+    style.font-size: 11
+    style.bold: true
+    style.font-color: ${colors.lc}
 
     impl: implementing {
       style.fill: ${colors.auto}
@@ -142,19 +150,22 @@ grid: "" {
       style.fill: ${colors.feedback}
       style.stroke: ${colors.feedback-border}
     }
-    _lbl: /implement + /review {
-      shape: text
-      style.font-size: 10
-      style.bold: true
-      style.font-color: ${colors.lc}
-    }
 
-    impl -> sg_rv: /implement (QA pass)
-    sg_rv -> done: /review approve
-    sg_rv -> fb: /review feedback
-    fb -> _lbl { style.stroke-width: 0 }
+    impl -> sg_rv: "/implement (QA pass)" {
+      style.font-size: 9
+    }
+    sg_rv -> done: "/review approve" {
+      style.font-size: 9
+    }
+    sg_rv -> fb: "/review feedback" {
+      style.font-size: 9
+    }
   }
 }
 
-grid.row1.s_rv -> grid.row2.p_ip: /plan-project
-grid.row2.tr -> grid.row3.impl: /implement
+grid.row1.s_rv -> grid.row2.p_ip: /plan-project {
+  style.font-size: 9
+}
+grid.row2.tr -> grid.row3.impl: /implement {
+  style.font-size: 9
+}

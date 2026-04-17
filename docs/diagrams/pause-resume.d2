@@ -1,6 +1,7 @@
 vars: {
   d2-config: {
     layout-engine: dagre
+    pad: 0
   }
   colors: {
     design: "#e3f2fd"
@@ -23,10 +24,13 @@ grid: "" {
   style.stroke: transparent
   style.fill: transparent
 
-  row1: "" {
+  row1: "first run" {
     direction: right
     style.fill: "#fafafa"
     style.stroke: "#dddddd"
+    style.font-size: 11
+    style.bold: true
+    style.font-color: ${colors.lc}
 
     t1: "task 1\n(done)" {
       style.fill: ${colors.archive}
@@ -41,22 +45,18 @@ grid: "" {
       style.fill: ${colors.feedback}
       style.stroke: ${colors.feedback-border}
     }
-    _lbl: first run {
-      shape: text
-      style.font-size: 11
-      style.bold: true
-      style.font-color: ${colors.lc}
-    }
 
     t1 -> t2
     t2 -> stop
-    stop -> _lbl { style.stroke-width: 0 }
   }
 
-  row2: "" {
+  row2: "re-run" {
     direction: right
     style.fill: "#fafafa"
     style.stroke: "#dddddd"
+    style.font-size: 11
+    style.bold: true
+    style.font-color: ${colors.lc}
 
     rerun: /implement {
       style.fill: ${colors.design}
@@ -74,16 +74,11 @@ grid: "" {
       style.fill: ${colors.archive}
       style.stroke: ${colors.archive-border}
     }
-    _lbl: re-run {
-      shape: text
-      style.font-size: 11
-      style.bold: true
-      style.font-color: ${colors.lc}
-    }
 
-    rerun -> t3: picks up here
+    rerun -> t3: "picks up here" {
+      style.font-size: 9
+    }
     t3 -> qa
     qa -> signoff
-    signoff -> _lbl { style.stroke-width: 0 }
   }
 }

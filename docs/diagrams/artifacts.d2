@@ -1,6 +1,7 @@
 vars: {
   d2-config: {
     layout-engine: dagre
+    pad: 0
   }
   colors: {
     design: "#e3f2fd"
@@ -23,10 +24,13 @@ grid: "" {
   style.stroke: transparent
   style.fill: transparent
 
-  row1: "" {
+  row1: /plan-project {
     direction: right
     style.fill: "#fafafa"
     style.stroke: "#dddddd"
+    style.font-size: 11
+    style.bold: true
+    style.font-color: ${colors.lc}
 
     d_doc: "01-design/\ndesign-01.md" {
       shape: page
@@ -48,23 +52,25 @@ grid: "" {
       style.fill: ${colors.design}
       style.stroke: ${colors.design-border}
     }
-    _lbl: /plan-project {
-      shape: text
-      style.font-size: 11
-      style.bold: true
-      style.font-color: ${colors.lc}
-    }
 
-    d_doc -> slices: slicing
-    slices -> brief: spec
-    brief -> tasks: breakdown
-    tasks -> _lbl { style.stroke-width: 0 }
+    d_doc -> slices: slicing {
+      style.font-size: 9
+    }
+    slices -> brief: spec {
+      style.font-size: 9
+    }
+    brief -> tasks: breakdown {
+      style.font-size: 9
+    }
   }
 
-  row2: "" {
+  row2: "/implement + /review" {
     direction: right
     style.fill: "#fafafa"
     style.stroke: "#dddddd"
+    style.font-size: 11
+    style.bold: true
+    style.font-color: ${colors.lc}
 
     code: "code changes\n(worktree)" {
       style.fill: ${colors.impl}
@@ -85,18 +91,19 @@ grid: "" {
       style.fill: ${colors.feedback}
       style.stroke: ${colors.feedback-border}
     }
-    _lbl: /implement + /review {
-      shape: text
-      style.font-size: 11
-      style.bold: true
-      style.font-color: ${colors.lc}
-    }
 
-    code -> qa_report: QA (auto)
-    qa_report -> archive: /review approve
-    qa_report -> new_slice: /review feedback
-    new_slice -> _lbl { style.stroke-width: 0 }
+    code -> qa_report: "QA (auto)" {
+      style.font-size: 9
+    }
+    qa_report -> archive: "/review approve" {
+      style.font-size: 9
+    }
+    qa_report -> new_slice: "/review feedback" {
+      style.font-size: 9
+    }
   }
 }
 
-grid.row1.tasks -> grid.row2.code: /implement
+grid.row1.tasks -> grid.row2.code: /implement {
+  style.font-size: 9
+}

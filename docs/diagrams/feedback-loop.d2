@@ -1,6 +1,7 @@
 vars: {
   d2-config: {
     layout-engine: dagre
+    pad: 0
   }
   colors: {
     design: "#e3f2fd"
@@ -23,10 +24,13 @@ grid: "" {
   style.stroke: transparent
   style.fill: transparent
 
-  row1: "" {
+  row1: "feedback path" {
     direction: right
     style.fill: "#fafafa"
     style.stroke: "#dddddd"
+    style.font-size: 11
+    style.bold: true
+    style.font-color: ${colors.lc}
 
     review: "/review" {
       shape: diamond
@@ -49,23 +53,23 @@ grid: "" {
       style.fill: ${colors.design}
       style.stroke: ${colors.design-border}
     }
-    _lbl: feedback path {
-      shape: text
-      style.font-size: 11
-      style.bold: true
-      style.font-color: ${colors.lc}
-    }
 
-    review -> new_slice: feedback
-    new_slice -> design: run /plan-project
+    review -> new_slice: feedback {
+      style.font-size: 9
+    }
+    new_slice -> design: "run /plan-project" {
+      style.font-size: 9
+    }
     design -> spec
-    spec -> _lbl { style.stroke-width: 0 }
   }
 
-  row2: "" {
+  row2: "back to review" {
     direction: right
     style.fill: "#fafafa"
     style.stroke: "#dddddd"
+    style.font-size: 11
+    style.bold: true
+    style.font-color: ${colors.lc}
 
     impl: /implement {
       style.fill: ${colors.design}
@@ -83,17 +87,12 @@ grid: "" {
       style.stroke: ${colors.qa-border}
       style.font-size: 11
     }
-    _lbl: back to review {
-      shape: text
-      style.font-size: 11
-      style.bold: true
-      style.font-color: ${colors.lc}
-    }
 
     impl -> qa
     qa -> review2
-    review2 -> _lbl { style.stroke-width: 0 }
   }
 }
 
-grid.row1.spec -> grid.row2.impl: /implement
+grid.row1.spec -> grid.row2.impl: /implement {
+  style.font-size: 9
+}

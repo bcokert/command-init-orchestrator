@@ -3,10 +3,10 @@ spec: .orchestration/projects/bcokert-00003-remove-worktree-replace-task-queuing
 slice: 01
 step: 1
 title: Rewrite defaults/commands/implement.md
-status: todo
+status: done
 depends_on: []
 agent_type: architect
-assigned_at: null
-completed_at: null
-qa_result: null
+assigned_at: 2026-04-18T00:00:00-07:00
+completed_at: 2026-04-18T00:01:00-07:00
+qa_result: pass
 ---

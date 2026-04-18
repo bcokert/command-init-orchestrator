@@ -1,7 +1,7 @@
 ---
-version: 1.1.0
+version: 1.2.0
 description: |
-  Closes the signoff loop for a project in signoff_review. Approve path: commits the full execution diff, merges the worktree branch to main, removes the worktree, archives the project. Feedback path: writes new slice files to the backlog, sets feedback_pending.
+  Closes the signoff loop for a project in signoff_review. Approve path: commits the full execution diff from main, archives the project. Feedback path: writes new slice files to the backlog, sets feedback_pending.
 allowed-tools:
   - Read
   - Write
@@ -13,7 +13,7 @@ allowed-tools:
 
 # Review — Signoff and close
 
-Your job is to close out a project at `signoff_review`: either approve it (commit, merge, archive) or capture feedback (new slice files, back to `/plan-project`).
+Your job is to close out a project at `signoff_review`: either approve it (commit, archive) or capture feedback (new slice files, back to `/plan-project`).
 
 ---
 
@@ -34,7 +34,7 @@ If no argument:
 | Stage | Error message |
 |-------|---------------|
 | `design_in_progress`, `design_review`, `slicing_in_progress`, `slicing_review`, `spec_in_progress`, `spec_review`, `breakdown_in_progress`, `tasks_ready` | "Project '{id}' is in {stage} — run `/plan-project` to continue." |
-| `implementing` | "Project '{id}' is still implementing in worktree {worktree_path} — run `/implement` to resume, or wait for QA to complete." |
+| `implementing` | "Project '{id}' is still implementing — run `/implement` to resume, or wait for QA to complete." |
 | `feedback_pending` + `/implement` attempt | "Project '{id}' has unprocessed feedback — run `/plan-project` to spec the next slice." |
 | `done` | "Project '{id}' is already done." |
 
@@ -45,48 +45,27 @@ If no argument:
 Present a summary before asking:
 - Slice title and number
 - QA result (from the QA report in `05-qa/`)
-- Number of uncommitted files changed (run `git status` in the worktree)
+- Number of uncommitted files changed (run `git status` from the project root)
 
 Ask: "Approve and close this slice, or provide feedback?"
 
 **On approval:**
 
-1. **Write slice done state** — before committing, write `status: done` and `status_updated_at: {current ISO 8601 timestamp with timezone offset}` to the slice file at `{worktree_path}/.orchestration/projects/{id}/02-slices/` (Glob for the file where `slice:` frontmatter matches the current slice number). If the file can't be found: log a warning and continue.
+1. **Write slice done state** — before committing, write `status: done` and `status_updated_at: {current ISO 8601 timestamp with timezone offset}` to the slice file at `.orchestration/projects/{id}/02-slices/` (Glob for the file where `slice:` frontmatter matches the current slice number). If the file can't be found: log a warning and continue.
 
-2. **Commit** — from the worktree directory:
+2. **Commit** — from the project root:
    ```bash
-   git add .
+   git add -A
    git commit -m "Slice {NN} complete — {project_id}"
    ```
 
 3. **Push:**
    ```bash
-   git push origin project/{id}
+   git push
    ```
    If push fails: report clearly and continue. Don't block the rest.
 
-4. **Merge** — from the main worktree:
-   ```bash
-   git merge project/{id}
-   ```
-   If merge fails (conflict): leave project at `signoff_review`, preserve the worktree, output:
-   ```
-   Merge conflict — resolve manually in the worktree at {worktree_path},
-   then re-run /review to complete the signoff.
-   ```
-   Stop.
-
-5. **Remove worktree** — check for uncommitted changes first:
-   ```bash
-   git status --porcelain
-   ```
-   If dirty: "Worktree has uncommitted changes at {worktree_path}. These should have been committed as part of the approve step — check what's uncommitted with `git status` in the worktree, then re-run /review." Stop.
-   If clean:
-   ```bash
-   git worktree remove .orchestration/worktrees/{id}
-   ```
-
-6. **Archive** — check target doesn't exist:
+4. **Archive** — check target doesn't exist:
    ```bash
    # target: .orchestration/projects/done/YYYY-MM/{id}/
    ```
@@ -97,16 +76,16 @@ Ask: "Approve and close this slice, or provide feedback?"
    mv .orchestration/projects/{id}/ .orchestration/projects/done/YYYY-MM/{id}/
    ```
 
-7. **Update status.md** (now at archive path):
+5. **Update status.md** (now at archive path):
    ```yaml
    stage: done
    transitions:
      - stage: done
        timestamp: {ISO 8601}
-       note: slice {NN} approved — worktree removed, archived to done/YYYY-MM/{id}
+       note: slice {NN} approved — archived to done/YYYY-MM/{id}
    ```
 
-8. **Push final state:**
+6. **Push final state:**
    ```bash
    git add .orchestration/projects/done/YYYY-MM/{id}/
    git add .orchestration/projects/{id}/
@@ -114,12 +93,11 @@ Ask: "Approve and close this slice, or provide feedback?"
    git push
    ```
 
-9. Output:
+7. Output:
    ```
    Slice {NN} done — {project_id}
 
    Archived to .orchestration/projects/done/YYYY-MM/{id}/
-   Branch project/{id} merged to main.
    ※ Slice {NN} · done · slice {NN} approved → project complete
    ```
 
@@ -183,9 +161,7 @@ No commit. Feedback slices are reviewed via `/plan-project` before anything is c
 ## Behavior rules
 
 - Only run on `signoff_review` projects. Any other stage: route correctly and stop.
-- The approve commit includes everything uncommitted in the worktree — implementation files, task status files, QA report, slice status, status.md. This is the one commit for the entire execution pipeline. Do not cherry-pick.
-- Never remove the worktree until the merge succeeds. A failed merge leaves the project at `signoff_review` with the worktree intact.
-- Check for uncommitted changes before `git worktree remove`. If dirty, stop and warn — do not force-remove.
+- The approve commit includes everything uncommitted on main — implementation files, task status files, QA report, slice status, status.md. This is the one commit for the entire execution pipeline. Do not cherry-pick.
 - Never overwrite an existing archive target. Fail with clear instructions.
 - Feedback path: no commit. The slice files are `draft` and require human review via `/plan-project` before any commit happens.
 - Always re-read `status.md` and slice files from disk. Never use session-cached state.

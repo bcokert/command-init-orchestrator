@@ -102,7 +102,7 @@ If nothing has been described yet, open with: "What are we designing?"
 
 ## Phase 2 — Interview
 
-> Model: opus · Effort: max
+> model: opus · effort: max
 
 Surface everything Bdon knows but hasn't said yet.
 
@@ -407,6 +407,8 @@ title: {title}
 status: todo
 depends_on: [{previous task filename}]  # sequential by default; [] if first task or explicitly independent
 agent_type: {derived from work description}
+model: sonnet
+effort: default
 assigned_at: null
 completed_at: null
 qa_result: null  # set by QA: pass | fixed (passed after QA fixed it) | manual

@@ -4,8 +4,8 @@ slice: 05
 order: 05
 project: remove-worktrees-queue-model
 design: .orchestration/projects/bcokert-00003-remove-worktree-replace-task-queuing/01-design/design-01.md
-status: implementing
-status_updated_at: 2026-04-18T09:53:00-07:00
+status: done
+status_updated_at: 2026-04-18T10:35:00-07:00
 ---
 
 # Slice 05 — Model/effort metadata on tasks and phases

@@ -1,5 +1,7 @@
 ---
 version: 1.0.0
+model: opus
+effort: max
 description: |
   Runs after implement. Verifies done signals for each task in a spec, runs mechanical checks where possible, and outputs a QA report to .orchestration/dashboard/{spec-id}-qa.md.
 allowed-tools:

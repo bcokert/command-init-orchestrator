@@ -1,5 +1,5 @@
 ---
-version: 2.3.0
+version: 2.4.0
 description: |
   Execution pipeline: global queue scan → next slice execution → automatic QA → signoff_review. Resumes from wherever the selected slice left off. Stops at signoff_review for human approval via /review.
 allowed-tools:
@@ -89,7 +89,7 @@ Check this table before doing any work. `/implement` enforces its own rows.
 
 4. For each task in order:
    - Write `assigned_at: {ISO 8601}` to task file frontmatter.
-   - Present the task: read the task file and the brief it references. Provide a kickoff that includes the task work, its done signal, and the brief path for full context.
+   - Present the task: read the task file and the brief it references. Provide a kickoff that includes the task work, its done signal, and the brief path for full context. Surface the task's `model` and `effort` values (default to `sonnet`/`default` if fields are absent).
    - When task completes: write `status: done` and `completed_at: {ISO 8601}` to task file frontmatter.
    - Proceed to next task.
 

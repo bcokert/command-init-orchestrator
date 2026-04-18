@@ -30,6 +30,7 @@ This removes worktrees entirely. All implementation runs on main. Execution rema
 - Diagrams (`artifacts.d2`, `concurrent-projects.d2`) reference worktrees.
 - `README.md` and `defaults/README.md` describe the worktree model.
 - `/implement` is scoped to a single project; the execution queue is per-project.
+- No model or effort specifications exist anywhere in the command pipeline — every phase runs at whatever the session default is.
 
 ## Desired end state
 
@@ -44,6 +45,10 @@ This removes worktrees entirely. All implementation runs on main. Execution rema
 - `status.md` has no `worktree_path` or `branch` fields.
 - `config.yaml` has no worktree-related settings.
 - All worktree references removed: commands, support files, diagrams, README files, `.gitignore`, `init-orchestrator.md`.
+- Task files carry `model` and `effort` fields. Defaults: `model: sonnet`, `effort: default`.
+- The design interview phase (`plan-project.md`) specifies `model: opus`, `effort: max`.
+- The QA phase specifies `model: opus`, `effort: max`.
+- The implement command reads task-level model/effort and applies them when executing each task.
 
 ## Patterns to follow
 
@@ -73,6 +78,8 @@ This removes worktrees entirely. All implementation runs on main. Execution rema
 
 **`suggest_worktree` config setting.** Remove entirely (not commented out, not deprecated). **Why:** a dead setting pointing at a removed feature is noise in every user's config file. **Rejected:** leave with a comment — still appears in configs shipped by `/init-orchestrator`.
 
+**Model and effort per phase.** Design interview and QA run at `model: opus, effort: max`. Everything else defaults to `model: sonnet, effort: default`. **Why:** design interviews and QA are the two phases where reasoning quality matters most — design shapes everything downstream, QA must catch what implementation missed. Sonnet is sufficient for mechanical task execution. **Rejected:** opus everywhere — unnecessary cost and latency for deterministic file-editing tasks.
+
 ## Agent decisions
 
 **`worktree_created` transition note.** Appears in `status.md` history for any project that ran implement under the old model. Not a stage — just a note. Removing it from implement is enough; existing history entries are inert. Alternative: add an explicit parsing guard. Unnecessary — transition history is displayed, not used for routing.
@@ -80,3 +87,5 @@ This removes worktrees entirely. All implementation runs on main. Execution rema
 **Queue stored implicitly.** The queue is derived at runtime by scanning all projects for `tasks_ready` slices and sorting by timestamp. Alternative: explicit `.orchestration/queue.md`. Not warranted — the implicit model is sufficient for serial execution and avoids a new file type to maintain.
 
 **No migration path for old worktree projects.** The only active project in-flight (bcokert-00002) is in a different repo and hasn't entered `implementing` yet. No migration tooling needed. Old `worktree_path` fields are silently ignored by the updated commands.
+
+**How model/effort is applied mechanically.** `model` and `effort` are metadata on task files and in command/phase headers. The implement command reads them and either passes them to spawned subagents (future multi-agent model) or surfaces them as execution instructions within the current session (current model). The exact harness mechanism — command frontmatter, runtime instruction, or Agent tool parameters — is left to the spec phase. Alternative: hard-code model/effort inside each command's prose. Not chosen — metadata is easier to scan, update, and eventually wire to actual agent spawning.

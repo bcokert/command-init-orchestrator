@@ -1,6 +1,6 @@
 stage: tasks_ready
 project_id: bcokert-00003-remove-worktree-replace-task-queuing
-next_action: run /implement to start implementation
+next_action: run /implement to continue — slices 02-05 pending
 transitions:
   - stage: design_in_progress
     timestamp: 2026-04-17T00:00:00-07:00
@@ -26,3 +26,15 @@ transitions:
   - stage: tasks_ready
     timestamp: 2026-04-18T00:00:00-07:00
     note: 15 tasks created across 5 slices
+  - stage: worktree_created
+    timestamp: 2026-04-18T00:00:00-07:00
+    note: worktree created at .orchestration/worktrees/bcokert-00003-remove-worktree-replace-task-queuing
+  - stage: implementing
+    timestamp: 2026-04-18T00:00:00-07:00
+    note: task execution started
+  - stage: signoff_review
+    timestamp: 2026-04-18T00:07:00-07:00
+    note: QA passed
+  - stage: tasks_ready
+    timestamp: 2026-04-18T09:32:00-07:00
+    note: slice 01 done — restored to active for slices 02-05

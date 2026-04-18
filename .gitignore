@@ -1,3 +1,4 @@
 
 # Orchestration worktrees (local only — git tracks the branches, not the directories)
 .orchestration/worktrees/
+.claude/settings.local.json

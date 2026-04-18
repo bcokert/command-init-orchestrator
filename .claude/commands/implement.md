@@ -1,5 +1,5 @@
 ---
-version: 2.0.0
+version: 2.1.0
 description: |
   Execution pipeline for a single project: project selection → worktree creation → sequential task execution → automatic QA → signoff_review. Resumes from wherever the project left off. Stops at signoff_review for human approval via /review.
 allowed-tools:
@@ -117,6 +117,7 @@ Check this table before doing any work. `/implement` enforces its own rows.
        timestamp: {ISO 8601}
        note: task execution started
    ```
+   Also write `status: implementing` and `status_updated_at: {current ISO 8601 timestamp with timezone offset}` to the slice file at `{worktree_path}/.orchestration/projects/{id}/02-slices/` (Glob for the file where `slice:` frontmatter matches the current slice number). If the slice file can't be found: log "warning: could not find slice file for slice {NN} — skipping status write" and continue.
 
 2. Build the execution queue: all `todo` tasks in `.orchestration/projects/{id}/04-tasks/slice-{NN}/` ordered by `step`, respecting `depends_on`. A task is runnable only when all tasks named in its `depends_on` list have `status: done`.
 
@@ -136,8 +137,10 @@ Check this table before doing any work. `/implement` enforces its own rows.
 
 Read and follow `.orchestration/support/qa.md` in full. QA runs automatically — no prompt.
 
+Before invoking QA: write `status: qa_in_progress` and `status_updated_at: {current ISO 8601 timestamp with timezone offset}` to the slice file. Use the same Glob pattern as Phase 3 to locate it. If the slice file already shows `status: qa_in_progress` or a later state (e.g. on crash-resume): skip this write. If the file can't be found: log a warning and continue.
+
 On QA pass:
-1. Slice file frontmatter: `status: signoff_review`
+1. Slice file frontmatter: `status: signoff_review` and `status_updated_at: {current ISO 8601 timestamp with timezone offset}`
 2. Update `status.md`:
    ```yaml
    stage: signoff_review

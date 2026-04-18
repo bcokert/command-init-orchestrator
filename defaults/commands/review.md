@@ -1,5 +1,5 @@
 ---
-version: 1.0.0
+version: 1.1.0
 description: |
   Closes the signoff loop for a project in signoff_review. Approve path: commits the full execution diff, merges the worktree branch to main, removes the worktree, archives the project. Feedback path: writes new slice files to the backlog, sets feedback_pending.
 allowed-tools:
@@ -51,19 +51,21 @@ Ask: "Approve and close this slice, or provide feedback?"
 
 **On approval:**
 
-1. **Commit** — from the worktree directory:
+1. **Write slice done state** — before committing, write `status: done` and `status_updated_at: {current ISO 8601 timestamp with timezone offset}` to the slice file at `{worktree_path}/.orchestration/projects/{id}/02-slices/` (Glob for the file where `slice:` frontmatter matches the current slice number). If the file can't be found: log a warning and continue.
+
+2. **Commit** — from the worktree directory:
    ```bash
    git add .
    git commit -m "Slice {NN} complete — {project_id}"
    ```
 
-2. **Push:**
+3. **Push:**
    ```bash
    git push origin project/{id}
    ```
    If push fails: report clearly and continue. Don't block the rest.
 
-3. **Merge** — from the main worktree:
+4. **Merge** — from the main worktree:
    ```bash
    git merge project/{id}
    ```
@@ -74,7 +76,7 @@ Ask: "Approve and close this slice, or provide feedback?"
    ```
    Stop.
 
-4. **Remove worktree** — check for uncommitted changes first:
+5. **Remove worktree** — check for uncommitted changes first:
    ```bash
    git status --porcelain
    ```
@@ -84,7 +86,7 @@ Ask: "Approve and close this slice, or provide feedback?"
    git worktree remove .orchestration/worktrees/{id}
    ```
 
-5. **Archive** — check target doesn't exist:
+6. **Archive** — check target doesn't exist:
    ```bash
    # target: .orchestration/projects/done/YYYY-MM/{id}/
    ```
@@ -95,7 +97,7 @@ Ask: "Approve and close this slice, or provide feedback?"
    mv .orchestration/projects/{id}/ .orchestration/projects/done/YYYY-MM/{id}/
    ```
 
-6. **Update status.md** (now at archive path):
+7. **Update status.md** (now at archive path):
    ```yaml
    stage: done
    transitions:
@@ -104,7 +106,7 @@ Ask: "Approve and close this slice, or provide feedback?"
        note: slice {NN} approved — worktree removed, archived to done/YYYY-MM/{id}
    ```
 
-7. **Push final state:**
+8. **Push final state:**
    ```bash
    git add .orchestration/projects/done/YYYY-MM/{id}/
    git add .orchestration/projects/{id}/
@@ -112,7 +114,7 @@ Ask: "Approve and close this slice, or provide feedback?"
    git push
    ```
 
-8. Output:
+9. Output:
    ```
    Slice {NN} done — {project_id}
 

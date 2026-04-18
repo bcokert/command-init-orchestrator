@@ -1,7 +1,18 @@
-stage: tasks_ready
+stage: signoff_review
 project_id: bcokert-00002-status-per-slice-view
-next_action: run /implement to start implementation
+next_action: run /review to approve or provide feedback
+worktree_path: .orchestration/worktrees/bcokert-00002-status-per-slice-view
+branch: project/bcokert-00002-status-per-slice-view
 transitions:
+  - stage: signoff_review
+    timestamp: 2026-04-17T12:00:00-07:00
+    note: QA passed — 23 checks, 0 manual
+  - stage: qa_in_progress
+    timestamp: 2026-04-17T11:55:00-07:00
+    note: QA started
+  - stage: implementing
+    timestamp: 2026-04-17T11:30:00-07:00
+    note: task execution started
   - stage: tasks_ready
     timestamp: 2026-04-17T11:00:00-07:00
     note: 23 tasks created across slices 01-04

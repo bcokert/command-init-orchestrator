@@ -1,7 +1,7 @@
 ---
-version: 2.0.0
+version: 3.1.0
 description: |
-  Reads status.md files from .orchestration/projects/ and active worktrees. With a project ID arg: single-project detail view. Without: summary table of all active projects plus a done-this-week recap. Read-only — never modifies files.
+  Reads status.md files from .orchestration/projects/ and active worktrees. With a project ID arg: single-project detail view. Without: grouped view — one section per active project, with every slice listed in its current state. Read-only — never modifies files.
 allowed-tools:
   - Read
   - Glob
@@ -73,61 +73,108 @@ Warning: {field} is missing or unreadable in status.md
 
 2. Run `git worktree list`. For each worktree path (excluding the main worktree):
    - Check if a `status.md` exists at `{worktree_path}/.orchestration/projects/{id}/status.md`.
-   - If it exists and differs from main: use the worktree version (authoritative).
+   - If it exists and differs from main: use the worktree version (authoritative) and set `slice_base_path = {worktree_path}/.orchestration/projects/{id}`.
    - If the worktree path is registered in git but the directory is missing: flag as `worktree_missing`.
+   - If no worktree: set `slice_base_path = .orchestration/projects/{id}`.
 
 3. Collect all active projects. For each:
    - `stage` from status.md
    - `next_action` from status.md
    - `worktree_path` if set
-   - Elapsed time in current stage: `now - last_transition_timestamp`. If the most recent transition has no timestamp or it's unparseable: "unknown" — do not crash
    - Flag: `worktree_missing` if applicable
+   - **Start date:** timestamp of the last entry in the `transitions` list (oldest transition, typically the `design_in_progress / project created` entry). If transitions is empty or unparseable: `—`.
+   - **Slice data:** Glob `{slice_base_path}/02-slices/*.md`. For each file, read:
+     - `slice:` frontmatter field (slice number)
+     - `status:` frontmatter field
+     - `status_updated_at:` frontmatter field (may be absent)
+     - Title from the first `# Slice {NN} — ...` heading line
+     - If frontmatter is unreadable: record as unknown-status slice, warn once per project
+   - **Slice counts:** total = count of slice files; done = count where `status: done`
+   - **Task counts:** Glob `{slice_base_path}/04-tasks/slice-*/**.md`. Total = count of all .md files. Done = count where `status: done` in frontmatter. If directory absent: 0/0. If a task file is unreadable or lacks `status`: exclude from done count, warn once per slice.
+   - **Most recently updated timestamp:** latest of `last_transition_timestamp` in status.md and all `status_updated_at` values across slice files. Used for sort order.
 
-4. Proceed to Phase 3.
+4. Sort projects: most recently updated first (highest `most recently updated timestamp`). Projects with no parseable timestamps: sort last. Secondary sort: project ID descending.
+
+5. Proceed to Phase 3.
 
 ---
 
-## Phase 3 — Summary table
+## Phase 3 — Grouped project view
 
 If no active projects found:
 > "no active projects — run `/plan-project` to start one"
-Skip to Phase 4 (done-this-week recap still runs).
+Stop.
 
-Otherwise, render the table:
+Otherwise, for each project (sorted most recently updated first):
 
+**Project header line:**
 ```
-| Project | Stage | Worktree | Next action | Time in stage |
-|---------|-------|----------|-------------|---------------|
-| {id}    | {stage} | {path or —} | {next_action} | {elapsed} |
+**{id}** · {MMM D} · {slice_counts} · {task_counts}
 ```
+- Date = start date from oldest transition. Omit year if current year. Use `—` if absent.
+- If `status.md` has missing required fields: show `**{id}** ⚠ malformed status.md` and skip slice rows.
+- If `worktree_missing`: show `**{id}** ⚠ worktree missing — run \`git worktree prune\`` and skip slice rows.
 
-Below the table:
-- For each project in a `*_review` stage: one line — "• {id}: run /{command} to continue"
-  - `design_review` → `/plan-project`
-  - `slicing_review` → `/plan-project`
-  - `spec_review` → `/plan-project`
-  - `signoff_review` → `/review`
-- For each `worktree_missing` project: "• {id}: worktree missing at {path} — run `git worktree prune`"
-- For each `status.md` with missing required fields: show project row with "⚠ malformed status.md" in the stage column
+**Count format** for `{slice_counts}` and `{task_counts}`:
 
----
+Render `✅{X} 🤖{Y} 👤{Z} of {T} slices` (or `tasks`). Omit any emoji–number pair where the count is 0. If all counts are 0, show `0 slices`.
 
-## Phase 4 — Done this week
+Bucket definitions:
 
-Scan `.orchestration/projects/done/*/*/status.md` (YYYY-MM subdirs).
+| Emoji | Label | Slice states | Task states |
+|-------|-------|-------------|-------------|
+| ✅ | done | `done` | `done` |
+| 🤖 | AI working | `implementing`, `qa_in_progress` | `in_progress` |
+| 👤 | needs human | `draft`, `signoff_review` | *(never)* |
+| ⏳ | queued | `reviewed`, `specced`, `tasks_ready` | `todo` |
 
-For each: find the `done` transition in the `transitions` log. If the timestamp is within the last 7 days: include it.
+Format: `✅{X} 🤖{Y} 👤{Z} ⏳{W} of {T} slices`. Omit any pair where the count is 0.
 
-Group results by username (first segment of the project ID, e.g. `bcokert` from `bcokert-00001-auth-redesign`).
+**Slice rows** (sorted by slice number ascending, 2-space indent, one line each):
 
-If any results:
+Done slice:
 ```
-Done this week:
-  {username}: {slug} (Mon Apr 10), {slug} (Tue Apr 11)
-  {username}: {slug} (Sun Apr 9)
+  {NN}  {title}  ✅  {MMM D HH:MM}
 ```
 
-If nothing done in the last 7 days: omit this section entirely.
+Active slice:
+```
+  {NN}  {title}  {emoji} `{prev}→{curr}`  {MMM D HH:MM}  →  **`/{cmd}`**
+```
+
+Rules:
+- Strip `Slice NN — ` prefix from title. Truncate at 52 chars, append `…` if needed.
+- Date from `status_updated_at`: `MMM D HH:MM` (local time, no timezone, no year if current year). If absent: `—`.
+- State abbreviations:
+
+  | Full state | Abbrev | Emoji prefix |
+  |------------|--------|--------------|
+  | `draft` | `draft` | 👤 |
+  | `reviewed` | `reviewed` | *(none)* |
+  | `specced` | `specced` | *(none)* |
+  | `tasks_ready` | `ready` | *(none)* |
+  | `implementing` | `impl` | 🤖 |
+  | `qa_in_progress` | `qa` | 🤖 |
+  | `signoff_review` | `signoff` | 👤 |
+
+- `{prev}→{curr}`: no spaces around `→`. Derive previous from the state machine sequence above. If no previous (state is `draft`): show just `{curr}` with no arrow.
+- Next action command in bold code: **`/{cmd}`**
+
+  | State | Command |
+  |-------|---------|
+  | `draft` | `/plan-project` |
+  | `reviewed` | `/plan-project` |
+  | `specced` | `/plan-project` |
+  | `tasks_ready` | `/implement` |
+  | `implementing` | `/implement` |
+  | `qa_in_progress` | `/implement` |
+  | `signoff_review` | `/review` |
+
+- If `status` missing or unrecognised: `  {NN}  {title}  ⚠ unknown state`
+
+Projects with no slice files: show header only.
+
+Blank line between projects.
 
 ---
 
@@ -138,4 +185,4 @@ If nothing done in the last 7 days: omit this section entirely.
 - Elapsed time is derived from the most recent transition timestamp. If transitions are missing, show "unknown".
 - Worktree `status.md` is authoritative over main when it diverges — the worktree is where current work lives.
 - Orphaned worktrees (directory missing) produce a warning row, not a crash.
-- Done projects are excluded from the active table. They appear only in the done-this-week recap (if recent).
+- Done projects are excluded entirely.

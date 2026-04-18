@@ -3,10 +3,10 @@ spec: .orchestration/projects/bcokert-00002-status-per-slice-view/03-briefs/02-i
 slice: 02
 step: 5
 title: Bump defaults/commands/review.md version 1.0.0 → 1.1.0
-status: todo
+status: done
 depends_on: [04-update-review-phase-1.md]
 agent_type: architect
-assigned_at: null
-completed_at: null
-qa_result: null
+assigned_at: 2026-04-17T11:39:00-07:00
+completed_at: 2026-04-17T11:40:00-07:00
+qa_result: pass
 ---

@@ -26,6 +26,7 @@
 | `breakdown_in_progress` | Task files being created |
 | `tasks_ready` | Tasks ready — run `/implement` |
 | `implementing` | Tasks executing in worktree |
+| `qa_in_progress` | QA running — run `/implement` to resume |
 | `signoff_review` | QA passed — run `/review` |
 | `feedback_pending` | Feedback slices added — run `/plan-project` |
 | `done` | Slice approved, archived |

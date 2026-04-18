@@ -1,5 +1,5 @@
 ---
-version: 2.2.0
+version: 2.2.1
 description: |
   Full planning pipeline for a single project: design interview → slicing → spec → breakdown → tasks_ready. Resumes from wherever the project left off. Commits and pushes at each human approval gate. Ends when tasks are ready for /implement.
 allowed-tools:
@@ -352,7 +352,7 @@ Write the delegation brief to `.orchestration/projects/{id}/03-briefs/{NN}-{slug
 
 ### After writing
 
-1. Update slice file frontmatter: `status: specced`
+1. Update slice file frontmatter: `status: specced` and `status_updated_at: {current ISO 8601 timestamp with timezone offset}`
 2. Update `status.md`:
 ```yaml
 stage: spec_review
@@ -436,7 +436,7 @@ Derive `agent_type` from the work description:
 
 ### After creating all task files
 
-1. Update slice file frontmatter: `status: tasks_ready`
+1. Update slice file frontmatter: `status: tasks_ready` and `status_updated_at: {current ISO 8601 timestamp with timezone offset}`
 2. Update `status.md`:
 ```yaml
 stage: tasks_ready

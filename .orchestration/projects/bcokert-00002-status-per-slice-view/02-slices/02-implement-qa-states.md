@@ -4,7 +4,8 @@ slice: 02
 order: 2
 project: status-per-slice-view
 design: .orchestration/projects/bcokert-00002-status-per-slice-view/01-design/design-01.md
-status: tasks_ready
+status: done
+status_updated_at: 2026-04-17T12:30:00-07:00
 ---
 
 # Slice 02 — implement: write qa_in_progress/signoff_review slice states + timestamps

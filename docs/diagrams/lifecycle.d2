@@ -133,6 +133,10 @@ grid: "" {
       style.fill: ${colors.auto}
       style.stroke: ${colors.auto-border}
     }
+    qa_ip: qa_in_progress {
+      style.fill: ${colors.auto}
+      style.stroke: ${colors.auto-border}
+    }
     sg_rv: signoff_review {
       shape: diamond
       width: 100
@@ -151,7 +155,10 @@ grid: "" {
       style.stroke: ${colors.feedback-border}
     }
 
-    impl -> sg_rv: "/implement (QA pass)" {
+    impl -> qa_ip: "/implement (QA start)" {
+      style.font-size: 9
+    }
+    qa_ip -> sg_rv: "/implement (QA pass)" {
       style.font-size: 9
     }
     sg_rv -> done: "/review approve" {

@@ -96,6 +96,7 @@ order: {NN}
 project: [short kebab-case feature name]
 design: [path to design doc]
 status: draft
+status_updated_at: {ISO 8601 with timezone offset}
 ---
 
 # Slice {NN} — [Name]

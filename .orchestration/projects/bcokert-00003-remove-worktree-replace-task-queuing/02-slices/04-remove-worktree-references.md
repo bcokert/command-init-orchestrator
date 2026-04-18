@@ -4,7 +4,7 @@ slice: 04
 order: 04
 project: remove-worktrees-queue-model
 design: .orchestration/projects/bcokert-00003-remove-worktree-replace-task-queuing/01-design/design-01.md
-status: draft
+status: reviewed
 status_updated_at: 2026-04-18T00:00:00-07:00
 ---
 
@@ -22,8 +22,9 @@ status_updated_at: 2026-04-18T00:00:00-07:00
 
 ## Edge cases
 
-- Running `/init-orchestrator` on an existing project that has `.orchestration/worktrees/` in `.gitignore`: no change made (init-orchestrator is additive only — it doesn't clean up old entries).
-- `.orchestration/worktrees/` directory still present from old usage: ignored by the tool; note in README if appropriate.
+- Running `/init-orchestrator` on an existing project that has `.orchestration/worktrees/` in `.gitignore`: no change made to `.gitignore` (init-orchestrator is additive only).
+- `.orchestration/worktrees/` directory present and empty: delete it.
+- `.orchestration/worktrees/` directory present and non-empty: leave it, warn the user ("Found .orchestration/worktrees/ with contents — inspect and remove manually").
 
 ## Files touched
 

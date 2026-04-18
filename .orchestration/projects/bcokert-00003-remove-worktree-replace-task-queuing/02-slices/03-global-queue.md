@@ -4,7 +4,7 @@ slice: 03
 order: 03
 project: remove-worktrees-queue-model
 design: .orchestration/projects/bcokert-00003-remove-worktree-replace-task-queuing/01-design/design-01.md
-status: draft
+status: reviewed
 status_updated_at: 2026-04-18T00:00:00-07:00
 ---
 
@@ -18,7 +18,8 @@ status_updated_at: 2026-04-18T00:00:00-07:00
 - With two projects both in `tasks_ready`: picks the slice whose `status_updated_at` is earliest.
 - Within a project, slice 01 runs before 02 regardless of timestamps.
 - `/implement` with empty queue: "Nothing in the queue. Run /plan-project to create tasks." Stop.
-- Dirty working tree on entry: warns and stops — "Uncommitted changes on main. Run /review to commit pending work first."
+- Dirty working tree: expected and allowed. Slices accumulate uncommitted changes until `/review` commits them. The queue does not gate on tree cleanliness.
+- Adding new slices to the queue while one is running: always possible via `/plan-project`, which is independent of `/implement`.
 
 ## Edge cases
 

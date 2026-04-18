@@ -4,7 +4,7 @@ slice: 01
 order: 01
 project: remove-worktrees-queue-model
 design: .orchestration/projects/bcokert-00003-remove-worktree-replace-task-queuing/01-design/design-01.md
-status: draft
+status: reviewed
 status_updated_at: 2026-04-18T00:00:00-07:00
 ---
 
@@ -25,7 +25,7 @@ status_updated_at: 2026-04-18T00:00:00-07:00
 - Old `status.md` with `worktree_path` set: implement ignores the field silently and proceeds normally.
 - Old `worktree_created` transition note in history: no error — transition history is displayed only, not used for routing.
 - Routing table error messages that referenced worktree paths (e.g. "implementing in worktree {path}"): updated to drop the path.
-- Resume detection (`implementing` stage on re-entry): no longer checks for a worktree directory — just proceeds to task execution.
+- Resume detection (`implementing` stage on re-entry): checks task file statuses — any task with `status: in_progress` or the first `status: todo` task is the resume point. No directory existence check.
 
 ## Files touched
 

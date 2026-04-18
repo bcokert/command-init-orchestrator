@@ -1,6 +1,6 @@
-stage: slicing_review
+stage: spec_review
 project_id: bcokert-00003-remove-worktree-replace-task-queuing
-next_action: review slice files and run /plan-project to continue to spec
+next_action: review brief and run /plan-project to continue to breakdown
 transitions:
   - stage: design_in_progress
     timestamp: 2026-04-17T00:00:00-07:00
@@ -14,3 +14,9 @@ transitions:
   - stage: slicing_review
     timestamp: 2026-04-18T00:00:00-07:00
     note: 5 slices created
+  - stage: spec_in_progress
+    timestamp: 2026-04-18T00:00:00-07:00
+    note: spec started
+  - stage: spec_review
+    timestamp: 2026-04-18T00:00:00-07:00
+    note: spec written for slice 01

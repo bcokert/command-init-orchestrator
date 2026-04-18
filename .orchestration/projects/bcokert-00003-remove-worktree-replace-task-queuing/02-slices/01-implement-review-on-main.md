@@ -4,7 +4,7 @@ slice: 01
 order: 01
 project: remove-worktrees-queue-model
 design: .orchestration/projects/bcokert-00003-remove-worktree-replace-task-queuing/01-design/design-01.md
-status: reviewed
+status: specced
 status_updated_at: 2026-04-18T00:00:00-07:00
 ---
 

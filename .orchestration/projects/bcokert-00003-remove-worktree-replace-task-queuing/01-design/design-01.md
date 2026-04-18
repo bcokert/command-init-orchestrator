@@ -14,7 +14,7 @@ The orchestrator creates a git worktree per project when implementation starts. 
 
 The original rationale was parallel project isolation — two projects running simultaneously couldn't trample each other's files. In practice, the gates are sequential by design, and the worktree machinery adds meaningful complexity: branch creation, merge conflicts, missing-directory errors, cross-path file reads in every command, and an onboarding explanation that exists only to justify its own existence.
 
-This removes worktrees entirely. All implementation runs on main. Execution remains serial (one slice at a time), but slices from multiple projects can queue up and run sequentially without manual re-triggering. The queue unit is the slice, not the project.
+This removes worktrees entirely. All implementation runs on main (or a single branch). Execution remains serial (one slice at a time), but slices from multiple projects can queue up and run sequentially without manual re-triggering. The queue unit is the slice, not the project.
 
 ## Current state
 

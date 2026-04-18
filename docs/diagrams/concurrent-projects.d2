@@ -12,19 +12,17 @@ vars: {
     qa-border: "#7B1FA2"
     archive: "#e8f5e9"
     archive-border: "#388E3C"
-    feedback: "#fff3e0"
-    feedback-border: "#FF9800"
     lc: "#555555"
   }
 }
 
 grid: "" {
-  grid-rows: 3
+  grid-rows: 2
   grid-gap: 12
   style.stroke: transparent
   style.fill: transparent
 
-  row1: "project A" {
+  row1: "slice queue (tasks_ready, oldest first)" {
     direction: right
     style.fill: "#fafafa"
     style.stroke: "#dddddd"
@@ -32,24 +30,29 @@ grid: "" {
     style.bold: true
     style.font-color: ${colors.lc}
 
-    imp_a: /implement {
+    s1a: "project A\nslice 01" {
       style.fill: ${colors.design}
       style.stroke: ${colors.design-border}
     }
-    wt_a: "worktree A\n(branch project/A)" {
-      style.fill: ${colors.impl}
-      style.stroke: ${colors.impl-border}
+    s2a: "project B\nslice 01" {
+      style.fill: ${colors.design}
+      style.stroke: ${colors.design-border}
     }
-    tasks_a: implementing {
-      style.fill: ${colors.impl}
-      style.stroke: ${colors.impl-border}
+    s3a: "project A\nslice 02" {
+      style.fill: ${colors.design}
+      style.stroke: ${colors.design-border}
+    }
+    s4a: "project C\nslice 01" {
+      style.fill: ${colors.design}
+      style.stroke: ${colors.design-border}
     }
 
-    imp_a -> wt_a
-    wt_a -> tasks_a
+    s1a -> s2a
+    s2a -> s3a
+    s3a -> s4a
   }
 
-  row2: "project B" {
+  row2: "/implement — one slice at a time" {
     direction: right
     style.fill: "#fafafa"
     style.stroke: "#dddddd"
@@ -57,41 +60,24 @@ grid: "" {
     style.bold: true
     style.font-color: ${colors.lc}
 
-    imp_b: /implement {
-      style.fill: ${colors.design}
-      style.stroke: ${colors.design-border}
-    }
-    wt_b: "worktree B\n(branch project/B)" {
+    executor: executing {
       style.fill: ${colors.impl}
       style.stroke: ${colors.impl-border}
     }
-    tasks_b: implementing {
-      style.fill: ${colors.impl}
-      style.stroke: ${colors.impl-border}
+    qa_step: "QA (auto)" {
+      style.fill: ${colors.qa}
+      style.stroke: ${colors.qa-border}
+    }
+    signoff: "signoff_review\n(→ /review)" {
+      style.fill: ${colors.archive}
+      style.stroke: ${colors.archive-border}
     }
 
-    imp_b -> wt_b
-    wt_b -> tasks_b
+    executor -> qa_step
+    qa_step -> signoff
   }
+}
 
-  row3: "both visible" {
-    direction: right
-    style.fill: "#fafafa"
-    style.stroke: "#dddddd"
-    style.font-size: 11
-    style.bold: true
-    style.font-color: ${colors.lc}
-
-    status: /status {
-      style.fill: ${colors.design}
-      style.stroke: ${colors.design-border}
-    }
-    table: "project A — implementing\nproject B — implementing\n(main branch untouched)" {
-      shape: page
-      style.fill: ${colors.impl}
-      style.stroke: ${colors.impl-border}
-    }
-
-    status -> table
-  }
+grid.row1.s1a -> grid.row2.executor: dequeue {
+  style.font-size: 9
 }

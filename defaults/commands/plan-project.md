@@ -1,5 +1,5 @@
 ---
-version: 2.2.1
+version: 2.3.0
 description: |
   Full planning pipeline for a single project: design interview → slicing → spec → breakdown → tasks_ready. Resumes from wherever the project left off. Commits and pushes at each human approval gate. Ends when tasks are ready for /implement.
 allowed-tools:
@@ -66,7 +66,7 @@ Read `status.md` if it exists. Route:
 ### Step 4 — Create new project
 
 1. Get github username: `git config user.name`, fall back to prefix of `git config user.email`.
-2. Derive slug from the project name: lowercase, kebab-case, max 5 words, strip stop words (the, a, an, for, of, in, to).
+2. Derive slug from the project name: lowercase, kebab-case, max 5 words, strip stop words (the, a, an, for, of, in, to). The project ID format is `{username}-{NNNNN}-{slug}` (e.g. `bcokert-00003-claire-full-system`).
 3. Scan `.orchestration/projects/` for folders matching `{username}-*`, find the highest sequence number, add 1, zero-pad to 5 digits. If folder already exists at derived path, increment and retry.
 4. Create `.orchestration/projects/{id}/`. Create `.orchestration/projects/` if it doesn't exist.
 5. Write `status.md` immediately — before any interview interaction:
@@ -101,6 +101,8 @@ If nothing has been described yet, open with: "What are we designing?"
 ---
 
 ## Phase 2 — Interview
+
+> Model: opus · Effort: max
 
 Surface everything Bdon knows but hasn't said yet.
 

@@ -1,7 +1,7 @@
 ---
-version: 3.1.0
+version: 3.2.0
 description: |
-  Reads status.md files from .orchestration/projects/ and active worktrees. With a project ID arg: single-project detail view. Without: grouped view — one section per active project, with every slice listed in its current state. Read-only — never modifies files.
+  Reads status.md files from .orchestration/projects/. With a project ID arg: single-project detail view. Without: grouped view — one section per active project, with every slice listed in its current state. Read-only — never modifies files.
 allowed-tools:
   - Read
   - Glob
@@ -25,7 +25,7 @@ If no argument: proceed to Phase 2 (multi-project scan).
 
 ## Phase 1 — Single-project detail view
 
-1. Resolve path: `.orchestration/projects/{id}/status.md`. Also check active worktrees — if `worktree_path` is set and the directory exists, read `status.md` from the worktree path (authoritative).
+1. Resolve path: `.orchestration/projects/{id}/status.md`.
 
 2. If the project folder does not exist:
    > "project {id} not found — run `/status` with no args to list projects"
@@ -50,7 +50,6 @@ project:   {id}
 stage:     {stage}          (or "[missing — check status.md]" if absent)
 next:      {next_action}    (or "[missing]" if absent)
 elapsed:   {elapsed} (since {stage} at {timestamp of most recent transition})
-worktree:  {worktree_path}  (if set)
 
 Recent transitions:
   {timestamp}  {stage}  {note}
@@ -71,31 +70,23 @@ Warning: {field} is missing or unreadable in status.md
 
 1. Scan `.orchestration/projects/*/status.md`. Exclude files under `done/` subdirectory.
 
-2. Run `git worktree list`. For each worktree path (excluding the main worktree):
-   - Check if a `status.md` exists at `{worktree_path}/.orchestration/projects/{id}/status.md`.
-   - If it exists and differs from main: use the worktree version (authoritative) and set `slice_base_path = {worktree_path}/.orchestration/projects/{id}`.
-   - If the worktree path is registered in git but the directory is missing: flag as `worktree_missing`.
-   - If no worktree: set `slice_base_path = .orchestration/projects/{id}`.
-
-3. Collect all active projects. For each:
+2. Collect all active projects. For each:
    - `stage` from status.md
    - `next_action` from status.md
-   - `worktree_path` if set
-   - Flag: `worktree_missing` if applicable
    - **Start date:** timestamp of the last entry in the `transitions` list (oldest transition, typically the `design_in_progress / project created` entry). If transitions is empty or unparseable: `—`.
-   - **Slice data:** Glob `{slice_base_path}/02-slices/*.md`. For each file, read:
+   - **Slice data:** Glob `.orchestration/projects/{id}/02-slices/*.md`. For each file, read:
      - `slice:` frontmatter field (slice number)
      - `status:` frontmatter field
      - `status_updated_at:` frontmatter field (may be absent)
      - Title from the first `# Slice {NN} — ...` heading line
      - If frontmatter is unreadable: record as unknown-status slice, warn once per project
    - **Slice counts:** total = count of slice files; done = count where `status: done`
-   - **Task counts:** Glob `{slice_base_path}/04-tasks/slice-*/**.md`. Total = count of all .md files. Done = count where `status: done` in frontmatter. If directory absent: 0/0. If a task file is unreadable or lacks `status`: exclude from done count, warn once per slice.
+   - **Task counts:** Glob `.orchestration/projects/{id}/04-tasks/slice-*/**.md`. Total = count of all .md files. Done = count where `status: done` in frontmatter. If directory absent: 0/0. If a task file is unreadable or lacks `status`: exclude from done count, warn once per slice.
    - **Most recently updated timestamp:** latest of `last_transition_timestamp` in status.md and all `status_updated_at` values across slice files. Used for sort order.
 
-4. Sort projects: most recently updated first (highest `most recently updated timestamp`). Projects with no parseable timestamps: sort last. Secondary sort: project ID descending.
+3. Sort projects: most recently updated first (highest `most recently updated timestamp`). Projects with no parseable timestamps: sort last. Secondary sort: project ID descending.
 
-5. Proceed to Phase 3.
+4. Proceed to Phase 3.
 
 ---
 
@@ -113,7 +104,6 @@ Otherwise, for each project (sorted most recently updated first):
 ```
 - Date = start date from oldest transition. Omit year if current year. Use `—` if absent.
 - If `status.md` has missing required fields: show `**{id}** ⚠ malformed status.md` and skip slice rows.
-- If `worktree_missing`: show `**{id}** ⚠ worktree missing — run \`git worktree prune\`` and skip slice rows.
 
 **Count format** for `{slice_counts}` and `{task_counts}`:
 
@@ -183,6 +173,4 @@ Blank line between projects.
 - Read-only. Never write, edit, or delete any file under any circumstance.
 - Partial reads are better than crashes. Show what's readable, warn on gaps.
 - Elapsed time is derived from the most recent transition timestamp. If transitions are missing, show "unknown".
-- Worktree `status.md` is authoritative over main when it diverges — the worktree is where current work lives.
-- Orphaned worktrees (directory missing) produce a warning row, not a crash.
 - Done projects are excluded entirely.

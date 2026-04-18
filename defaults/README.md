@@ -7,9 +7,9 @@
 | Command | What it does |
 |---------|-------------|
 | `/plan-project` | Full planning pipeline: design interview → slicing → spec → breakdown. Commits at each human approval gate. |
-| `/implement` | Creates a git worktree, runs tasks sequentially, runs QA automatically. Stops at signoff for human review. |
-| `/review` | Approve (commits, merges, archives) or provide feedback (adds new slice to backlog). |
-| `/status` | All active projects: stage, worktree, next action, time in stage. Plus done-this-week recap. |
+| `/implement` | Pulls next slice from queue, runs tasks sequentially, runs QA automatically. Stops at signoff for human review. |
+| `/review` | Approve (commits, archives) or provide feedback (adds new slice to backlog). |
+| `/status` | All active projects: stage, next action, time in stage. |
 
 ---
 
@@ -25,7 +25,7 @@
 | `spec_review` | Brief ready for human review |
 | `breakdown_in_progress` | Task files being created |
 | `tasks_ready` | Tasks ready — run `/implement` |
-| `implementing` | Tasks executing in worktree |
+| `implementing` | Tasks executing |
 | `qa_in_progress` | QA running — run `/implement` to resume |
 | `signoff_review` | QA passed — run `/review` |
 | `feedback_pending` | Feedback slices added — run `/plan-project` |
@@ -51,10 +51,8 @@
       03-briefs/       ← delegation briefs
       04-tasks/        ← task files (slice-NN/ subdirs)
       05-qa/           ← QA reports
-      status.md        ← ground truth: stage, transitions, worktree
+      status.md        ← ground truth: stage, transitions
     done/
       YYYY-MM/
         {project-id}/  ← archived after /review approve
-  worktrees/
-    {project-id}/      ← git worktree per active /implement
 ```

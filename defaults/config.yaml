@@ -23,9 +23,6 @@ agents:
   # Sequential by default — set to false for specs with independent parallel slices
   sequential_tasks: true
 
-  # Whether /implement should suggest worktree isolation for tasks
-  # (set to true when parallel execution is configured)
-  suggest_worktree: false
 
 root_context:
   # Path to project root context (relative to project root)

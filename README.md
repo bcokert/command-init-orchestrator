@@ -10,9 +10,7 @@ Run `/init-orchestrator` in any git repo. You get a 4-command system for taking 
 
 **Slicing discipline built in.** Work is planned as thin vertical slices — something observable and testable on its own. Small slices mean you validate assumptions early and fail cheap, not at the end.
 
-**Status that reflects reality.** `status.md` is the ground truth for every project. `/status` gives you a table of all active projects, their stage, their worktree, and how long they've been there. Replaces JIRA-level tracking without needing JIRA.
-
-**Work isolation by default.** Each `/implement` creates a git worktree on a dedicated branch — isolated working directory, no interference between projects. Multiple projects can run concurrently. Main stays clean for planning.
+**Status that reflects reality.** `status.md` is the ground truth for every project. `/status` gives you a table of all active projects, their stage, and how long they've been there. Replaces JIRA-level tracking without needing JIRA.
 
 **Human gates where they matter.** Gates exist after design, slicing, spec, and QA. Not after every step. The system trusts mechanical work and gates judgment calls.
 
@@ -27,9 +25,9 @@ Run `/init-orchestrator` in any git repo. You get a 4-command system for taking 
 | Command | What it does |
 |---------|-------------|
 | `/plan-project` | Full planning pipeline: design interview → slicing → spec → breakdown. Stops when tasks are ready. Commits at each human approval gate. |
-| `/implement` | Execution pipeline: creates a git worktree, runs tasks sequentially, runs QA automatically. Stops at signoff for human review. Nothing committed until `/review` approves. |
-| `/review` | Closes the loop: approve (commits everything, merges branch, archives project) or provide feedback (adds new slices to backlog). |
-| `/status` | All active projects in a table: stage, worktree, next action, time in stage. Plus a done-this-week recap. |
+| `/implement` | Execution pipeline: pulls next slice from queue, runs tasks sequentially, runs QA automatically. Stops at signoff for human review. Nothing committed until `/review` approves. |
+| `/review` | Closes the loop: approve (commits everything, archives project) or provide feedback (adds new slices to backlog). |
+| `/status` | All active projects in a table: stage, next action, time in stage. |
 
 ---
 
@@ -37,7 +35,7 @@ Run `/init-orchestrator` in any git repo. You get a 4-command system for taking 
 
 **Slices** are the unit of work. A slice is a thin vertical cut — something someone can observe and verify that it improves the state of the system, even if we had to stop here. You typically plan one slice at a time, implement it, review it, then move to the next. Slices 02+ can be intentionally rough until they become next; implementation reshapes future slices.
 
-**Worktrees** isolate execution. Each `/implement` creates a git worktree at `.orchestration/worktrees/{id}` on branch `project/{id}`. Multiple projects can run in parallel — each on its own branch. Main stays clean.
+**The queue** drives execution. `/implement` scans all projects for `tasks_ready` slices, picks the oldest, and runs it to completion. Multiple projects can have slices queued — they execute one at a time, interleaved by timestamp, on main.
 
 **Human gates** exist at design review, slicing review, spec review, and QA signoff. Nothing advances past a gate without a human re-running the command. Between gates, the system runs autonomously.
 
@@ -83,9 +81,9 @@ A few patterns worth knowing before you hit them in the wild.
 
 ![Pause and resume: /implement interrupted, re-run picks up from last completed task](docs/diagrams/pause-resume.svg)
 
-**Concurrent projects** — two projects running in parallel on separate worktree branches, both visible in `/status`:
+**Concurrent projects** — multiple slices queued across projects; `/implement` executes them one at a time from the global queue:
 
-![Concurrent projects: two worktrees, two branches, main untouched](docs/diagrams/concurrent-projects.svg)
+![Concurrent projects: slice queue across projects, one execute at a time](docs/diagrams/concurrent-projects.svg)
 
 **Multi-slice sequence** — backlog advancing in order; future slices stay rough until they become next:
 
@@ -105,7 +103,7 @@ A few patterns worth knowing before you hit them in the wild.
 ├── 04-tasks/           ← task files, organised by slice
 │   └── slice-01/
 ├── 05-qa/              ← QA reports (written automatically after /implement)
-└── status.md           ← ground truth: current stage, transitions, worktree path
+└── status.md           ← ground truth: current stage, transitions
 
 .orchestration/projects/done/YYYY-MM/{id}/   ← archived after /review approve
 ```
@@ -118,8 +116,8 @@ A few patterns worth knowing before you hit them in the wild.
 /init-orchestrator
 ```
 
-Installs `design.md`, `implement.md`, `review.md`, `status.md` into `.claude/commands/`.
-Creates `.orchestration/projects/` and `.orchestration/worktrees/` (gitignored).
+Installs `plan-project.md`, `implement.md`, `review.md`, `status.md` into `.claude/commands/`.
+Creates `.orchestration/projects/`.
 
 Safe to re-run — adds missing components without touching existing ones, telling you if they've drifted and if you want to hard replace, handle it yourself, or try to merge automatically.
 

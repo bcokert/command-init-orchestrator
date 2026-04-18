@@ -1,7 +1,7 @@
 ---
-version: 1.1.0
+version: 1.2.0
 description: |
-  Sets up the orchestration layer in the current project. Installs 4 commands to .claude/commands/, 6 agents to .claude/agents/, and 3 support files to .orchestration/support/, creates .orchestration/projects/, adds .orchestration/worktrees/ to .gitignore. Safe to re-run: adds missing components without touching existing project data. Detects and warns about old 7-command installations.
+  Sets up the orchestration layer in the current project. Installs 4 commands to .claude/commands/, 6 agents to .claude/agents/, and 3 support files to .orchestration/support/, creates .orchestration/projects/. Safe to re-run: adds missing components without touching existing project data. Detects and warns about old 7-command installations.
 allowed-tools:
   - Read
   - Write
@@ -20,7 +20,7 @@ The structure it creates:
 .claude/
   commands/
     plan-project.md  — full planning pipeline: interview → slices → spec → breakdown → tasks_ready
-    implement.md     — execution pipeline: worktree creation → tasks → QA → signoff_review
+    implement.md     — execution pipeline: queue scan → tasks → QA → signoff_review
     review.md        — signoff: approve (merge + archive) or feedback (new slices)
     status.md        — project status: active projects table + done-this-week recap
   agents/
@@ -34,7 +34,6 @@ The structure it creates:
 .orchestration/
   projects/          — one folder per project, all artifacts inside
   support/           — support commands read by the main commands at runtime
-  worktrees/         — git worktrees for in-flight projects (gitignored)
 ```
 
 ---
@@ -116,26 +115,14 @@ If a source file is missing from defaults: note it and skip — don't fail the w
 
 2. Create `.orchestration/support/` if it doesn't exist. (Support files are installed here in Phase 2.)
 
-3. Create `.orchestration/worktrees/` if it doesn't exist. This directory holds git worktrees for in-flight projects — it's local-only and should be gitignored.
+3. Check for `.orchestration/worktrees/`:
+   - If it doesn't exist: nothing to do.
+   - If it exists and is empty: delete it.
+   - If it exists and has contents: leave it intact. Output: "Found .orchestration/worktrees/ with contents — inspect and remove manually."
 
 ---
 
-## Phase 4 — Update .gitignore
-
-Check `.gitignore` at the project root.
-
-Add `.orchestration/worktrees/` if not already present. Append only — never rewrite or reorder existing entries:
-
-```
-# Orchestration worktrees (local only — git tracks the branches, not the directories)
-.orchestration/worktrees/
-```
-
-If `.gitignore` doesn't exist: create it with that entry.
-
----
-
-## Phase 5 — CLAUDE.md tracking rule
+## Phase 4 — CLAUDE.md tracking rule
 
 Check `CLAUDE.md` at the project root for the line `<!-- installed by init-orchestrator -->`.
 
@@ -180,7 +167,7 @@ manually — look for "Orchestration change tracking" in the init-orchestrator d
 
 ---
 
-## Phase 6 — Done
+## Phase 5 — Done
 
 Report what was created, updated, or skipped. Show the installed commands and their versions.
 
@@ -210,7 +197,6 @@ Agents:
 Structure:
   .orchestration/projects/   (project data)
   .orchestration/support/    (support files)
-  .orchestration/worktrees/  (gitignored)
 
 CLAUDE.md:
   tracking rule installed     (or "skipped — re-run /init-orchestrator to add")
@@ -226,7 +212,6 @@ Run /status at any time to see active projects.
 - Never delete or overwrite files in `.orchestration/projects/` — that's live project data.
 - Never remove old commands without explicit confirmation.
 - Write files using absolute paths (resolve `~` via `echo $HOME`).
-- When updating `.gitignore`, only append — never rewrite or reorder existing entries.
 - If a source command file is missing from defaults: note it and skip. Don't fail the whole init.
 - Idempotent: running twice produces the same state as running once.
 - Never modify the CLAUDE.md tracking rule section once installed — if it exists, skip Phase 5.

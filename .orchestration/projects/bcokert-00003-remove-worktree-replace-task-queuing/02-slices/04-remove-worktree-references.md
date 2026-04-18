@@ -4,8 +4,8 @@ slice: 04
 order: 04
 project: remove-worktrees-queue-model
 design: .orchestration/projects/bcokert-00003-remove-worktree-replace-task-queuing/01-design/design-01.md
-status: tasks_ready
-status_updated_at: 2026-04-18T00:00:00-07:00
+status: done
+status_updated_at: 2026-04-18T10:15:00-07:00
 ---
 
 # Slice 04 — Remove all remaining worktree references

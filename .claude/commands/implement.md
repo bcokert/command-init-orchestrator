@@ -1,7 +1,7 @@
 ---
-version: 2.2.0
+version: 2.3.0
 description: |
-  Execution pipeline for a single project: project selection → sequential task execution → automatic QA → signoff_review. Resumes from wherever the project left off. Stops at signoff_review for human approval via /review.
+  Execution pipeline: global queue scan → next slice execution → automatic QA → signoff_review. Resumes from wherever the selected slice left off. Stops at signoff_review for human approval via /review.
 allowed-tools:
   - Read
   - Write
@@ -13,25 +13,24 @@ allowed-tools:
 
 # Implement — Task execution pipeline
 
-Your job is to take a project from `tasks_ready` to `signoff_review`. You own: project selection, sequential task execution, and automatic QA.
+Your job is to take the next queued slice from `tasks_ready` to `signoff_review`. You own: queue selection, sequential task execution, and automatic QA.
 
 ---
 
 ## Phase 0 — Detect state and route
 
-### Step 1 — Identify the project
+### Step 1 — Select next slice from global queue
 
-If a project ID was passed as argument: read `.orchestration/projects/{id}/status.md` and validate the project is at `tasks_ready` or `implementing`.
+If a project ID was passed as argument: read `.orchestration/projects/{id}/status.md`, validate the project is at `tasks_ready` or `implementing`, and select its lowest-numbered slice that is at `tasks_ready` (or any in-progress slice if the project is `implementing`). This determines `{id}` and `{NN}`.
 
 If no argument:
-1. Scan `.orchestration/projects/*/status.md`. Collect projects by stage.
-2. Separate into two lists: `tasks_ready` and `implementing`.
-3. If `tasks_ready` is non-empty: list them and prompt selection (even if `implementing` projects exist — concurrent execution is normal).
-4. If `tasks_ready` is empty and `implementing` is non-empty:
-   - List the implementing projects.
-   - Output: "No projects ready to start. Pass a project ID to resume one of the above."
-   - Stop.
-5. If both lists are empty: "No projects ready — run /plan-project to start one." Stop.
+1. Glob all `.orchestration/projects/*/02-slices/*.md` (excluding `done/`). Read each file's `slice:`, `status:`, and `status_updated_at:` frontmatter fields.
+2. Filter to slices with `status: tasks_ready`.
+3. If no slices found: "Nothing in the queue. Run /plan-project to create tasks." Stop.
+4. Sort by `status_updated_at` ascending (oldest first). Tiebreak: project ID alphabetically. If `status_updated_at` is absent or unparseable on all candidates: report "Cannot determine queue order — all queued slices are missing status_updated_at. Set the field or pass a project ID directly." Stop.
+5. Enforce per-project slice order: for each candidate slice N in project P, check whether any lower-numbered slice in project P is not at `signoff_review` or `done`. If so, report: "Project {P} slice {N} is blocked — slice {M} must reach signoff_review first." Skip this candidate.
+6. Select the first unblocked candidate. This determines `{id}` and `{NN}` for the remainder of the command.
+7. If no unblocked candidates remain: report all blocked slices and stop. "No eligible slices in the queue. Resolve the blockers listed above or run /plan-project."
 
 ### Step 2 — Wrong-command routing table
 
@@ -44,13 +43,13 @@ Check this table before doing any work. `/implement` enforces its own rows.
 | `signoff_review` | `/implement` with this specific project ID | "Project '{id}' is awaiting signoff — run `/review` to approve or provide feedback." |
 | `feedback_pending` | `/implement` | "Project '{id}' has unprocessed feedback — run `/plan-project` to spec the next slice." |
 
-### Step 3 — Route by current stage
+### Step 3 — Route by selected slice state
 
-| Stage | Action |
-|-------|--------|
+| Slice state | Action |
+|-------------|--------|
 | `tasks_ready` | Proceed to Phase 1 |
-| `implementing` | Resume — find first `in_progress` or next runnable `todo` task by reading task file statuses from disk, skip to Phase 2 |
-| All tasks `done`, stage `implementing` | Skip directly to Phase 3 (QA) |
+| `implementing` | Resume — find first `in_progress` or next runnable `todo` task for slice `{NN}` by reading task file statuses from disk, skip to Phase 2 |
+| All slice `{NN}` tasks `done` | Skip directly to Phase 3 (QA) |
 
 ---
 
@@ -133,4 +132,4 @@ On QA pass:
 - Never run tasks in parallel — v1 is sequential only.
 - Always validate `depends_on` before running a task. A task with an unmet dependency must not run.
 - Resume by reading task file statuses from disk. Never assume state from the current session.
-- If no `tasks_ready` projects exist, say so clearly and stop.
+- If the queue is empty (no `tasks_ready` slices), report and stop per Step 1.

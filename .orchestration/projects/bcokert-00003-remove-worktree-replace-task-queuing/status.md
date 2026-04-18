@@ -1,6 +1,6 @@
-stage: tasks_ready
+stage: implementing
 project_id: bcokert-00003-remove-worktree-replace-task-queuing
-next_action: run /implement to continue — slices 02-05 pending
+next_action: executing tasks
 transitions:
   - stage: design_in_progress
     timestamp: 2026-04-17T00:00:00-07:00
@@ -38,3 +38,9 @@ transitions:
   - stage: tasks_ready
     timestamp: 2026-04-18T09:32:00-07:00
     note: slice 01 done — restored to active for slices 02-05
+  - stage: implementing
+    timestamp: 2026-04-18T09:33:00-07:00
+    note: task execution started
+  - stage: signoff_review
+    timestamp: 2026-04-18T10:15:00-07:00
+    note: slices 02-04 approved by user

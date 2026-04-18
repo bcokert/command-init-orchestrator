@@ -63,7 +63,7 @@ This removes worktrees entirely. All implementation runs on main (or a single br
 
 - **Multiple slices from the same project queued**: per-project slice order must be preserved. Slice 02 must not start until slice 01 is at `signoff_review` or `done`.
 - **Queue is empty**: `/implement` stops — "Nothing in the queue. Run /plan-project to create tasks."
-- **Dirty working tree on `/implement` entry**: stop and warn. Starting on a dirty tree mixes prior work into the new slice's diff. User must `/review` pending work first.
+- **Dirty working tree on `/implement` entry**: expected and allowed. Slices accumulate uncommitted changes until `/review` commits them. The queue does not gate on tree cleanliness.
 - **Old `status.md` with `worktree_path` still set**: implement and status ignore unknown fields silently.
 - **Old `worktree_created` transition note in history**: status display must not error on unknown transition names — show what it knows, skip what it doesn't.
 - **All queued slices belong to a project that's blocked** (e.g. waiting for review): handle gracefully; report blocked state rather than silently skipping.
@@ -73,8 +73,6 @@ This removes worktrees entirely. All implementation runs on main (or a single br
 **Queue ordering across projects.** Order by `status_updated_at` on the slice file when its status last became `tasks_ready`. Per-project slice number order is always respected regardless of timestamps. **Why:** no new infrastructure needed; timestamps are already written. **Rejected:** an explicit queue file — more state to corrupt, no benefit for serial execution.
 
 **Commit and push target.** Commit and push directly to main, locally and remotely. **Why:** project branches existed to isolate worktrees; without worktrees there's no isolation need. Feature-branch collaboration is explicitly out of scope here. **Rejected:** keep per-project local branches — adds most of the worktree complexity back without the isolation.
-
-**Dirty-tree guard.** `/implement` checks for uncommitted changes on entry and stops if the tree is dirty. **Why:** executing tasks on a dirty tree folds prior uncommitted work into the new slice's diff, making review meaningless. **Rejected:** auto-stash — hides state, produces confusing restores.
 
 **`suggest_worktree` config setting.** Remove entirely (not commented out, not deprecated). **Why:** a dead setting pointing at a removed feature is noise in every user's config file. **Rejected:** leave with a comment — still appears in configs shipped by `/init-orchestrator`.
 

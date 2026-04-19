@@ -1,5 +1,5 @@
 ---
-version: 1.2.0
+version: 1.3.0
 description: |
   Closes the signoff loop for a project in signoff_review. Approve path: commits the full execution diff from main, archives the project. Feedback path: writes new slice files to the backlog, sets feedback_pending.
 allowed-tools:
@@ -19,24 +19,20 @@ Your job is to close out a project at `signoff_review`: either approve it (commi
 
 ## Phase 0 — Detect state and route
 
-### Step 1 — Identify the project
+### Step 1 — Identify the slice
 
-If a project ID was passed as argument: read `.orchestration/projects/{id}/status.md`, validate `stage: signoff_review`.
+If a project ID was passed as argument:
+1. Glob `.orchestration/projects/{id}/02-slices/*.md`. Read each file's frontmatter.
+2. Find the slice with `status: signoff_review`.
+3. If none found: "No slices awaiting signoff in {id}. Run /implement to continue." Stop.
+4. If multiple found: list them and prompt selection.
 
 If no argument:
-1. Scan `.orchestration/projects/*/status.md` for `stage: signoff_review`.
-2. If none: "No projects awaiting signoff. Run /implement to execute tasks, or /plan-project to start a new project." Stop.
-3. If one: use it.
-4. If multiple: list them and prompt selection.
-
-### Step 2 — Wrong-command routing
-
-| Stage | Error message |
-|-------|---------------|
-| `design_in_progress`, `design_review`, `slicing_in_progress`, `slicing_review`, `spec_in_progress`, `spec_review`, `breakdown_in_progress`, `tasks_ready` | "Project '{id}' is in {stage} — run `/plan-project` to continue." |
-| `implementing` | "Project '{id}' is still implementing — run `/implement` to resume, or wait for QA to complete." |
-| `feedback_pending` + `/implement` attempt | "Project '{id}' has unprocessed feedback — run `/plan-project` to spec the next slice." |
-| `done` | "Project '{id}' is already done." |
+1. Glob `.orchestration/projects/*/02-slices/*.md` (excluding `done/`). Read each file's frontmatter.
+2. Filter to slices with `status: signoff_review`.
+3. If none: "No slices awaiting signoff. Run /implement to execute tasks, or /plan-project to start a new project." Stop.
+4. If one: use it. Extract `{id}` from the path.
+5. If multiple: list all and prompt selection.
 
 ---
 
@@ -65,7 +61,18 @@ Ask: "Approve and close this slice, or provide feedback?"
    ```
    If push fails: report clearly and continue. Don't block the rest.
 
-4. **Archive** — check target doesn't exist:
+4. **Archive eligibility check** — Glob all slice files at `.orchestration/projects/{id}/02-slices/*.md`. Read each file's `status` frontmatter field.
+   - If any slice file cannot be read: log "warning: could not read {path} — treating as not-done" and count it as not-done.
+   - Count slices where `status` is not `done`. Call this `remaining`.
+   - If `remaining > 0`:
+     ```
+     Slice {NN} done — {remaining} slices remaining. Run /plan-project or /implement to continue.
+     ※ Slice {NN} · done · approved → {remaining} slices remaining
+     ```
+     Stop. Do not archive.
+   - If `remaining == 0`: proceed to archive.
+
+5. **Archive** — check target doesn't exist:
    ```bash
    # target: .orchestration/projects/done/YYYY-MM/{id}/
    ```
@@ -76,7 +83,7 @@ Ask: "Approve and close this slice, or provide feedback?"
    mv .orchestration/projects/{id}/ .orchestration/projects/done/YYYY-MM/{id}/
    ```
 
-5. **Update status.md** (now at archive path):
+6. **Update status.md** (now at archive path):
    ```yaml
    stage: done
    transitions:
@@ -85,7 +92,7 @@ Ask: "Approve and close this slice, or provide feedback?"
        note: slice {NN} approved — archived to done/YYYY-MM/{id}
    ```
 
-6. **Push final state:**
+7. **Push final state:**
    ```bash
    git add .orchestration/projects/done/YYYY-MM/{id}/
    git add .orchestration/projects/{id}/
@@ -93,7 +100,7 @@ Ask: "Approve and close this slice, or provide feedback?"
    git push
    ```
 
-7. Output:
+8. Output:
    ```
    Slice {NN} done — {project_id}
 
@@ -160,8 +167,8 @@ No commit. Feedback slices are reviewed via `/plan-project` before anything is c
 
 ## Behavior rules
 
-- Only run on `signoff_review` projects. Any other stage: route correctly and stop.
+- Only run when a slice with `status: signoff_review` exists. If none found: report and stop per Phase 0.
 - The approve commit includes everything uncommitted on main — implementation files, task status files, QA report, slice status, status.md. This is the one commit for the entire execution pipeline. Do not cherry-pick.
 - Never overwrite an existing archive target. Fail with clear instructions.
 - Feedback path: no commit. The slice files are `draft` and require human review via `/plan-project` before any commit happens.
-- Always re-read `status.md` and slice files from disk. Never use session-cached state.
+- Always re-read slice files from disk. Never use session-cached state.

@@ -4,21 +4,24 @@ slice: 06
 order: 06
 project: remove-worktrees-queue-model
 design: .orchestration/projects/bcokert-00003-remove-worktree-replace-task-queuing/01-design/design-01.md
-status: draft
+status: done
+status_updated_at: 2026-04-19T09:15:00-07:00
 ---
 
-# Slice 06 — Fix /review premature archive for multi-slice projects
+# Slice 06 — Fix /review: route by slice state, not project stage
 
-**Goal:** `/review` currently archives the project after any approved slice. For multi-slice projects, it should only archive when all slices are done. If slices remain, it should reset the project to `tasks_ready` and prompt the user to run `/implement`.
+**Goal:** `/review` currently finds projects by scanning for `stage: signoff_review` in status.md. This is brittle — status.md `stage` can be stale or wrong, as we've seen. Route instead by scanning for slice files with `status: signoff_review`. Archive only when all slice files are `status: done`.
 
 ## Happy path
 
-- User approves slice 02 of a 5-slice project. `/review` commits the changes, then checks remaining slice statuses.
-- Remaining slices (03–05) are still `tasks_ready` / `todo`. `/review` updates `status.md` to `tasks_ready` (not `done`) and outputs: "Slice 02 done — N slices remaining. Run /implement to continue."
-- When the final slice is approved and no `todo`/`tasks_ready` slices remain, `/review` archives as normal.
+- `/review` with no argument scans all `.orchestration/projects/*/02-slices/*.md` for `status: signoff_review`. If one match: use it. If multiple: list and prompt. If none: "No slices awaiting signoff."
+- After approval, check remaining slice statuses directly from slice files. If any slice is not `done`: do not archive. Output: "Slice {NN} done — {N} slices remaining. Run /plan-project or /implement to continue."
+- If all slices are `done` after approval: archive as today.
+- The `stage` field in status.md is never read for routing. It may still be written as part of the transitions log for now (cleaned up in slice 07).
 
 ## Edge cases
 
-- All slices show `done` on approval of the last one: archive proceeds as today.
-- Slice file statuses unreadable: treat conservatively — do not archive, warn and leave at `tasks_ready`.
-- `/status` should correctly show the project as active (not done) after a mid-project slice approval.
+- Multiple slices in `signoff_review` simultaneously: list all and ask which to approve first.
+- Slice file for the approved slice can't be found: log warning, proceed with commit and archive check using remaining readable slices. Treat unreadable slice as not-done (conservative — don't archive if uncertain).
+- All slice files readable and `done` after approval: archive proceeds as normal.
+- `/review` called with a project ID arg: find the slice in `signoff_review` within that project, not from status.md stage.

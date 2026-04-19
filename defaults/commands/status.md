@@ -1,7 +1,7 @@
 ---
-version: 3.2.0
+version: 3.3.0
 description: |
-  Reads status.md files from .orchestration/projects/. With a project ID arg: single-project detail view. Without: grouped view — one section per active project, with every slice listed in its current state. Read-only — never modifies files.
+  Reads project and slice state from .orchestration/projects/. With a project ID arg: single-project detail view. Without: grouped view — one section per active project, with every slice listed in its current state. Read-only — never modifies files.
 allowed-tools:
   - Read
   - Glob
@@ -25,55 +25,31 @@ If no argument: proceed to Phase 2 (multi-project scan).
 
 ## Phase 1 — Single-project detail view
 
-1. Resolve path: `.orchestration/projects/{id}/status.md`.
+1. Check `.orchestration/projects/{id}/` exists.
+   - If not: > "project {id} not found — run `/status` with no args to list projects". Stop.
+   - If path is under `done/`: > "project {id} is archived under .orchestration/projects/done/". Stop.
 
-2. If the project folder does not exist:
-   > "project {id} not found — run `/status` with no args to list projects"
-   Stop.
+2. Read slice files at `.orchestration/projects/{id}/02-slices/*.md`.
 
-3. If the folder exists but `status.md` is absent:
-   > "project {id} exists but status.md is missing — the project may be in an inconsistent state."
-   Stop.
+3. Read design doc at `.orchestration/projects/{id}/01-design/design-01.md` for the `date:` field (start date). If absent: use `—`.
 
-4. Read `status.md`. For each expected field (`stage`, `next_action`, `transitions`): if missing or unparseable, note it — display a warning in place of the value rather than crashing.
-
-5. If `stage` is `done`:
-   > "project {id} is done and has been archived to .orchestration/projects/done/"
-   Stop.
-
-6. Compute elapsed time in current stage: time since the most recent transition's timestamp. Format human-readable: `2h 14m`, `3d 7h`, etc. If the most recent transition has no `timestamp` field, or if the value is unparseable: show `unknown` — do not crash.
-
-7. Display:
+4. Display: project header line followed by slice rows, using the same format as Phase 3.
 
 ```
-project:   {id}
-stage:     {stage}          (or "[missing — check status.md]" if absent)
-next:      {next_action}    (or "[missing]" if absent)
-elapsed:   {elapsed} (since {stage} at {timestamp of most recent transition})
-
-Recent transitions:
-  {timestamp}  {stage}  {note}
-  {timestamp}  {stage}  {note}
-  {timestamp}  {stage}  {note}
+**{id}** · {MMM D} · {slice_counts} · {task_counts}
+  {slice rows — same format as Phase 3}
 ```
 
-Show last 3 transitions, most recent first. If fewer than 3, show what exists. If `transitions` is missing or empty: show "no transitions recorded".
-
-If any field produced a warning, append after the display block:
-```
-Warning: {field} is missing or unreadable in status.md
-```
+If no slice files exist: show header only with `—` for all counts.
 
 ---
 
 ## Phase 2 — Multi-project scan
 
-1. Scan `.orchestration/projects/*/status.md`. Exclude files under `done/` subdirectory.
+1. Glob `.orchestration/projects/*/` directories. Exclude any path under `done/` subdirectory.
 
 2. Collect all active projects. For each:
-   - `stage` from status.md
-   - `next_action` from status.md
-   - **Start date:** timestamp of the last entry in the `transitions` list (oldest transition, typically the `design_in_progress / project created` entry). If transitions is empty or unparseable: `—`.
+   - **Start date:** `date:` field from `.orchestration/projects/{id}/01-design/design-01.md`. If design doc absent or `date:` unparseable: `—`.
    - **Slice data:** Glob `.orchestration/projects/{id}/02-slices/*.md`. For each file, read:
      - `slice:` frontmatter field (slice number)
      - `status:` frontmatter field
@@ -82,7 +58,7 @@ Warning: {field} is missing or unreadable in status.md
      - If frontmatter is unreadable: record as unknown-status slice, warn once per project
    - **Slice counts:** total = count of slice files; done = count where `status: done`
    - **Task counts:** Glob `.orchestration/projects/{id}/04-tasks/slice-*/**.md`. Total = count of all .md files. Done = count where `status: done` in frontmatter. If directory absent: 0/0. If a task file is unreadable or lacks `status`: exclude from done count, warn once per slice.
-   - **Most recently updated timestamp:** latest of `last_transition_timestamp` in status.md and all `status_updated_at` values across slice files. Used for sort order.
+   - **Most recently updated timestamp:** latest `status_updated_at` across all slice files. If no slice timestamps exist: fall back to design doc `date:` field. Used for sort order.
 
 3. Sort projects: most recently updated first (highest `most recently updated timestamp`). Projects with no parseable timestamps: sort last. Secondary sort: project ID descending.
 
@@ -102,8 +78,8 @@ Otherwise, for each project (sorted most recently updated first):
 ```
 **{id}** · {MMM D} · {slice_counts} · {task_counts}
 ```
-- Date = start date from oldest transition. Omit year if current year. Use `—` if absent.
-- If `status.md` has missing required fields: show `**{id}** ⚠ malformed status.md` and skip slice rows.
+- Date = start date from design doc `date:` field. Omit year if current year. Use `—` if absent.
+- If no slice files readable at all: show header only.
 
 **Count format** for `{slice_counts}` and `{task_counts}`:
 
@@ -172,5 +148,4 @@ Blank line between projects.
 
 - Read-only. Never write, edit, or delete any file under any circumstance.
 - Partial reads are better than crashes. Show what's readable, warn on gaps.
-- Elapsed time is derived from the most recent transition timestamp. If transitions are missing, show "unknown".
-- Done projects are excluded entirely.
+- Done projects are excluded entirely (they live under `done/` subdirectory and are excluded by the glob).

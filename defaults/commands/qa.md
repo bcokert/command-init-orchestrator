@@ -1,5 +1,5 @@
 ---
-version: 1.0.0
+version: 1.1.0
 description: |
   Runs after implement. Verifies done signals for each task in a spec, runs mechanical checks where possible, and outputs a QA report to .orchestration/dashboard/{spec-id}-qa.md.
 allowed-tools:
@@ -19,7 +19,7 @@ Your job is to verify that a spec's done signals are met and produce a report.
 
 ## Phase 0 — Load inputs
 
-When called from `/implement`, the project id and slice number are passed as context. When called standalone, read `.orchestration/projects/*/status.md` to find the project in `implementing` or `signoff_review`.
+When called from `/implement`, the project id and slice number are passed as context. When called standalone, glob `.orchestration/projects/*/02-slices/*.md` to find a slice with `status: implementing`, `qa_in_progress`, or `signoff_review`.
 
 Read the brief at `.orchestration/projects/{id}/03-briefs/{NN}-{slug}.md` and all task files in `.orchestration/projects/{id}/04-tasks/slice-{NN}/`. Read the brief's Observable Outcomes section — this is the ground truth for what should work.
 
@@ -126,17 +126,8 @@ status: {passed|failed|partial|pending-manual}
 When QA passes (all non-manual checks green):
 
 1. Write the QA report file.
-2. Update the slice file frontmatter: `status: signoff_review`
-3. Update `status.md` (no commit yet — commit happens in `/review` on approval):
-```yaml
-stage: signoff_review
-next_action: run /review to approve or provide feedback
-transitions:
-  - stage: signoff_review
-    timestamp: {ISO 8601}
-    note: QA passed — {N} checks, {M} manual
-```
-4. Output:
+2. Update the slice file frontmatter: `status: signoff_review` and `status_updated_at: {current ISO 8601 timestamp with timezone offset}`
+3. Output:
 ```
 QA passed — slice {NN}: {title}
 
@@ -159,4 +150,4 @@ or provide feedback (creates new slice in backlog).
 - A spec is `passed` only if all non-manual checks pass. `manual` items do not count as failures.
 - If there are unfixed failures: do not suggest marking the spec `done`. Flag for fix.
 - QA runs automatically after all tasks complete — do not wait to be asked. When the last task is marked `done`, proceed to Phase 0 immediately.
-- Never `git add` or `git commit` anything. The QA report, slice status update, and status.md changes all stay uncommitted. The human reviews the full uncommitted diff at signoff_review. The commit happens in `/review` on approval.
+- Never `git add` or `git commit` anything. The QA report and slice status update stay uncommitted. The human reviews the full uncommitted diff at signoff_review. The commit happens in `/review` on approval.

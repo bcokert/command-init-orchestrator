@@ -1,5 +1,5 @@
 ---
-version: 2.3.0
+version: 2.4.0
 description: |
   Full planning pipeline for a single project: design interview → slicing → spec → breakdown → tasks_ready. Resumes from wherever the project left off. Commits and pushes at each human approval gate. Ends when tasks are ready for /implement.
 allowed-tools:
@@ -25,43 +25,51 @@ Your job is to take a project from idea to tasks_ready. You own the full plannin
 If a project ID or path was passed as argument, use it.
 
 If no argument:
-1. Scan `.orchestration/projects/` for folders with `status.md` where `stage` is not `done`, `implementing`, `qa_in_progress`, or `signoff_review`.
-2. If one match: use it.
-3. If multiple matches: list them and ask which to resume, or offer to start a new one.
-4. If no matches: start a new project (proceed to Step 3).
+1. Glob `.orchestration/projects/*/` directories, excluding any path under `done/`.
+2. For each directory, read slice files at `.orchestration/projects/{id}/02-slices/*.md`. Collect `status:` frontmatter for each.
+3. A project has actionable work for plan-project if it has at least one slice in `draft`, `reviewed`, or `specced` state, or has no slice files yet, or has no design doc yet.
+4. If one match: use it.
+5. If multiple matches: list them and ask which to resume, or offer to start a new one.
+6. If no matches: start a new project (proceed to Step 3).
 
-### Step 2 — Wrong-command routing table
+### Step 2 — Wrong-command routing
 
-Full routing table for all commands and stages. `/plan-project` enforces its own rows; `/implement` and `/review` enforce theirs. Check this table first — if the current command is wrong for the current stage, output the error and stop.
+Read all slice files for the selected project. If any condition below matches, output the error and stop.
 
-| Stage | Wrong command | Error message |
-|-------|---------------|---------------|
-| `slicing_in_progress`, `slicing_review` | `/implement` or `/review` | "Project '{id}' is in {stage} — run `/plan-project` to continue." |
-| `spec_in_progress`, `spec_review` | `/implement` or `/review` | "Project '{id}' is in {stage} — run `/plan-project` to continue." |
-| `breakdown_in_progress` | `/implement` or `/review` | "Project '{id}' is in {stage} — run `/plan-project` to continue." |
-| `tasks_ready` | `/review` | "Project '{id}' is in tasks_ready — run `/implement` to start implementation." |
-| `tasks_ready` | `/plan-project` | "Project '{id}' is in tasks_ready — run `/implement` to start implementation." |
-| `implementing`, `qa_in_progress`, `signoff_review`, `feedback_pending` | `/plan-project` | "Project '{id}' is in {stage} — run `/implement` to execute tasks, or `/review` once implementation is complete." |
+| Condition | Error message |
+|-----------|---------------|
+| Any slice at `implementing` or `qa_in_progress` | "Slice {NN} is currently implementing — run `/implement` to resume." |
+| Any slice at `signoff_review` | "Slice {NN} is awaiting signoff — run `/review` to approve or provide feedback." |
+| No slice is in `draft`, `reviewed`, or `specced` — all slices are `tasks_ready` or beyond | "All slices are queued or complete — run `/implement` to start implementation." |
 
-Stop after outputting the error. Do no further work.
+### Step 3 — Route by current state
 
-### Step 3 — Route by current stage
+Derive state from artifacts on disk. Check conditions in order — stop at the first match.
 
-Read `status.md` if it exists. Route:
+| Condition | Action |
+|-----------|--------|
+| No project directory | Create project (Step 4), run interview (Phase 1) |
+| Directory exists, no `01-design/design-01.md` | Inform user interview didn't complete, run interview (Phase 1) |
+| Design doc exists, no `02-slices/*.md` | Run slicing (Phase 5) |
+| Scan slices 01, 02, … in order: first slice that is `reviewed` and eligible for spec (N=1, or slice N-1 is `specced` or beyond) | Run spec (Phase 6) for that slice |
+| Scan slices in order: first slice that is `specced` and eligible for breakdown (N=1, or slice N-1 is `tasks_ready` or beyond) | Run breakdown (Phase 7) for that slice |
+| Next actionable slice is `draft` | Prompt user to review it (see below). Stop. |
 
-| Status | Action |
-|--------|--------|
-| No project folder | Create project (Step 4), then run interview (Phase 1) |
-| `design_in_progress`, no `01-design/design-01.md` | Inform user interview didn't complete, run interview (Phase 1) |
-| `design_in_progress`, `01-design/design-01.md` exists | Interview completed but status wasn't advanced — skip to Phase 4 (advance status + gate) |
-| `design_review` | Show review gate (Phase 4) |
-| `slicing_in_progress` | Resume slicing (Phase 5) |
-| `slicing_review` | Show slicing gate (Phase 5) |
-| `spec_in_progress` | Resume spec (Phase 6) |
-| `spec_review` | Show spec gate (Phase 6) |
-| `breakdown_in_progress` | Resume breakdown (Phase 7) |
-| `tasks_ready` | "Tasks are ready — run `/implement` to start." Stop. |
-| `feedback_pending` | Resume as new design run (Phase 1), increment run counter |
+Draft prompt:
+```
+Slice {NN} — {title} — hasn't been reviewed yet.
+
+Review the slice file at .orchestration/projects/{id}/02-slices/{NN}-{slug}.md.
+Edit it directly if anything needs changing, then set status: reviewed.
+When ready, run /plan-project to continue.
+```
+
+**Ordering constraint:** before advancing slice N to any state, slice N-1 must already be at that state or beyond. To spec slice N, slice N-1 must be at `specced` or beyond. To break down slice N, slice N-1 must be at `tasks_ready` or beyond. Slice 01 has no prior — no constraint applies.
+
+If a slice would be eligible but the ordering constraint blocks it, report:
+```
+Slice {N-1} must reach {required_state} before slice {N} can advance. Run /plan-project to advance slice {N-1} first.
+```
 
 ### Step 4 — Create new project
 
@@ -69,19 +77,7 @@ Read `status.md` if it exists. Route:
 2. Derive slug from the project name: lowercase, kebab-case, max 5 words, strip stop words (the, a, an, for, of, in, to). The project ID format is `{username}-{NNNNN}-{slug}` (e.g. `bcokert-00003-claire-full-system`).
 3. Scan `.orchestration/projects/` for folders matching `{username}-*`, find the highest sequence number, add 1, zero-pad to 5 digits. If folder already exists at derived path, increment and retry.
 4. Create `.orchestration/projects/{id}/`. Create `.orchestration/projects/` if it doesn't exist.
-5. Write `status.md` immediately — before any interview interaction:
-
-```yaml
-stage: design_in_progress
-project_id: {id}
-next_action: complete design interview
-transitions:
-  - stage: design_in_progress
-    timestamp: {ISO 8601 with timezone offset}
-    note: project created
-```
-
-6. Load project context before starting the interview:
+5. Load project context before starting the interview:
    - Read `CLAUDE.md` in the current project directory if it exists.
    - Read `.root-context/architecture.md`, `.root-context/CONSTRAINTS.md`, `.root-context/DECISIONS.md` if they exist.
    - Note what you've read — don't ask questions the docs already answer.
@@ -191,21 +187,9 @@ Write to `.orchestration/projects/{id}/01-design/design-01.md` (or `design-{NN}.
 
 ---
 
-## Phase 4 — Advance status and design review gate
+## Phase 4 — Design review gate
 
-After writing the design doc:
-
-1. Append to `status.md` transitions and update stage:
-```yaml
-stage: design_review
-next_action: review design doc and run /plan-project to continue to slicing
-transitions:
-  - stage: design_review
-    timestamp: {ISO 8601}
-    note: design interview complete
-```
-
-2. Show the review gate:
+After writing the design doc, show the review gate:
 
 ```
 Design interview complete — {project_id}
@@ -218,7 +202,7 @@ After implementation, corrections cost the most.
 
 Review the design doc. Edit it directly if anything needs changing.
 When ready, run /plan-project to continue to slicing.
-※ stage 2/10 design_review · design interview complete → review doc and re-run /plan-project 📄
+※ design_review · design interview complete → review doc and re-run /plan-project 📄
 ```
 
 **Wait here.** Do not proceed to slicing until Bdon says to continue.
@@ -229,27 +213,12 @@ When ready, run /plan-project to continue to slicing.
 
 ### On entry
 
-Check the current stage before writing anything:
+Commit any pending changes to the design doc before slicing:
+- `git add .orchestration/projects/{id}/01-design/design-{NN}.md`
+- `git commit -m "Design approved — {project_id}"` — only if files have changes; skip if clean
+- `git push`
 
-- **Entering from `slicing_review`** (stage is already `slicing_review`): commit any pending changes to slice files (original generated content + any edits made during review):
-  - `git add .orchestration/projects/{id}/02-slices/ .orchestration/projects/{id}/status.md`
-  - `git commit -m "Slices approved — {project_id}"` — only if files have changes; skip if clean
-  - `git push`
-  Then proceed directly to Phase 6 (spec). Do not re-slice, do not show the slicing gate again.
-- **Entering from `design_review`**: commit any pending changes to the design doc (original + any edits made during review):
-  - `git add .orchestration/projects/{id}/01-design/design-{NN}.md .orchestration/projects/{id}/status.md`
-  - `git commit -m "Design approved — {project_id}"` — only if files have changes; skip if clean
-  - `git push`
-  Then write `slicing_in_progress` to `status.md`:
-  ```yaml
-  stage: slicing_in_progress
-  next_action: complete slicing
-  transitions:
-    - stage: slicing_in_progress
-      timestamp: {ISO 8601}
-      note: slicing started
-  ```
-- **Entering from `slicing_in_progress`** (resume after crash): check `.orchestration/projects/{id}/02-slices/` for existing files. If any exist: delete them all, log "previous slicing incomplete — regenerating", then proceed. If none exist: proceed.
+**Crash resume:** check `.orchestration/projects/{id}/02-slices/` for existing files. If any exist but slicing wasn't completed (some slices missing or all are `draft` with no slice gate previously shown): delete them all, log "previous slicing incomplete — regenerating", then proceed.
 
 Always re-read `01-design/design-{NN}.md` from disk before slicing. Never use cached content.
 
@@ -261,17 +230,7 @@ Pass `design-{NN}.md` as input. Produce individual slice files at `.orchestratio
 
 ### After all slice files written
 
-1. Update `status.md`:
-```yaml
-stage: slicing_review
-next_action: review slice files and run /plan-project to continue to spec
-transitions:
-  - stage: slicing_review
-    timestamp: {ISO 8601}
-    note: {N} slices created
-```
-
-2. Show the slicing gate:
+Show the slicing gate:
 
 ```
 Slicing complete — {project_id}
@@ -284,7 +243,7 @@ them out when they become next.
 Every slice requires human review before it can be specced.
 Review slice 01, edit directly if needed, then set status: reviewed.
 When ready, run /plan-project to continue to spec.
-※ Slice 01 · stage 4/10 slicing_review · slicing complete → review slices and re-run /plan-project 📄
+※ Slice 01 · slicing_review · slicing complete → review slices and re-run /plan-project 📄
 ```
 
 **Wait here.**
@@ -295,46 +254,16 @@ When ready, run /plan-project to continue to spec.
 
 ### On entry
 
-Check the current stage before writing anything:
+Commit any pending changes to slice files before speccing:
+- `git add .orchestration/projects/{id}/02-slices/`
+- `git commit -m "Slices approved — {project_id}"` — only if files have changes; skip if clean
+- `git push`
 
-- **Entering from `spec_review`** (stage is already `spec_review`): commit any pending changes to the brief (original + any edits made during review):
-  - `git add .orchestration/projects/{id}/03-briefs/{NN}-*.md .orchestration/projects/{id}/02-slices/{NN}-*.md .orchestration/projects/{id}/status.md`
-  - `git commit -m "Spec approved — {project_id} slice {NN}"` — only if files have changes; skip if clean
-  - `git push`
-  Then proceed directly to Phase 7 (breakdown). Do not re-spec, do not show the spec gate again.
-- **Entering from `slicing_review`**: write `spec_in_progress` to `status.md` first:
-  ```yaml
-  stage: spec_in_progress
-  next_action: complete spec
-  transitions:
-    - stage: spec_in_progress
-      timestamp: {ISO 8601}
-      note: spec started
-  ```
-- **Entering from `spec_in_progress`** (resume after crash): check if brief already exists for the target slice. If it exists: skip writing and advance to spec gate. If not: restart spec from the beginning.
+**Crash resume:** if a brief already exists for the target slice but its slice file is still `reviewed` (not `specced`): skip writing the brief and show the spec gate. If no brief exists: run spec from the beginning.
 
 ### Slice selection
 
-First, check if any slice has `status: signoff_review`. If so:
-```
-Slice {NN} — {title} — is awaiting signoff review.
-
-Run /review to approve it (marks done) or provide feedback
-(adds a new slice to the backlog) before speccing the next slice.
-```
-Stop.
-
-Otherwise, select the target slice: the lowest-numbered slice file in `.orchestration/projects/{id}/02-slices/` with `status: reviewed` that comes after all slices with `status: specced`, `tasks_ready`, `implementing`, or `done`. Never skip a slice.
-
-If the next slice has `status: draft` (not yet reviewed):
-```
-Slice {NN} — {title} — is draft and hasn't been reviewed yet.
-
-Review the slice file at .orchestration/projects/{id}/02-slices/{NN}-{slug}.md.
-Edit it directly if anything needs changing, then set status: reviewed.
-When ready, run /plan-project to continue to spec.
-```
-Stop. Do not spec a draft slice.
+The target slice is already determined by Phase 0 Step 3 routing. Use the slice number passed from routing.
 
 ### Writing the brief
 
@@ -345,17 +274,8 @@ Write the delegation brief to `.orchestration/projects/{id}/03-briefs/{NN}-{slug
 ### After writing
 
 1. Update slice file frontmatter: `status: specced` and `status_updated_at: {current ISO 8601 timestamp with timezone offset}`
-2. Update `status.md`:
-```yaml
-stage: spec_review
-next_action: review brief and run /plan-project to continue to breakdown
-transitions:
-  - stage: spec_review
-    timestamp: {ISO 8601}
-    note: spec written for slice {NN}
-```
 
-3. Show the spec gate (light review):
+2. Show the spec gate (light review):
 
 ```
 Spec complete — slice {NN}: {title}
@@ -369,7 +289,7 @@ Light review — check:
 - Breakdown maps cleanly to the slice
 
 Run /plan-project to continue to breakdown, or edit the brief directly first.
-※ Slice {NN} · stage 6/10 spec_review · spec complete → review brief and re-run /plan-project 📄
+※ Slice {NN} · spec_review · spec complete → review brief and re-run /plan-project 📄
 ```
 
 **Wait here.**
@@ -380,19 +300,14 @@ Run /plan-project to continue to breakdown, or edit the brief directly first.
 
 ### On entry
 
-1. Write `breakdown_in_progress` to `status.md` before any other work:
-```yaml
-stage: breakdown_in_progress
-next_action: complete breakdown
-transitions:
-  - stage: breakdown_in_progress
-    timestamp: {ISO 8601}
-    note: breakdown started
-```
+Commit any pending changes to the brief and slice file before running breakdown:
+- `git add .orchestration/projects/{id}/03-briefs/{NN}-*.md .orchestration/projects/{id}/02-slices/{NN}-*.md`
+- `git commit -m "Spec approved — {project_id} slice {NN}"` — only if files have changes; skip if clean
+- `git push`
 
-2. Read the brief's breakdown table (Section — Breakdown). If zero rows: stop and ask.
+1. Read the brief's breakdown table (Section — Breakdown). If zero rows: stop and ask.
 
-3. Resume detection: count existing `.md` files in `.orchestration/projects/{id}/04-tasks/slice-{NN}/`. If the count does not match the breakdown table row count: delete all existing task files and regenerate all (idempotent overwrite).
+2. Resume detection: count existing `.md` files in `.orchestration/projects/{id}/04-tasks/slice-{NN}/`. If the count does not match the breakdown table row count: delete all existing task files and regenerate all (idempotent overwrite).
 
 ### Task file creation
 
@@ -426,22 +341,13 @@ Derive `agent_type` from the work description:
 ### After creating all task files
 
 1. Update slice file frontmatter: `status: tasks_ready` and `status_updated_at: {current ISO 8601 timestamp with timezone offset}`
-2. Update `status.md`:
-```yaml
-stage: tasks_ready
-next_action: run /implement to start implementation
-transitions:
-  - stage: tasks_ready
-    timestamp: {ISO 8601}
-    note: {N} tasks created for slice {NN}
-```
 
-3. Commit and push:
-   - `git add .orchestration/projects/{id}/04-tasks/ .orchestration/projects/{id}/02-slices/{NN}-*.md .orchestration/projects/{id}/status.md`
+2. Commit and push:
+   - `git add .orchestration/projects/{id}/04-tasks/ .orchestration/projects/{id}/02-slices/{NN}-*.md`
    - `git commit -m "Tasks ready — {project_id} slice {NN} ({N} tasks)"`
    - `git push` — if push fails, report clearly and continue. Status is committed locally.
 
-4. Surface the agent team:
+3. Surface the agent team:
 
    Read all task files just created. Collect unique `agent_type` values and count tasks per type. Output:
 
@@ -455,7 +361,7 @@ transitions:
 
    Wait for confirmation. User may add or remove agent types. Do not proceed to the output below until confirmed.
 
-5. Output:
+4. Output:
 
 ```
 Tasks ready — slice {NN}: {title}
@@ -463,26 +369,8 @@ Tasks ready — slice {NN}: {title}
 {N} tasks created in .orchestration/projects/{id}/04-tasks/slice-{NN}/
 
 Run /implement to start implementation.
-※ Slice {NN} · stage 8/10 tasks_ready · breakdown complete → run /implement 📄
+※ Slice {NN} · tasks_ready · breakdown complete → run /implement ▶️
 ```
-
----
-
-## Stage sequence
-
-Ordered pipeline stages — used to derive recap denominator:
-
-```
-design_in_progress, design_review, slicing_in_progress, slicing_review,
-spec_in_progress, spec_review, breakdown_in_progress, tasks_ready,
-implementing, signoff_review
-```
-
-Count = 10. Recap format: `※ [Slice {NN} · ] stage {N}/{count} {stage_name} · {last event} → {next action} {emoji}`
-- 📄 = human must review something before proceeding
-- ▶️ = just run the next command
-- Omit slice number if no slice has been assigned yet (e.g. design_review on a new project)
-- `feedback_pending` and `done` are outside the main sequence — render without stage number
 
 ---
 
@@ -493,9 +381,8 @@ Count = 10. Recap format: `※ [Slice {NN} · ] stage {N}/{count} {stage_name} �
 - Always update the context log every turn during Phase 2.
 - If Bdon gives a vague or short answer, ask a focused follow-up rather than accepting it.
 - If something contradicts an earlier answer, surface the conflict and resolve it before moving on.
-- Status update is always the last step of any stage. Never advance status before all artifacts for that stage are written.
-- Never commit or push mid-stage — only at gates, on approval. "On approval" means when the human re-runs the command after reviewing, not when the gate is first reached.
-- The execution pipeline (implement → QA → signoff_review) has its own commit cadence: nothing is committed until the human runs /review and approves. All implementation changes, task status updates, QA reports, and slice status changes stay uncommitted so the human can see the full diff at review time.
+- Never commit or push mid-phase — only at phase entry (committing the previous phase's artifacts) and after breakdown task creation. Gates stop and wait for the human; commits happen when the human re-runs.
+- The execution pipeline (implement → QA → signoff_review) has its own commit cadence: nothing is committed until the human runs /review and approves. All implementation changes, task status updates, QA reports, and slice status changes stay uncommitted until then.
 - After any change to the design doc — whether during writing or during design_review — do a full cohesion pass before saving: check every section for contradictions with the change. A new decision at the bottom does not automatically update the sections above. This applies to edits made in response to human feedback during review, not just initial writing.
 - **Root context conflicts require a prompt, not a note.** If a design decision contradicts or supersedes something in the project's root context (`.root-context/*`) or `CLAUDE.md`, do not leave a note in the design doc. Ask: "This decision conflicts with [file] — [what it says]. Update [root context|CLAUDE.md] to reflect the new direction?" If yes: update the file, note what changed at the bottom of the design doc under "Root context updates made". If no: record the conflict in the design doc as an open question. Never update root context silently. Always ask first — root context varies by project and may be shared or sensitive.
 - Resuming: always re-read files from disk. Never use cached content from earlier in the session.

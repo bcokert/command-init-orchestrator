@@ -1,5 +1,5 @@
 ---
-version: 2.4.0
+version: 2.5.0
 description: |
   Execution pipeline: global queue scan → next slice execution → automatic QA → signoff_review. Resumes from wherever the selected slice left off. Stops at signoff_review for human approval via /review.
 allowed-tools:
@@ -21,7 +21,7 @@ Your job is to take the next queued slice from `tasks_ready` to `signoff_review`
 
 ### Step 1 — Select next slice from global queue
 
-If a project ID was passed as argument: read `.orchestration/projects/{id}/status.md`, validate the project is at `tasks_ready` or `implementing`, and select its lowest-numbered slice that is at `tasks_ready` (or any in-progress slice if the project is `implementing`). This determines `{id}` and `{NN}`.
+If a project ID was passed as argument: glob `.orchestration/projects/{id}/02-slices/*.md`, validate the project has at least one slice at `tasks_ready` or `implementing`, and select its lowest-numbered slice at `tasks_ready` (or the in-progress slice if any is `implementing`). This determines `{id}` and `{NN}`.
 
 If no argument:
 1. Glob all `.orchestration/projects/*/02-slices/*.md` (excluding `done/`). Read each file's `slice:`, `status:`, and `status_updated_at:` frontmatter fields.
@@ -32,16 +32,14 @@ If no argument:
 6. Select the first unblocked candidate. This determines `{id}` and `{NN}` for the remainder of the command.
 7. If no unblocked candidates remain: report all blocked slices and stop. "No eligible slices in the queue. Resolve the blockers listed above or run /plan-project."
 
-### Step 2 — Wrong-command routing table
+### Step 2 — Wrong-command routing
 
-Check this table before doing any work. `/implement` enforces its own rows.
+Check these conditions before doing any work. Stop if any match.
 
-| Stage | Wrong command | Error message |
-|-------|---------------|---------------|
-| `design_in_progress`, `design_review`, `slicing_in_progress`, `slicing_review`, `spec_in_progress`, `spec_review`, `breakdown_in_progress` | `/implement` | "Project '{id}' is in {stage} — run `/plan-project` to continue." |
-| `implementing` | `/plan-project` or `/review` | "Project '{id}' is implementing — run `/implement` to resume, or `/review` once QA is complete." |
-| `signoff_review` | `/implement` with this specific project ID | "Project '{id}' is awaiting signoff — run `/review` to approve or provide feedback." |
-| `feedback_pending` | `/implement` | "Project '{id}' has unprocessed feedback — run `/plan-project` to spec the next slice." |
+| Condition | Error message |
+|-----------|---------------|
+| Selected project has no slice at `tasks_ready` or `implementing`, but has slices in `draft`, `reviewed`, or `specced` | "Project '{id}' has slices in planning — run `/plan-project` to continue." |
+| Selected project has a slice at `signoff_review` and was explicitly passed as the project ID | "Project '{id}' slice {NN} is awaiting signoff — run `/review` to approve or provide feedback." |
 
 ### Step 3 — Route by selected slice state
 
@@ -72,16 +70,7 @@ Check this table before doing any work. `/implement` enforces its own rows.
 
 ## Phase 2 — Task execution
 
-1. Write `implementing` to `status.md` before executing any task:
-   ```yaml
-   stage: implementing
-   next_action: executing tasks
-   transitions:
-     - stage: implementing
-       timestamp: {ISO 8601}
-       note: task execution started
-   ```
-   Also write `status: implementing` and `status_updated_at: {current ISO 8601 timestamp with timezone offset}` to the slice file at `.orchestration/projects/{id}/02-slices/` (Glob for the file where `slice:` frontmatter matches the current slice number). If the slice file can't be found: log "warning: could not find slice file for slice {NN} — skipping status write" and continue.
+1. Write `status: implementing` and `status_updated_at: {current ISO 8601 timestamp with timezone offset}` to the slice file at `.orchestration/projects/{id}/02-slices/` (Glob for the file where `slice:` frontmatter matches the current slice number). If the slice file can't be found: log "warning: could not find slice file for slice {NN} — skipping status write" and continue.
 
 2. Build the execution queue: all `todo` tasks in `.orchestration/projects/{id}/04-tasks/slice-{NN}/` ordered by `step`, respecting `depends_on`. A task is runnable only when all tasks named in its `depends_on` list have `status: done`.
 
@@ -105,16 +94,7 @@ Before invoking QA: write `status: qa_in_progress` and `status_updated_at: {curr
 
 On QA pass:
 1. Slice file frontmatter: `status: signoff_review` and `status_updated_at: {current ISO 8601 timestamp with timezone offset}`
-2. Update `status.md`:
-   ```yaml
-   stage: signoff_review
-   next_action: run /review to approve or provide feedback
-   transitions:
-     - stage: signoff_review
-       timestamp: {ISO 8601}
-       note: QA passed
-   ```
-3. Output:
+2. Output:
    ```
    QA passed — {project_id} slice {NN}
 
@@ -128,7 +108,7 @@ On QA pass:
 
 ## Behavior rules
 
-- Never `git add` or `git commit` anything — not during task execution, not after QA, not at signoff_review. All changes (implementation files, task status updates, QA report, slice status, status.md) must stay uncommitted so the human can review the full diff. The commit happens in `/review` when the human approves.
+- Never `git add` or `git commit` anything — not during task execution, not after QA, not at signoff_review. All changes (implementation files, task status updates, QA report, slice status) must stay uncommitted so the human can review the full diff. The commit happens in `/review` when the human approves.
 - Never run tasks in parallel — v1 is sequential only.
 - Always validate `depends_on` before running a task. A task with an unmet dependency must not run.
 - Resume by reading task file statuses from disk. Never assume state from the current session.

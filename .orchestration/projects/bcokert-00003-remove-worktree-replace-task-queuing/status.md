@@ -1,6 +1,6 @@
-stage: tasks_ready
+stage: signoff_review
 project_id: bcokert-00003-remove-worktree-replace-task-queuing
-next_action: run /implement to start implementation
+next_action: run /review to approve or provide feedback
 transitions:
   - stage: design_in_progress
     timestamp: 2026-04-17T00:00:00-07:00
@@ -74,3 +74,9 @@ transitions:
   - stage: tasks_ready
     timestamp: 2026-04-19T10:52:00-07:00
     note: 5 tasks created for slice 07
+  - stage: implementing
+    timestamp: 2026-04-19T11:00:00-07:00
+    note: task execution started
+  - stage: signoff_review
+    timestamp: 2026-04-19T12:15:00-07:00
+    note: QA passed — 6 checks, 0 manual (1 fix applied to qa.md)

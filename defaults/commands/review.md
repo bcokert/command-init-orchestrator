@@ -1,7 +1,7 @@
 ---
 version: 1.3.0
 description: |
-  Closes the signoff loop for a project in signoff_review. Approve path: commits the full execution diff from main, archives the project. Feedback path: writes new slice files to the backlog, sets feedback_pending.
+  Closes the signoff loop for a slice in signoff_review. Approve path: commits the full execution diff from main, archives the project if all slices are done. Feedback path: writes new draft slice files to the backlog for /plan-project to pick up.
 allowed-tools:
   - Read
   - Write
@@ -83,24 +83,14 @@ Ask: "Approve and close this slice, or provide feedback?"
    mv .orchestration/projects/{id}/ .orchestration/projects/done/YYYY-MM/{id}/
    ```
 
-6. **Update status.md** (now at archive path):
-   ```yaml
-   stage: done
-   transitions:
-     - stage: done
-       timestamp: {ISO 8601}
-       note: slice {NN} approved — archived to done/YYYY-MM/{id}
-   ```
-
-7. **Push final state:**
+6. **Push final state:**
    ```bash
    git add .orchestration/projects/done/YYYY-MM/{id}/
-   git add .orchestration/projects/{id}/
    git commit -m "Slice {NN} done — {project_id}"
    git push
    ```
 
-8. Output:
+7. Output:
    ```
    Slice {NN} done — {project_id}
 
@@ -143,22 +133,12 @@ For each piece of feedback:
    - {rough bullet if applicable}
    ```
 
-4. Update `status.md`:
-   ```yaml
-   stage: feedback_pending
-   next_action: run /plan-project to review and spec the next slice
-   transitions:
-     - stage: feedback_pending
-       timestamp: {ISO 8601}
-       note: {N} feedback slice(s) added
-   ```
-
-5. Output:
+4. Output:
    ```
    Feedback recorded — {N} new slice(s) added to backlog.
 
    Run /plan-project to review and spec the next slice.
-   ※ Slice {NN} · feedback_pending · {N} feedback slice(s) added → run /plan-project to spec next 📄
+   ※ Slice {NN} · {N} feedback slice(s) added → run /plan-project to spec next 📄
    ```
 
 No commit. Feedback slices are reviewed via `/plan-project` before anything is committed.
@@ -168,7 +148,8 @@ No commit. Feedback slices are reviewed via `/plan-project` before anything is c
 ## Behavior rules
 
 - Only run when a slice with `status: signoff_review` exists. If none found: report and stop per Phase 0.
-- The approve commit includes everything uncommitted on main — implementation files, task status files, QA report, slice status, status.md. This is the one commit for the entire execution pipeline. Do not cherry-pick.
+- The approve commit includes everything uncommitted on main — implementation files, task status files, QA report, slice status. This is the one commit for the entire execution pipeline. Do not cherry-pick.
 - Never overwrite an existing archive target. Fail with clear instructions.
 - Feedback path: no commit. The slice files are `draft` and require human review via `/plan-project` before any commit happens.
 - Always re-read slice files from disk. Never use session-cached state.
+- Feedback detection: plan-project identifies pending feedback by finding draft slices with `follow_up_of:` set. No stored state needed.

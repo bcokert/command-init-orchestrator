@@ -4,8 +4,8 @@ slice: 07
 order: 07
 project: remove-worktrees-queue-model
 design: .orchestration/projects/bcokert-00003-remove-worktree-replace-task-queuing/01-design/design-01.md
-status: tasks_ready
-status_updated_at: 2026-04-19T10:52:00-07:00
+status: done
+status_updated_at: 2026-04-19T12:20:00-07:00
 ---
 
 # Slice 07 — Eliminate stored project state; derive everything from slices

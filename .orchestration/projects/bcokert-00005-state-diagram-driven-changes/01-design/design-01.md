@@ -3,7 +3,7 @@ type: design
 date: 2026-04-21
 feature: state-diagram-driven-changes
 project_id: bcokert-00005-state-diagram-driven-changes
-status: review
+status: approved
 ---
 
 # State diagram driven changes — Design

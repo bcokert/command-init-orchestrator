@@ -4,7 +4,7 @@ slice: 01
 order: 01
 project: state-diagram-driven-changes
 design: .orchestration/projects/bcokert-00005-state-diagram-driven-changes/01-design/design-01.md
-status: review
+status: tasks_ready
 status_updated_at: 2026-04-22T00:00:00-04:00
 ---
 

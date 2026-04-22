@@ -49,3 +49,25 @@ Diagrams that may need updating:
 - `lifecycle.d2` — stage transitions, human gates
 - `artifacts.d2` — artifacts created at each stage
 - Common-patterns gallery (`pause-resume.d2`, `concurrent-projects.d2`, etc.) — if command behaviour changes
+
+---
+
+## Diagram-first enforcement
+
+Any slice whose implementation changes state machine behavior must have "update `state-diagram.md` and any affected `.root-context/` files" as its **first breakdown task**.
+
+**Triggers** (include the diagram task):
+- Adding, removing, or changing transitions, states, guards, or key behavioral principles
+
+**Non-triggers** (skip the diagram task):
+- Renaming files or variables, docs-only changes, observability additions that don't affect transitions or states
+
+**At spec-write time (plan-project breakdown):** include the diagram-update task as the first step in the breakdown table before any implementation tasks.
+
+**At implementation time:** if the first task in a state-machine-touching slice does not update the diagram, add it before proceeding.
+
+**"No update needed" is not a silent skip.** The diagram-update task must run regardless. If the diagram is already accurate, the task confirms that, records the confirmation, and marks done.
+
+**Cohesion pass:** after any `.root-context/` file is updated during implementation, run a forward cohesion pass over all unimplemented current-project artifacts (design docs, slices, briefs, task files). Scope is current project only — other projects reload root-context on their next `/plan-project` run.
+
+**Ambiguity policy:** when unclear whether a change affects state machine behavior, include the diagram task. False positive beats false negative.

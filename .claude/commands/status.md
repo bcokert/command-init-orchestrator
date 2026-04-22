@@ -1,5 +1,5 @@
 ---
-version: 3.3.0
+version: 3.4.0
 description: |
   Reads project and slice state from .orchestration/projects/. With a project ID arg: single-project detail view. Without: grouped view — one section per active project, with every slice listed in its current state. Read-only — never modifies files.
 allowed-tools:
@@ -46,21 +46,27 @@ If no slice files exist: show header only with `—` for all counts.
 
 ## Phase 2 — Multi-project scan
 
-1. Glob `.orchestration/projects/*/` directories. Exclude any path under `done/` subdirectory.
+1. Glob `.orchestration/projects/*` (no trailing slash). Filter results to directories only — plain files in `projects/` are not projects. Exclude any path under `done/` subdirectory.
 
-2. Collect all active projects. For each:
-   - **Start date:** `date:` field from `.orchestration/projects/{id}/01-design/design-01.md`. If design doc absent or `date:` unparseable: `—`.
-   - **Slice data:** Glob `.orchestration/projects/{id}/02-slices/*.md`. For each file, read:
-     - `slice:` frontmatter field (slice number)
-     - `status:` frontmatter field
-     - `status_updated_at:` frontmatter field (may be absent)
-     - Title from the first `# Slice {NN} — ...` heading line
-     - If frontmatter is unreadable: record as unknown-status slice, warn once per project
-   - **Slice counts:** total = count of slice files; done = count where `status: done`
-   - **Task counts:** Glob `.orchestration/projects/{id}/04-tasks/slice-*/**.md`. Total = count of all .md files. Done = count where `status: done` in frontmatter. If directory absent: 0/0. If a task file is unreadable or lacks `status`: exclude from done count, warn once per slice.
-   - **Most recently updated timestamp:** latest `status_updated_at` across all slice files. If no slice timestamps exist: fall back to design doc `date:` field. Used for sort order.
+2. Collect all active projects. For each directory:
+   - If no `01-design/` and no `02-slices/` subdirectory exists: exclude entirely. Do not show.
+   - **Design-phase project** (has `01-design/design-01.md` but no `02-slices/` directory):
+     - Read `status:` from `design-01.md` frontmatter. If absent or unreadable: use `in_progress`.
+     - Read `date:` from `design-01.md` for sort order. If absent: sort last.
+     - These projects render a single-line entry in Phase 3 (see design-phase row format below). Skip slice/task collection.
+   - **Slice-based project** (has `02-slices/` directory):
+     - **Start date:** `date:` field from `.orchestration/projects/{id}/01-design/design-01.md`. If design doc absent or `date:` unparseable: `—`.
+     - **Slice data:** Glob `.orchestration/projects/{id}/02-slices/*.md`. For each file, read:
+       - `slice:` frontmatter field (slice number)
+       - `status:` frontmatter field
+       - `status_updated_at:` frontmatter field (may be absent)
+       - Title from the first `# Slice {NN} — ...` heading line
+       - If frontmatter is unreadable: record as unknown-status slice, warn once per project
+     - **Slice counts:** total = count of slice files; done = count where `status: done`
+     - **Task counts:** Glob `.orchestration/projects/{id}/04-tasks/slice-*/**.md`. Total = count of all .md files. Done = count where `status: done` in frontmatter. If directory absent: 0/0. If a task file is unreadable or lacks `status`: exclude from done count, warn once per slice.
+     - **Most recently updated timestamp:** latest `status_updated_at` across all slice files. If no slice timestamps exist: fall back to design doc `date:` field. Used for sort order.
 
-3. Sort projects: most recently updated first (highest `most recently updated timestamp`). Projects with no parseable timestamps: sort last. Secondary sort: project ID descending.
+3. Sort projects: most recently updated first (highest `most recently updated timestamp`). Design-phase projects use their `date:` field as the timestamp. Projects with no parseable timestamps: sort last. Secondary sort: project ID descending.
 
 4. Proceed to Phase 3.
 
@@ -74,7 +80,14 @@ Stop.
 
 Otherwise, for each project (sorted most recently updated first):
 
-**Project header line:**
+**Design-phase project** (no `02-slices/` directory):
+```
+**{id}** · {MMM D} · design: {design_status}  →  **`/plan-project`**
+```
+- Date from `date:` field in design doc. Omit year if current year. Use `—` if absent.
+- `design_status`: `status:` field from design doc frontmatter. If absent: `in_progress`.
+
+**Project header line** (slice-based project):
 ```
 **{id}** · {MMM D} · {slice_counts} · {task_counts}
 ```
@@ -87,12 +100,14 @@ Render `✅{X} 🤖{Y} 👤{Z} of {T} slices` (or `tasks`). Omit any emoji–num
 
 Bucket definitions:
 
-| Emoji | Label | Slice states | Task states |
-|-------|-------|-------------|-------------|
-| ✅ | done | `done` | `done` |
-| 🤖 | AI working | `implementing`, `qa_in_progress` | `in_progress` |
-| 👤 | needs human | `draft`, `signoff_review` | *(never)* |
-| ⏳ | queued | `reviewed`, `specced`, `tasks_ready` | `todo` |
+| Emoji | Slice states |
+|-------|-------------|
+| ✅ | `done` |
+| 🤖 | `implementing`, `qa_in_progress` |
+| 👤 | `draft`, `review`, `signoff_review` |
+| ⏳ | `speccing`, `breakdown`, `tasks_ready` |
+
+Task states: ✅ = `done`, 🤖 = `in_progress`, ⏳ = `todo`. Tasks never appear in 👤.
 
 Format: `✅{X} 🤖{Y} 👤{Z} ⏳{W} of {T} slices`. Omit any pair where the count is 0.
 
@@ -116,12 +131,15 @@ Rules:
   | Full state | Abbrev | Emoji prefix |
   |------------|--------|--------------|
   | `draft` | `draft` | 👤 |
-  | `reviewed` | `reviewed` | *(none)* |
-  | `specced` | `specced` | *(none)* |
+  | `review` | `review` | 👤 |
+  | `speccing` | `speccing` | *(none)* |
+  | `breakdown` | `bkdn` | *(none)* |
   | `tasks_ready` | `ready` | *(none)* |
   | `implementing` | `impl` | 🤖 |
   | `qa_in_progress` | `qa` | 🤖 |
   | `signoff_review` | `signoff` | 👤 |
+
+  Legacy aliases: `reviewed` is treated identically to `review` (same bucket, abbrev, emoji, routing). `specced` is treated as ⏳ routing to `/plan-project`.
 
 - `{prev}→{curr}`: no spaces around `→`. Derive previous from the state machine sequence above. If no previous (state is `draft`): show just `{curr}` with no arrow.
 - Next action command in bold code: **`/{cmd}`**
@@ -129,8 +147,9 @@ Rules:
   | State | Command |
   |-------|---------|
   | `draft` | `/plan-project` |
-  | `reviewed` | `/plan-project` |
-  | `specced` | `/plan-project` |
+  | `review` | `/plan-project` |
+  | `speccing` | `/plan-project` |
+  | `breakdown` | `/plan-project` |
   | `tasks_ready` | `/implement` |
   | `implementing` | `/implement` |
   | `qa_in_progress` | `/implement` |

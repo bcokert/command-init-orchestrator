@@ -1,7 +1,7 @@
 ---
-version: 2.4.0
+version: 2.6.0
 description: |
-  Full planning pipeline for a single project: design interview → slicing → spec → breakdown → tasks_ready. Resumes from wherever the project left off. Commits and pushes at each human approval gate. Ends when tasks are ready for /implement.
+  Full planning pipeline for a single project: design interview → slicing → spec → breakdown → tasks_ready. Resumes from wherever the project left off. Commits at each human approval gate. Ends when tasks are ready for /implement.
 allowed-tools:
   - Read
   - Write
@@ -136,6 +136,18 @@ When the list has no open items: "I think I have everything. Ready to write the 
 
 ---
 
+## planIteration — Staging step
+
+At the start of each iteration pass (each re-run during interview, design iteration, or slicing iteration):
+
+1. Run `git status` to check for unstaged changes.
+2. If files outside `.orchestration/`, `.root-context/`, and `CLAUDE.md` appear unstaged: surface them and ask before staging — code changes during planning are unexpected. Wait for confirmation.
+3. Run `git add .orchestration/` (also stage `.root-context/` and `CLAUDE.md` if they changed). This moves the previous iteration's artifacts to staging, leaving the current pass's changes unstaged for VS Code diff readability.
+4. First iteration on a new project: step 3 is a no-op if nothing has changed yet — continue normally.
+5. If `git add` fails: surface to operator, wait for resolution. Do not advance state.
+
+---
+
 ## Phase 3 — Write the design doc
 
 Only begin when Phase 2 is complete with no open questions.
@@ -205,18 +217,22 @@ When ready, run /plan-project to continue to slicing.
 ※ design_review · design interview complete → review doc and re-run /plan-project 📄
 ```
 
-**Wait here.** Do not proceed to slicing until Bdon says to continue.
+Set design doc `status: review`. **Wait here.** Do not proceed to slicing until Bdon says to continue.
+
+**Approval transition** — On the re-run after this gate (design doc `status: review`):
+1. Run `approveAndCommit(design)`:
+   - `git add .orchestration/projects/{id}/01-design/design-{NN}.md`
+   - `git commit -m "Design approved — {project_id}"` — skip if clean
+   - Set design doc `status: approved`
+2. Proceed to Phase 5.
+
+If design doc `status: approved` on entry (crash resume): skip commit, proceed to Phase 5.
 
 ---
 
 ## Phase 5 — Slicing
 
 ### On entry
-
-Commit any pending changes to the design doc before slicing:
-- `git add .orchestration/projects/{id}/01-design/design-{NN}.md`
-- `git commit -m "Design approved — {project_id}"` — only if files have changes; skip if clean
-- `git push`
 
 **Crash resume:** check `.orchestration/projects/{id}/02-slices/` for existing files. If any exist but slicing wasn't completed (some slices missing or all are `draft` with no slice gate previously shown): delete them all, log "previous slicing incomplete — regenerating", then proceed.
 
@@ -246,18 +262,22 @@ When ready, run /plan-project to continue to spec.
 ※ Slice 01 · slicing_review · slicing complete → review slices and re-run /plan-project 📄
 ```
 
-**Wait here.**
+Set reviewed slice statuses to `review`. **Wait here.**
+
+**Approval transition** — On the re-run after this gate (slice at `review`):
+1. Run `approveAndCommit(slices)`:
+   - `git add .orchestration/projects/{id}/02-slices/`
+   - `git commit -m "Slices approved — {project_id}"` — skip if clean
+   - Set approved slices `status: speccing`
+2. Proceed to Phase 6 for the first slice to spec.
+
+If all slices are already at `speccing` or beyond on entry (crash resume): skip commit, proceed.
 
 ---
 
 ## Phase 6 — Spec
 
 ### On entry
-
-Commit any pending changes to slice files before speccing:
-- `git add .orchestration/projects/{id}/02-slices/`
-- `git commit -m "Slices approved — {project_id}"` — only if files have changes; skip if clean
-- `git push`
 
 **Crash resume:** if a brief already exists for the target slice but its slice file is still `reviewed` (not `specced`): skip writing the brief and show the spec gate. If no brief exists: run spec from the beginning.
 
@@ -298,13 +318,6 @@ Run /plan-project to continue to breakdown, or edit the brief directly first.
 
 ## Phase 7 — Breakdown
 
-### On entry
-
-Commit any pending changes to the brief and slice file before running breakdown:
-- `git add .orchestration/projects/{id}/03-briefs/{NN}-*.md .orchestration/projects/{id}/02-slices/{NN}-*.md`
-- `git commit -m "Spec approved — {project_id} slice {NN}"` — only if files have changes; skip if clean
-- `git push`
-
 1. Read the brief's breakdown table (Section — Breakdown). If zero rows: stop and ask.
 
 2. Resume detection: count existing `.md` files in `.orchestration/projects/{id}/04-tasks/slice-{NN}/`. If the count does not match the breakdown table row count: delete all existing task files and regenerate all (idempotent overwrite).
@@ -342,10 +355,9 @@ Derive `agent_type` from the work description:
 
 1. Update slice file frontmatter: `status: tasks_ready` and `status_updated_at: {current ISO 8601 timestamp with timezone offset}`
 
-2. Commit and push:
+2. Commit:
    - `git add .orchestration/projects/{id}/04-tasks/ .orchestration/projects/{id}/02-slices/{NN}-*.md`
    - `git commit -m "Tasks ready — {project_id} slice {NN} ({N} tasks)"`
-   - `git push` — if push fails, report clearly and continue. Status is committed locally.
 
 3. Surface the agent team:
 
@@ -381,7 +393,7 @@ Run /implement to start implementation.
 - Always update the context log every turn during Phase 2.
 - If Bdon gives a vague or short answer, ask a focused follow-up rather than accepting it.
 - If something contradicts an earlier answer, surface the conflict and resolve it before moving on.
-- Never commit or push mid-phase — only at phase entry (committing the previous phase's artifacts) and after breakdown task creation. Gates stop and wait for the human; commits happen when the human re-runs.
+- Never commit mid-phase. Commits happen at approval gates (approveAndCommit on re-run) and after breakdown task creation. Gates stop and wait for the human.
 - The execution pipeline (implement → QA → signoff_review) has its own commit cadence: nothing is committed until the human runs /review and approves. All implementation changes, task status updates, QA reports, and slice status changes stay uncommitted until then.
 - After any change to the design doc — whether during writing or during design_review — do a full cohesion pass before saving: check every section for contradictions with the change. A new decision at the bottom does not automatically update the sections above. This applies to edits made in response to human feedback during review, not just initial writing.
 - **Root context conflicts require a prompt, not a note.** If a design decision contradicts or supersedes something in the project's root context (`.root-context/*`) or `CLAUDE.md`, do not leave a note in the design doc. Ask: "This decision conflicts with [file] — [what it says]. Update [root context|CLAUDE.md] to reflect the new direction?" If yes: update the file, note what changed at the bottom of the design doc under "Root context updates made". If no: record the conflict in the design doc as an open question. Never update root context silently. Always ask first — root context varies by project and may be shared or sensitive.

@@ -1,5 +1,5 @@
 ---
-version: 2.5.0
+version: 2.6.0
 description: |
   Execution pipeline: global queue scan → next slice execution → automatic QA → signoff_review. Resumes from wherever the selected slice left off. Stops at signoff_review for human approval via /review.
 allowed-tools:
@@ -51,20 +51,31 @@ Check these conditions before doing any work. Stop if any match.
 
 ---
 
-## Phase 1 — Agent team
+## Phase 1 — Implementation.Asking gate
 
-1. Read all task files in `.orchestration/projects/{id}/04-tasks/slice-*/` with `status: todo`.
-2. Collect unique `agent_type` values. Count tasks per type.
-3. Display:
+1. Glob all `.orchestration/projects/*/02-slices/*.md`. Identify every slice at `tasks_ready` across all projects (not just the selected one).
+2. For each `tasks_ready` slice found: read its task files and count those with `status: todo`. Sum across all slices for a total task count `{T}` across `{S}` slices.
+3. Collect unique `agent_type` values from those task files. Count tasks per type.
+4. Display:
    ```
-   Suggested agent team for {id}:
+   Ready to start implementation?
+
+   {T} tasks across {S} slice(s) — {id}
+   Agent team:
      - {agent_type} ({N} tasks)
      - {agent_type} ({N} tasks)
 
-   Confirm or adjust before tasks begin:
+   Reply "yes" to begin, or "review more slices first" to plan more before executing.
    ```
-4. Wait for user confirmation. User may remove types or add others.
-5. Do not proceed to Phase 2 until confirmed.
+5. Wait for operator response.
+
+   | Response | Action |
+   |----------|--------|
+   | Approval ("yes", "go", "start", etc.) | Proceed to Phase 2 |
+   | "Review more slices first" (or similar) | List any slices not yet at `tasks_ready` (in `draft`, `review`, `reviewed`, `speccing`, or `breakdown` state) and tell the operator: "Run `/plan-project` to advance those slices, then re-run `/implement` to return here." Stop. |
+   | Ambiguous | Ask once to clarify. |
+
+6. Do not proceed to Phase 2 until the operator explicitly approves. User may adjust the agent team before approving.
 
 ---
 

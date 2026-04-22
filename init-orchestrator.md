@@ -1,5 +1,5 @@
 ---
-version: 1.2.1
+version: 1.7.0
 description: |
   Sets up the orchestration layer in the current project. Installs 4 commands to .claude/commands/, 6 agents to .claude/agents/, and 3 support files to .orchestration/support/, creates .orchestration/projects/. Safe to re-run: adds missing components without touching existing project data. Detects and warns about old 7-command installations.
 allowed-tools:

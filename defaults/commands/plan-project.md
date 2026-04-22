@@ -1,5 +1,5 @@
 ---
-version: 2.6.0
+version: 2.10.0
 description: |
   Full planning pipeline for a single project: design interview → slicing → spec → breakdown → tasks_ready. Resumes from wherever the project left off. Commits at each human approval gate. Ends when tasks are ready for /implement.
 allowed-tools:
@@ -27,7 +27,7 @@ If a project ID or path was passed as argument, use it.
 If no argument:
 1. Glob `.orchestration/projects/*/` directories, excluding any path under `done/`.
 2. For each directory, read slice files at `.orchestration/projects/{id}/02-slices/*.md`. Collect `status:` frontmatter for each.
-3. A project has actionable work for plan-project if it has at least one slice in `draft`, `reviewed`, or `specced` state, or has no slice files yet, or has no design doc yet.
+3. A project has actionable work for plan-project if it has at least one slice in `draft`, `review`, `reviewed`, `speccing`, `specced`, or `breakdown` state, or has no slice files yet, or has no design doc yet.
 4. If one match: use it.
 5. If multiple matches: list them and ask which to resume, or offer to start a new one.
 6. If no matches: start a new project (proceed to Step 3).
@@ -40,7 +40,7 @@ Read all slice files for the selected project. If any condition below matches, o
 |-----------|---------------|
 | Any slice at `implementing` or `qa_in_progress` | "Slice {NN} is currently implementing — run `/implement` to resume." |
 | Any slice at `signoff_review` | "Slice {NN} is awaiting signoff — run `/review` to approve or provide feedback." |
-| No slice is in `draft`, `reviewed`, or `specced` — all slices are `tasks_ready` or beyond | "All slices are queued or complete — run `/implement` to start implementation." |
+| No slice is in `draft`, `review`, `reviewed`, `speccing`, `breakdown`, or `specced` — all slices are `tasks_ready` or beyond | "All slices are queued or complete — run `/implement` to start implementation." |
 
 ### Step 3 — Route by current state
 
@@ -51,8 +51,9 @@ Derive state from artifacts on disk. Check conditions in order — stop at the f
 | No project directory | Create project (Step 4), run interview (Phase 1) |
 | Directory exists, no `01-design/design-01.md` | Inform user interview didn't complete, run interview (Phase 1) |
 | Design doc exists, no `02-slices/*.md` | Run slicing (Phase 5) |
-| Scan slices 01, 02, … in order: first slice that is `reviewed` and eligible for spec (N=1, or slice N-1 is `specced` or beyond) | Run spec (Phase 6) for that slice |
-| Scan slices in order: first slice that is `specced` and eligible for breakdown (N=1, or slice N-1 is `tasks_ready` or beyond) | Run breakdown (Phase 7) for that slice |
+| Scan slices 01, 02, … in order: first slice that is `review`, `reviewed`, or `speccing` and eligible for spec (N=1, or slice N-1 is `tasks_ready` or beyond) | Run spec (Phase 6) for that slice — Phase 7 follows immediately in the same run |
+| Scan slices in order: first slice that is `breakdown` (crash resume) | Run breakdown (Phase 7) for that slice |
+| Scan slices in order: first slice that is `specced` (old projects — backward compat) | Run breakdown (Phase 7) for that slice |
 | Next actionable slice is `draft` | Prompt user to review it (see below). Stop. |
 
 Draft prompt:
@@ -60,11 +61,11 @@ Draft prompt:
 Slice {NN} — {title} — hasn't been reviewed yet.
 
 Review the slice file at .orchestration/projects/{id}/02-slices/{NN}-{slug}.md.
-Edit it directly if anything needs changing, then set status: reviewed.
+Edit it directly if anything needs changing.
 When ready, run /plan-project to continue.
 ```
 
-**Ordering constraint:** before advancing slice N to any state, slice N-1 must already be at that state or beyond. To spec slice N, slice N-1 must be at `specced` or beyond. To break down slice N, slice N-1 must be at `tasks_ready` or beyond. Slice 01 has no prior — no constraint applies.
+**Ordering constraint:** before advancing slice N to any state, slice N-1 must already be at that state or beyond. To spec slice N, slice N-1 must be at `tasks_ready` or beyond. Slice 01 has no prior — no constraint applies.
 
 If a slice would be eligible but the ordering constraint blocks it, report:
 ```
@@ -77,7 +78,23 @@ Slice {N-1} must reach {required_state} before slice {N} can advance. Run /plan-
 2. Derive slug from the project name: lowercase, kebab-case, max 5 words, strip stop words (the, a, an, for, of, in, to). The project ID format is `{username}-{NNNNN}-{slug}` (e.g. `bcokert-00003-claire-full-system`).
 3. Scan `.orchestration/projects/` for folders matching `{username}-*`, find the highest sequence number, add 1, zero-pad to 5 digits. If folder already exists at derived path, increment and retry.
 4. Create `.orchestration/projects/{id}/`. Create `.orchestration/projects/` if it doesn't exist.
-5. Load project context before starting the interview:
+5. Create observability files (non-blocking — if any write fails, log a warning and continue):
+   - `.orchestration/projects/{id}/observability/questions.md` with header:
+     ```
+     # Questions log
+     <!-- Format: ## YYYY-MM-DD HH:MM — [open|answered] Question text -->
+     ```
+   - `.orchestration/projects/{id}/observability/iterations.md` with header:
+     ```
+     # Iteration log
+     <!-- Format: ## YYYY-MM-DD HH:MM — [state] What changed. Why. -->
+     ```
+   - `.orchestration/projects/{id}/observability/decisions.md` with header:
+     ```
+     # Decision log
+     <!-- Format: ## YYYY-MM-DD HH:MM — Decision. Why. Rejected: alternatives. -->
+     ```
+6. Load project context before starting the interview:
    - Read `CLAUDE.md` in the current project directory if it exists.
    - Read `.root-context/architecture.md`, `.root-context/CONSTRAINTS.md`, `.root-context/DECISIONS.md` if they exist.
    - Note what you've read — don't ask questions the docs already answer.
@@ -105,6 +122,12 @@ Surface everything Bdon knows but hasn't said yet.
 **No filter on questions.** This is the only stage where every question is on the table. Once the design doc is written, that window is closed.
 
 Ask **3–5 questions per turn**. Never more. Wait for answers before the next round.
+
+When sending a batch of questions: append each to `.orchestration/projects/{id}/observability/questions.md` with status `open`:
+```
+## YYYY-MM-DD HH:MM — [open] Question text
+```
+When the answer arrives: update that entry's status to `answered` and append the answer as a sub-item. Non-blocking — if the write fails, log a warning and continue.
 
 Surface questions across these areas:
 
@@ -140,11 +163,17 @@ When the list has no open items: "I think I have everything. Ready to write the 
 
 At the start of each iteration pass (each re-run during interview, design iteration, or slicing iteration):
 
+0. If `.orchestration/projects/{id}/observability/` is missing or any of the three template files are absent: recreate missing files with empty template headers (same format as Step 4 in project setup). Non-blocking — log a warning if recreation fails.
 1. Run `git status` to check for unstaged changes.
 2. If files outside `.orchestration/`, `.root-context/`, and `CLAUDE.md` appear unstaged: surface them and ask before staging — code changes during planning are unexpected. Wait for confirmation.
 3. Run `git add .orchestration/` (also stage `.root-context/` and `CLAUDE.md` if they changed). This moves the previous iteration's artifacts to staging, leaving the current pass's changes unstaged for VS Code diff readability.
 4. First iteration on a new project: step 3 is a no-op if nothing has changed yet — continue normally.
 5. If `git add` fails: surface to operator, wait for resolution. Do not advance state.
+6. Append an iteration entry to `.orchestration/projects/{id}/observability/iterations.md` (non-blocking):
+   ```
+   ## YYYY-MM-DD HH:MM — [current_state] What changed this pass. Why.
+   ```
+7. **When invoked during slicing** (after updating affected slice files): run a forward cohesion pass on all remaining slices not at `tasks_ready` or beyond — check each for implications of the change and update if needed.
 
 ---
 
@@ -196,6 +225,11 @@ Format: **Decision made.** Context: why this call seemed obvious. Alternative: w
 ```
 
 Write to `.orchestration/projects/{id}/01-design/design-01.md` (or `design-{NN}.md` for run N on a feedback_pending project). Create `01-design/` if it doesn't exist.
+
+After writing, append each entry from "Resolved design decisions" to `.orchestration/projects/{id}/observability/decisions.md` (non-blocking):
+```
+## YYYY-MM-DD HH:MM — Decision. Why. Rejected: alternatives.
+```
 
 ---
 
@@ -257,21 +291,34 @@ Slice 01 is fully detailed. Slices 02+ are intentionally rough — flesh
 them out when they become next.
 
 Every slice requires human review before it can be specced.
-Review slice 01, edit directly if needed, then set status: reviewed.
-When ready, run /plan-project to continue to spec.
-※ Slice 01 · slicing_review · slicing complete → review slices and re-run /plan-project 📄
+Review the slices. Approve or provide feedback below.
+※ Slice 01 · slicing_review · slicing complete → approve or give feedback 📄
 ```
 
-Set reviewed slice statuses to `review`. **Wait here.**
+Set slice 01 status to `review`. **Wait for response.**
 
-**Approval transition** — On the re-run after this gate (slice at `review`):
+**Response handling** — Classify the response:
+
+| Signal | Detection | Action |
+|--------|-----------|--------|
+| Approval | "looks good", "LGTM", "approved", "ship it", clear sign-off | `approveAndCommit(slices)` → Phase 6 |
+| Feedback | Specific changes, revision requests, questions about content | `planIteration(affected slices)` → resurface |
+| Ambiguous | Anything not clearly approval | Treat as feedback: `planIteration` → resurface and re-ask |
+
+**On feedback or ambiguous:**
+1. Identify which slices are affected. If unclear, treat as general feedback on all slices.
+2. Run planIteration: stage previous changes (`git add .orchestration/projects/{id}/02-slices/`), update affected slices in detail.
+3. Forward cohesion pass: for each remaining slice not at `tasks_ready` or beyond, check whether the change has implications for it. Update if needed. Skip slices already at `tasks_ready` or beyond.
+4. Resurface with a one-line summary per changed slice. Re-show the gate. Wait for response.
+
+**On approval:**
 1. Run `approveAndCommit(slices)`:
    - `git add .orchestration/projects/{id}/02-slices/`
    - `git commit -m "Slices approved — {project_id}"` — skip if clean
    - Set approved slices `status: speccing`
 2. Proceed to Phase 6 for the first slice to spec.
 
-If all slices are already at `speccing` or beyond on entry (crash resume): skip commit, proceed.
+**Crash resume** — If slices are already at `speccing` or beyond on entry (re-run with no pending gate): skip to Phase 6.
 
 ---
 
@@ -279,7 +326,11 @@ If all slices are already at `speccing` or beyond on entry (crash resume): skip 
 
 ### On entry
 
-**Crash resume:** if a brief already exists for the target slice but its slice file is still `reviewed` (not `specced`): skip writing the brief and show the spec gate. If no brief exists: run spec from the beginning.
+Write `status: speccing` and `status_updated_at: {ISO 8601}` to the slice file (crash recovery point).
+
+**Crash resume:**
+- Slice status `speccing`, no brief file: run spec from scratch, then proceed to Phase 7.
+- Slice status `speccing`, brief file exists: skip spec, proceed directly to Phase 7.
 
 ### Slice selection
 
@@ -293,34 +344,21 @@ Write the delegation brief to `.orchestration/projects/{id}/03-briefs/{NN}-{slug
 
 ### After writing
 
-1. Update slice file frontmatter: `status: specced` and `status_updated_at: {current ISO 8601 timestamp with timezone offset}`
-
-2. Show the spec gate (light review):
-
-```
-Spec complete — slice {NN}: {title}
-
-Saved: .orchestration/projects/{id}/03-briefs/{NN}-{slug}.md
-
-Light review — check:
-- Intent gives enough context for an agent with no prior knowledge
-- Observable outcomes cover happy path and key edge cases
-- Constraints are specific enough to enforce
-- Breakdown maps cleanly to the slice
-
-Run /plan-project to continue to breakdown, or edit the brief directly first.
-※ Slice {NN} · spec_review · spec complete → review brief and re-run /plan-project 📄
-```
-
-**Wait here.**
+Proceed directly to Phase 7. No gate. No "Wait here".
 
 ---
 
 ## Phase 7 — Breakdown
 
+Write `status: breakdown` and `status_updated_at: {ISO 8601}` to the slice file (crash recovery point).
+
+**Crash resume:**
+- Slice status `breakdown`, task files exist: delete all task files in `.orchestration/projects/{id}/04-tasks/slice-{NN}/`, regenerate from scratch.
+- Slice status `breakdown`, no task files: run breakdown from scratch.
+
 1. Read the brief's breakdown table (Section — Breakdown). If zero rows: stop and ask.
 
-2. Resume detection: count existing `.md` files in `.orchestration/projects/{id}/04-tasks/slice-{NN}/`. If the count does not match the breakdown table row count: delete all existing task files and regenerate all (idempotent overwrite).
+2. Delete any existing `.md` files in `.orchestration/projects/{id}/04-tasks/slice-{NN}/` before creating new ones (idempotent — ensures a clean slate on crash resume).
 
 ### Task file creation
 

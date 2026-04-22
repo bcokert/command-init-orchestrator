@@ -1,5 +1,5 @@
 ---
-version: 1.4.0
+version: 1.4.1
 description: |
   Closes the signoff loop for a slice in signoff_review. Approve path: commits the full execution diff from main, archives the project if all slices are done. Feedback path: writes new draft slice files to the backlog for /plan-project to pick up.
 allowed-tools:
@@ -79,8 +79,8 @@ Ask: "Approve and close this slice, or provide feedback?"
 
 6. **Commit final state:**
    ```bash
-   git add .orchestration/projects/done/YYYY-MM/{id}/
-   git commit -m "Slice {NN} done — {project_id}"
+   git add -A
+   git commit -m "Archive — {project_id}"
    ```
 
 7. Output:

@@ -1,5 +1,5 @@
 ---
-version: 1.7.0
+version: 1.7.1
 description: |
   Sets up the orchestration layer in the current project. Installs 4 commands to .claude/commands/, 6 agents to .claude/agents/, and 3 support files to .orchestration/support/, creates .orchestration/projects/. Safe to re-run: adds missing components without touching existing project data. Detects and warns about old 7-command installations.
 allowed-tools:
@@ -83,7 +83,7 @@ For each:
 
 Create `.claude/commands/` if it doesn't exist.
 
-**Support files** — target: `.orchestration/support/`
+**Support files** — source: `~/.claude/init-orchestrator/defaults/commands/` — target: `.orchestration/support/`
 
 Install: `slice.md`, `spec.md`, `qa.md`
 

@@ -4,8 +4,8 @@ slice: 07
 order: 07
 project: state-machine-refactor
 design: .orchestration/projects/bcokert-00004-state-machine-refactor/01-design/design-01.md
-status: draft
-status_updated_at: 2026-04-21T00:00:00-04:00
+status: tasks_ready
+status_updated_at: 2026-04-21T12:05:00-04:00
 ---
 
 # Slice 07 — Atomic spec and breakdown

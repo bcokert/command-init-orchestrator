@@ -1,0 +1,261 @@
+vars: {
+  d2-config: {
+    layout-engine: elk
+    pad: 24
+  }
+  colors: {
+    design: "#e3f2fd"
+    design-border: "#1565C0"
+    slicing: "#f3e5f5"
+    slicing-border: "#6A1B9A"
+    impl: "#e8f5e9"
+    impl-border: "#2E7D32"
+    signoff: "#fff3e0"
+    signoff-border: "#E65100"
+    auto: "#f5f5f5"
+    auto-border: "#9e9e9e"
+    gate: "#ffffff"
+    feedback: "#FF9800"
+    approve: "#4CAF50"
+    lc: "#555555"
+  }
+}
+
+direction: down
+
+start: "" {
+  shape: circle
+  style.fill: "#212121"
+  style.stroke: "#212121"
+  width: 20
+  height: 20
+}
+
+design: "Stage 1 — Design" {
+  direction: right
+  style.fill: ${colors.design}
+  style.stroke: ${colors.design-border}
+  style.font-size: 12
+  style.bold: true
+  style.font-color: ${colors.design-border}
+
+  iterating: "Design.Iterating" {
+    style.fill: ${colors.auto}
+    style.stroke: ${colors.auto-border}
+  }
+  asking: "Design.Asking\n(interview)" {
+    style.fill: ${colors.auto}
+    style.stroke: ${colors.auto-border}
+  }
+  review: "Design.Review" {
+    shape: diamond
+    width: 130
+    height: 70
+    style.fill: ${colors.gate}
+    style.stroke: ${colors.design-border}
+    style.stroke-width: 2
+    style.font-size: 11
+  }
+
+  iterating -> iterating: "pending processing\nor onAnswer" {
+    style.stroke: ${colors.auto-border}
+    style.font-size: 9
+  }
+  iterating -> asking: "pending questions" { style.font-size: 9 }
+  iterating -> review: "no pending" { style.font-size: 9 }
+  asking -> iterating: "onAnswer" { style.font-size: 9 }
+  review -> iterating: "feedback" {
+    style.stroke: ${colors.feedback}
+    style.font-size: 9
+  }
+}
+
+slicing: "Stage 2 — Slicing" {
+  direction: right
+  style.fill: ${colors.slicing}
+  style.stroke: ${colors.slicing-border}
+  style.font-size: 12
+  style.bold: true
+  style.font-color: ${colors.slicing-border}
+
+  generating: "Slicing.Generating" {
+    style.fill: ${colors.auto}
+    style.stroke: ${colors.auto-border}
+  }
+  iterating: "Slicing.Iterating\n(via feedback only)" {
+    style.fill: ${colors.auto}
+    style.stroke: ${colors.auto-border}
+  }
+  review: "Slicing.Review" {
+    shape: diamond
+    width: 130
+    height: 70
+    style.fill: ${colors.gate}
+    style.stroke: ${colors.slicing-border}
+    style.stroke-width: 2
+    style.font-size: 11
+  }
+  speccing: "Slicing.Speccing" {
+    style.fill: ${colors.auto}
+    style.stroke: ${colors.auto-border}
+  }
+  breakdown: "Slicing.Breakdown" {
+    style.fill: ${colors.auto}
+    style.stroke: ${colors.auto-border}
+  }
+
+  generating -> generating: "more to generate" {
+    style.stroke: ${colors.auto-border}
+    style.font-size: 9
+  }
+  generating -> review: "all generated" { style.font-size: 9 }
+  iterating -> iterating: "pending processing\nor onAnswer" {
+    style.stroke: ${colors.auto-border}
+    style.font-size: 9
+  }
+  iterating -> review: "pending questions\nor no pending" { style.font-size: 9 }
+  review -> iterating: "feedback" {
+    style.stroke: ${colors.feedback}
+    style.font-size: 9
+  }
+  review -> speccing: "approval\n(commit slices)" {
+    style.stroke: ${colors.approve}
+    style.font-size: 9
+  }
+  speccing -> breakdown: "all specced\n(atomic with breakdown)" { style.font-size: 9 }
+}
+
+impl: "Stage 3 — Implementation" {
+  direction: right
+  style.fill: ${colors.impl}
+  style.stroke: ${colors.impl-border}
+  style.font-size: 12
+  style.bold: true
+  style.font-color: ${colors.impl-border}
+
+  asking: "Implementation.Asking" {
+    shape: diamond
+    width: 150
+    height: 70
+    style.fill: ${colors.gate}
+    style.stroke: ${colors.impl-border}
+    style.stroke-width: 2
+    style.font-size: 11
+  }
+  running: "Implementation.Running" {
+    style.fill: ${colors.auto}
+    style.stroke: ${colors.auto-border}
+  }
+  qa: "Implementation.QA" {
+    style.fill: ${colors.auto}
+    style.stroke: ${colors.auto-border}
+  }
+
+  asking -> running: "start\n(confirm team)" {
+    style.stroke: ${colors.approve}
+    style.font-size: 9
+  }
+  running -> running: "tasks pending" {
+    style.stroke: ${colors.auto-border}
+    style.font-size: 9
+  }
+  running -> qa: "all tasks done" { style.font-size: 9 }
+  qa -> qa: "pass+more pending\nor failure+fixable" {
+    style.stroke: ${colors.auto-border}
+    style.font-size: 9
+  }
+}
+
+signoff: "Stage 4 — Signoff" {
+  direction: right
+  style.fill: ${colors.signoff}
+  style.stroke: ${colors.signoff-border}
+  style.font-size: 12
+  style.bold: true
+  style.font-color: ${colors.signoff-border}
+
+  review: "Signoff.Review" {
+    shape: diamond
+    width: 130
+    height: 70
+    style.fill: ${colors.gate}
+    style.stroke: ${colors.signoff-border}
+    style.stroke-width: 2
+    style.font-size: 11
+  }
+  approved: "Signoff.Approved" {
+    style.fill: ${colors.auto}
+    style.stroke: ${colors.auto-border}
+  }
+  end: "End" {
+    shape: circle
+    style.fill: "#2E7D32"
+    style.stroke: "#1B5E20"
+    style.font-color: "#ffffff"
+    width: 40
+    height: 40
+  }
+
+  review -> approved: "approval\n(commit slice)" {
+    style.stroke: ${colors.approve}
+    style.font-size: 9
+  }
+  approved -> end: "all slices done\n(archive)" {
+    style.stroke: ${colors.approve}
+    style.font-size: 9
+  }
+}
+
+legend: "Legend" {
+  style.fill: "#fafafa"
+  style.stroke: "#dddddd"
+  style.font-size: 11
+  style.font-color: ${colors.lc}
+
+  auto_ex: "Automated state\n(agent works)" {
+    style.fill: ${colors.auto}
+    style.stroke: ${colors.auto-border}
+    style.font-size: 10
+  }
+  gate_ex: "Human gate\n(waiting for response)" {
+    shape: diamond
+    width: 120
+    height: 60
+    style.fill: ${colors.gate}
+    style.stroke: "#555555"
+    style.stroke-width: 2
+    style.font-size: 10
+  }
+}
+
+# Cross-stage transitions
+start -> design.iterating: "/plan-project" { style.font-size: 9 }
+
+design.review -> slicing.generating: "approval →\nSlicing" {
+  style.stroke: ${colors.approve}
+  style.font-size: 9
+}
+
+slicing.breakdown -> impl.asking: "all broken down" { style.font-size: 9 }
+
+impl.asking -> slicing.review: "want more\nslices first" {
+  style.stroke: ${colors.feedback}
+  style.font-size: 9
+}
+
+impl.qa -> signoff.review: "pass+no more\nor QA stuck" { style.font-size: 9 }
+
+signoff.review -> impl.qa: "QA failure +\nhuman fix" {
+  style.stroke: ${colors.feedback}
+  style.font-size: 9
+}
+
+signoff.review -> slicing.generating: "feedback →\nnew slices" {
+  style.stroke: ${colors.feedback}
+  style.font-size: 9
+}
+
+signoff.approved -> slicing.review: "slices remaining" {
+  style.stroke: ${colors.feedback}
+  style.font-size: 9
+}

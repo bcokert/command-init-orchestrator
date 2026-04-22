@@ -1,5 +1,5 @@
 ---
-version: 1.3.0
+version: 1.4.0
 description: |
   Closes the signoff loop for a slice in signoff_review. Approve path: commits the full execution diff from main, archives the project if all slices are done. Feedback path: writes new draft slice files to the backlog for /plan-project to pick up.
 allowed-tools:
@@ -55,13 +55,7 @@ Ask: "Approve and close this slice, or provide feedback?"
    git commit -m "Slice {NN} complete — {project_id}"
    ```
 
-3. **Push:**
-   ```bash
-   git push
-   ```
-   If push fails: report clearly and continue. Don't block the rest.
-
-4. **Archive eligibility check** — Glob all slice files at `.orchestration/projects/{id}/02-slices/*.md`. Read each file's `status` frontmatter field.
+3. **Archive eligibility check** — Glob all slice files at `.orchestration/projects/{id}/02-slices/*.md`. Read each file's `status` frontmatter field.
    - If any slice file cannot be read: log "warning: could not read {path} — treating as not-done" and count it as not-done.
    - Count slices where `status` is not `done`. Call this `remaining`.
    - If `remaining > 0`:
@@ -83,11 +77,10 @@ Ask: "Approve and close this slice, or provide feedback?"
    mv .orchestration/projects/{id}/ .orchestration/projects/done/YYYY-MM/{id}/
    ```
 
-6. **Push final state:**
+6. **Commit final state:**
    ```bash
    git add .orchestration/projects/done/YYYY-MM/{id}/
    git commit -m "Slice {NN} done — {project_id}"
-   git push
    ```
 
 7. Output:

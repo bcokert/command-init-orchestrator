@@ -1,5 +1,5 @@
 ---
-version: 1.0.0
+version: 1.1.0
 description: |
   Takes a design doc and produces a vertical slicing plan. Each slice is independently deliverable and validatable. Phases are optional groupings of slices — slices are the fundamental unit. Max ~200 lines. Output feeds into /spec.
 allowed-tools:
@@ -96,7 +96,6 @@ order: {NN}
 project: [short kebab-case feature name]
 design: [path to design doc]
 status: draft
-status_updated_at: {ISO 8601 with timezone offset}
 ---
 
 # Slice {NN} — [Name]
@@ -114,7 +113,7 @@ status_updated_at: {ISO 8601 with timezone offset}
 
 After writing all slice files, output a one-line summary of the full slice list so the human can see the whole plan at a glance.
 
-Every slice requires human review before it can be specced. Slices are written with `status: draft`. The human sets `status: reviewed` when a slice is ready to spec.
+Every slice requires human review before it can be specced. Slices are written with `status: draft`. When the slicing output is ready, ask Bdon to approve. On approval, write `status: review` to the slice file before advancing.
 
 ---
 

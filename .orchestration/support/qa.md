@@ -1,5 +1,5 @@
 ---
-version: 1.1.0
+version: 1.2.0
 description: |
   Runs after implement. Verifies done signals for each task in a spec, runs mechanical checks where possible, and outputs a QA report to .orchestration/dashboard/{spec-id}-qa.md.
 allowed-tools:
@@ -52,11 +52,13 @@ After verification (and after any fixes in Phase 1.5), write `qa_result` to each
 For each `fail`:
 
 1. Determine if the fix is within scope — the agent team can resolve it without human input or an unavailable service.
-2. If yes: fix it, then re-run the verification for that check. Repeat until it passes or you're stuck.
-3. If stuck after a genuine fix attempt: mark `fail` with a clear description of what was tried.
+2. If yes: fix it, then re-run the verification for that check.
+   - If it still fails: try a meaningfully different approach and re-run again. There is no fixed retry cap — repeat as many times as needed.
+   - Only declare stuck when you have genuinely exhausted distinct approaches. Vague or superficially different attempts do not count as genuine attempts.
+3. If stuck: write exactly **"I cannot fix this without human input"** followed by a clear reason (what was tried, what's blocking further progress). Mark the check `fail` with that explanation.
 4. If the fix requires human judgment, a running service, or information not available: mark `manual` with a note explaining what's needed.
 
-Only write the QA report (Phase 3) when all fixable failures have been resolved. `manual` items do not block the report.
+Only write the QA report (Phase 3) when all fixable failures have been resolved or explicitly declared stuck. `manual` items do not block the report.
 
 ---
 
@@ -123,9 +125,9 @@ status: {passed|failed|partial|pending-manual}
 
 ## Phase 4 — Advance to signoff_review
 
-When QA passes (all non-manual checks green):
+**On QA pass** (all non-manual checks green):
 
-1. Write the QA report file.
+1. Write the QA report file with `status: passed`.
 2. Update the slice file frontmatter: `status: signoff_review` and `status_updated_at: {current ISO 8601 timestamp with timezone offset}`
 3. Output:
 ```
@@ -138,7 +140,29 @@ Review the output. When ready, run /review to approve (marks done)
 or provide feedback (creates new slice in backlog).
 ```
 
+**On stuck** (agent declared "I cannot fix this without human input" on at least one check):
+
+1. Write the QA report file with `status: failed`. Include the stuck declaration and reason for each failed check.
+2. Update the slice file frontmatter: `status: signoff_review` and `status_updated_at: {current ISO 8601 timestamp with timezone offset}`
+3. Output:
+```
+QA could not complete — slice {NN}: {title}
+
+Stuck on: {list of failed checks with reasons}
+
+Provide a fix or guidance, then re-run /qa to retry.
+```
+
 **Stop here. The commit happens in `/review` when the human approves — not now.**
+
+---
+
+## Phase 5 — Human fix after signoff_review
+
+If the operator provides a fix at signoff_review in response to a QA failure (code edit, guided fix, or a new dot-notation slice):
+
+1. Update the slice file frontmatter: `status: qa_in_progress` and `status_updated_at: {current ISO 8601 timestamp with timezone offset}`
+2. Re-run QA from Phase 1.
 
 ---
 

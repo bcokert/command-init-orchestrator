@@ -1,5 +1,5 @@
 ---
-version: 1.4.1
+version: 1.5.0
 description: |
   Closes the signoff loop for a slice in signoff_review. Approve path: commits the full execution diff from main, archives the project if all slices are done. Feedback path: writes new draft slice files to the backlog for /plan-project to pick up.
 allowed-tools:
@@ -49,11 +49,28 @@ Ask: "Approve and close this slice, or provide feedback?"
 
 1. **Write slice done state** — before committing, write `status: done` and `status_updated_at: {current ISO 8601 timestamp with timezone offset}` to the slice file at `.orchestration/projects/{id}/02-slices/` (Glob for the file where `slice:` frontmatter matches the current slice number). If the file can't be found: log a warning and continue.
 
-2. **Commit** — from the project root:
-   ```bash
-   git add -A
-   git commit -m "Slice {NN} complete — {project_id}"
-   ```
+2. **Stage and commit** — from the project root:
+
+   a. Run `git status --porcelain` to get the full list of changed and untracked files.
+
+   b. Always stage orchestration artifacts:
+      ```bash
+      git add .orchestration/projects/{id}/
+      ```
+
+   c. Stage any tracked modified files outside `.orchestration/projects/{id}/` automatically (these are implementation files changed during the slice). In `git status --porcelain` output, these are lines starting with `M` or `MM`.
+
+   d. For any untracked files (`??` prefix) outside `.orchestration/projects/{id}/`: prompt before staging. For each: "Found untracked file: {path}. Include in commit? (yes/no)". Stage only those confirmed.
+
+   e. Show a one-line staging summary before committing:
+      ```
+      Staging: {N} orchestration files, {N} source files[, {N} confirmed untracked]
+      ```
+
+   f. Commit:
+      ```bash
+      git commit -m "Slice {NN} complete — {project_id}"
+      ```
 
 3. **Archive eligibility check** — Glob all slice files at `.orchestration/projects/{id}/02-slices/*.md`. Read each file's `status` frontmatter field.
    - If any slice file cannot be read: log "warning: could not read {path} — treating as not-done" and count it as not-done.
@@ -128,10 +145,16 @@ For each piece of feedback:
 
 4. Output:
    ```
-   Feedback recorded — {N} new slice(s) added to backlog.
+   Feedback recorded — {N} new slice(s) added to backlog:
+   {for each new slice: "  .orchestration/projects/{id}/02-slices/{order}-{slug}.md"}
 
-   Run /plan-project to review and spec the next slice.
-   ※ Slice {NN} · {N} feedback slice(s) added → run /plan-project to spec next 📄
+   Slice {NN} is still at signoff_review. Run /review again on it to approve
+   and commit its implementation. The feedback is carried forward in the new
+   slices — approval means the current implementation is accepted, not that
+   everything is perfect.
+
+   After approving slice {NN}, run /plan-project to advance the feedback slices.
+   ※ Slice {NN} · signoff_review · feedback recorded → run /review to approve slice, then /plan-project 📄
    ```
 
 No commit. Feedback slices are reviewed via `/plan-project` before anything is committed.

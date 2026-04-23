@@ -1,7 +1,7 @@
 ---
-version: 1.7.1
+version: 1.7.2
 description: |
-  Sets up the orchestration layer in the current project. Installs 4 commands to .claude/commands/, 6 agents to .claude/agents/, and 3 support files to .orchestration/support/, creates .orchestration/projects/. Safe to re-run: adds missing components without touching existing project data. Detects and warns about old 7-command installations.
+  Sets up the orchestration layer in the current project. Installs 4 commands to .claude/commands/, 5 agents to .claude/agents/, and 3 support files to .orchestration/support/, creates .orchestration/projects/. Safe to re-run: adds missing components without touching existing project data. Detects and warns about old 7-command installations.
 allowed-tools:
   - Read
   - Write
@@ -26,7 +26,6 @@ The structure it creates:
   agents/
     architect.md     — structural decisions and design review
     client-dev.md    — frontend implementation
-    lead.md          — dev team orchestration
     quality.md       — testing, QA, and verification
     server-dev.md    — backend implementation
     standards.md     — code quality and convention enforcement
@@ -96,7 +95,7 @@ Create `.orchestration/support/` if it doesn't exist.
 
 **Agent files** — source: `~/.claude/init-orchestrator/defaults/agents/` — target: `.claude/agents/`
 
-Install: `architect.md`, `client-dev.md`, `lead.md`, `quality.md`, `server-dev.md`, `standards.md`
+Install: `architect.md`, `client-dev.md`, `quality.md`, `server-dev.md`, `standards.md`
 
 For each:
 - **Missing:** copy it in, no prompt
@@ -189,7 +188,6 @@ Support:
 Agents:
   .claude/agents/architect.md    v{N}
   .claude/agents/client-dev.md   v{N}
-  .claude/agents/lead.md         v{N}
   .claude/agents/quality.md      v{N}
   .claude/agents/server-dev.md   v{N}
   .claude/agents/standards.md    v{N}

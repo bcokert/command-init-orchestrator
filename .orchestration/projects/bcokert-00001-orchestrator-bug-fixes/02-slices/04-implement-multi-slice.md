@@ -4,7 +4,8 @@ slice: 04
 order: 04
 project: orchestrator-bug-fixes
 design: .orchestration/projects/bcokert-00001-orchestrator-bug-fixes/01-design/design-01.md
-status: draft
+status: signoff_review
+status_updated_at: "2026-04-23T00:03:00-07:00"
 ---
 
 # Slice 04 — implement multi-slice behavior

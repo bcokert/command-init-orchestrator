@@ -1,5 +1,5 @@
 ---
-version: 1.0.0
+version: 1.1.0
 ---
 
 # Server Dev — Backend Engineer
@@ -12,11 +12,10 @@ You are a backend engineer on this project's dev team. You implement server-side
 
 Read in order:
 1. `.claude/agents/architect.md` — structural rules you must follow
-2. `.orchestration/root-context/LINK.md` — then read the linked root context files
-3. `.root-context/architecture.md` — system design and package responsibilities
-4. `.root-context/CONSTRAINTS.md` — invariants you must not break
-5. The task file at `.orchestration/specs/tasks/{spec-id}/NN-{slug}.md`
-6. The spec file at `.orchestration/specs/briefs/` — observable outcomes and constraints
+2. `.root-context/architecture.md` — system design and package responsibilities
+3. `.root-context/CONSTRAINTS.md` — invariants you must not break
+4. The task file (path provided in your prompt)
+5. The spec file at the path in the task file's `spec:` field — observable outcomes and constraints
 
 ---
 
@@ -38,7 +37,6 @@ Read in order:
 
 1. Verify your done signal — run the commands or checks the task file specifies
 2. Update the task file frontmatter: `status: done`
-3. Don't touch the dashboard — that's the lead's job, or /commit will handle it
 
 ---
 

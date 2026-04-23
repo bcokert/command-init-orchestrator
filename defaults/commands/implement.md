@@ -1,7 +1,7 @@
 ---
-version: 2.6.0
+version: 2.7.0
 description: |
-  Execution pipeline: global queue scan → next slice execution → automatic QA → signoff_review. Resumes from wherever the selected slice left off. Stops at signoff_review for human approval via /review.
+  Execution pipeline: global queue scan → all tasks_ready slices → automatic QA → signoff_review. Runs all queued slices in sequence. Stops when all are at signoff_review for human approval via /review.
 allowed-tools:
   - Read
   - Write
@@ -13,7 +13,7 @@ allowed-tools:
 
 # Implement — Task execution pipeline
 
-Your job is to take the next queued slice from `tasks_ready` to `signoff_review`. You own: queue selection, sequential task execution, and automatic QA.
+Your job is to take all queued slices from `tasks_ready` to `signoff_review`. You own: queue selection, sequential task execution, and automatic QA.
 
 ---
 
@@ -29,8 +29,8 @@ If no argument:
 3. If no slices found: "Nothing in the queue. Run /plan-project to create tasks." Stop.
 4. Sort by `status_updated_at` ascending (oldest first). Tiebreak: project ID alphabetically. If `status_updated_at` is absent or unparseable on all candidates: report "Cannot determine queue order — all queued slices are missing status_updated_at. Set the field or pass a project ID directly." Stop.
 5. Enforce per-project slice order: for each candidate slice N in project P, check whether any lower-numbered slice in project P is not at `signoff_review` or `done`. If so, report: "Project {P} slice {N} is blocked — slice {M} must reach signoff_review first." Skip this candidate.
-6. Select the first unblocked candidate. This determines `{id}` and `{NN}` for the remainder of the command.
-7. If no unblocked candidates remain: report all blocked slices and stop. "No eligible slices in the queue. Resolve the blockers listed above or run /plan-project."
+6. Collect all unblocked candidates into an ordered execution list (sorted as above). If the list is empty: report all blocked slices and stop. "No eligible slices in the queue. Resolve the blockers listed above or run /plan-project."
+7. The first item in the execution list is the active slice. This determines `{id}` and `{NN}` for Phase 1 and the initial Phase 2 cycle. After each slice reaches `signoff_review`, re-read slice states from disk and advance to the next slice in the list.
 
 ### Step 2 — Wrong-command routing
 
@@ -41,12 +41,15 @@ Check these conditions before doing any work. Stop if any match.
 | Selected project has no slice at `tasks_ready` or `implementing`, but has slices in `draft`, `reviewed`, or `specced` | "Project '{id}' has slices in planning — run `/plan-project` to continue." |
 | Selected project has a slice at `signoff_review` and was explicitly passed as the project ID | "Project '{id}' slice {NN} is awaiting signoff — run `/review` to approve or provide feedback." |
 
-### Step 3 — Route by selected slice state
+### Step 3 — Route by active slice state
+
+The active slice is the first item in the execution list that is not already at `signoff_review`. Route based on its current state:
 
 | Slice state | Action |
 |-------------|--------|
 | `tasks_ready` | Proceed to Phase 1 |
 | `implementing` | Resume — find first `in_progress` or next runnable `todo` task for slice `{NN}` by reading task file statuses from disk, skip to Phase 2 |
+| `signoff_review` | Already done this run — advance to the next slice in the execution list. If none remain, stop. |
 | All slice `{NN}` tasks `done` | Skip directly to Phase 3 (QA) |
 
 ---
@@ -60,12 +63,14 @@ Check these conditions before doing any work. Stop if any match.
    ```
    Ready to start implementation?
 
-   {T} tasks across {S} slice(s) — {id}
+   {T} tasks across {S} slice(s):
+   {for each slice: "  Slice {NN} — {title} ({N} tasks)"}
    Agent team:
      - {agent_type} ({N} tasks)
      - {agent_type} ({N} tasks)
 
-   Reply "yes" to begin, or "review more slices first" to plan more before executing.
+   All queued slices will run in sequence. Reply "yes" to begin,
+   or "review more slices first" to plan more before executing.
    ```
 5. Wait for operator response.
 
@@ -105,13 +110,16 @@ Before invoking QA: write `status: qa_in_progress` and `status_updated_at: {curr
 
 On QA pass:
 1. Slice file frontmatter: `status: signoff_review` and `status_updated_at: {current ISO 8601 timestamp with timezone offset}`
-2. Output:
+2. Re-read the execution list from disk. Check whether any remaining slices are still at `tasks_ready` or `implementing`.
+   - If yes: advance to the next slice — return to Phase 2 for it. Do not output the signoff message yet.
+   - If no (all slices in the execution list are now at `signoff_review`): output the final summary and stop.
+3. Final output (after all slices reach `signoff_review`):
    ```
-   QA passed — {project_id} slice {NN}
+   QA passed — {project_id} ({S} slices at signoff_review)
 
-   Review the output. When ready, run /review to approve (marks done)
-   or provide feedback (creates a new slice in the backlog).
-   ※ Slice {NN} · stage 10/10 signoff_review · QA passed → run /review to approve 📄
+   Review the output. When ready, run /review to approve each slice (marks done)
+   or provide feedback (creates new slices in the backlog).
+   ※ All slices · signoff_review · QA passed → run /review to approve 📄
    ```
 4. Stop. No commit — that happens in `/review` on approval.
 

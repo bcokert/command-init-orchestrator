@@ -71,3 +71,9 @@ Any slice whose implementation changes state machine behavior must have "update 
 **Cohesion pass:** after any `.root-context/` file is updated during implementation, run a forward cohesion pass over all unimplemented current-project artifacts (design docs, slices, briefs, task files). Scope is current project only — other projects reload root-context on their next `/plan-project` run.
 
 **Ambiguity policy:** when unclear whether a change affects state machine behavior, include the diagram task. False positive beats false negative.
+
+---
+
+## Defaults cohesion rule
+
+Any change to a file in `defaults/` (agents or commands) requires a cohesion pass over all related artifacts in that directory. Check whether the change has implications for other agent or command files — update them if so. A change that fixes one file but leaves another inconsistent is incomplete.

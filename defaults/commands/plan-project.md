@@ -1,5 +1,5 @@
 ---
-version: 2.10.0
+version: 2.11.0
 description: |
   Full planning pipeline for a single project: design interview → slicing → spec → breakdown → tasks_ready. Resumes from wherever the project left off. Commits at each human approval gate. Ends when tasks are ready for /implement.
 allowed-tools:
@@ -268,6 +268,13 @@ If design doc `status: approved` on entry (crash resume): skip commit, proceed t
 
 ### On entry
 
+**Design approval guard:** re-read `01-design/design-{NN}.md` from disk. If `status: review`, run `approveAndCommit(design)` before proceeding:
+- `git add .orchestration/projects/{id}/01-design/design-{NN}.md`
+- `git commit -m "Design approved — {project_id}"` — skip if clean
+- Set design doc `status: approved`
+
+If design doc `status: approved`: skip this step and continue.
+
 **Crash resume:** check `.orchestration/projects/{id}/02-slices/` for existing files. If any exist but slicing wasn't completed (some slices missing or all are `draft` with no slice gate previously shown): delete them all, log "previous slicing incomplete — regenerating", then proceed.
 
 Always re-read `01-design/design-{NN}.md` from disk before slicing. Never use cached content.
@@ -315,10 +322,16 @@ Set slice 01 status to `review`. **Wait for response.**
 1. Run `approveAndCommit(slices)`:
    - `git add .orchestration/projects/{id}/02-slices/`
    - `git commit -m "Slices approved — {project_id}"` — skip if clean
-   - Set approved slices `status: speccing`
-2. Proceed to Phase 6 for the first slice to spec.
+   - Set all approved slices `status: speccing`
+2. Loop: for each approved slice in order, run Phase 6 then Phase 7. Slice N must reach `tasks_ready` before slice N+1 begins Phase 6. The loop continues until all approved slices are at `tasks_ready`.
 
-**Crash resume** — If slices are already at `speccing` or beyond on entry (re-run with no pending gate): skip to Phase 6.
+**Bulk loop crash resume** — If the process stops mid-loop and resumes:
+- Re-read all slice statuses from disk. Find the first slice still in `review`, `speccing`, or `breakdown` state and continue the loop from there. No user prompt needed — the approved-slice list is reconstructed from disk state.
+- State-drift (brief exists but slice stuck at `review`/`speccing`): Phase 6 crash resume handles this — brief exists → skip re-write, proceed to Phase 7. This check applies within the loop.
+- State-drift (task files exist but slice stuck at `breakdown`): Phase 7 crash resume handles this — deletes and regenerates task files. This check applies within the loop.
+- State-drift (brief + task files exist, slice never reached `tasks_ready`): on loop entry for that slice, if `03-briefs/{NN}-*.md` and `04-tasks/slice-{NN}/` both exist with task files, fast-forward `status: tasks_ready` and skip to the next slice.
+
+**Crash resume** — If slices are already at `speccing` or beyond on entry (re-run with no pending gate): skip to Phase 6 and continue the loop from the first slice not yet at `tasks_ready`.
 
 ---
 
@@ -393,11 +406,7 @@ Derive `agent_type` from the work description:
 
 1. Update slice file frontmatter: `status: tasks_ready` and `status_updated_at: {current ISO 8601 timestamp with timezone offset}`
 
-2. Commit:
-   - `git add .orchestration/projects/{id}/04-tasks/ .orchestration/projects/{id}/02-slices/{NN}-*.md`
-   - `git commit -m "Tasks ready — {project_id} slice {NN} ({N} tasks)"`
-
-3. Surface the agent team:
+2. Surface the agent team:
 
    Read all task files just created. Collect unique `agent_type` values and count tasks per type. Output:
 
@@ -409,7 +418,11 @@ Derive `agent_type` from the work description:
    Confirm or adjust before /implement:
    ```
 
-   Wait for confirmation. User may add or remove agent types. Do not proceed to the output below until confirmed.
+   Wait for confirmation. User may add or remove agent types. Do not proceed until confirmed.
+
+3. Commit (after confirmation):
+   - `git add .orchestration/projects/{id}/04-tasks/ .orchestration/projects/{id}/02-slices/{NN}-*.md`
+   - `git commit -m "Tasks ready — {project_id} slice {NN} ({N} tasks)"`
 
 4. Output:
 

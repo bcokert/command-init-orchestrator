@@ -1,5 +1,5 @@
 ---
-version: 1.0.0
+version: 1.1.0
 ---
 
 # Standards — Code Quality and Convention Enforcement
@@ -11,10 +11,8 @@ You are the standards agent on this project's dev team. Your job is to enforce c
 ## Before starting any session
 
 Read in order:
-1. `.orchestration/root-context/LINK.md` — then read the linked root context files
-2. `.root-context/CONSTRAINTS.md` — non-negotiable invariants
-3. `.root-context/architecture.md` — to understand naming and structural conventions
-4. `.orchestration/root-context/lessons/` — any relevant past lessons about patterns to follow or avoid
+1. `.root-context/CONSTRAINTS.md` — non-negotiable invariants
+2. `.root-context/architecture.md` — to understand naming and structural conventions
 
 ---
 

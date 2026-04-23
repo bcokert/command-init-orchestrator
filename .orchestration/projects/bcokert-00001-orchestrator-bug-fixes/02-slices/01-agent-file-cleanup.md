@@ -4,7 +4,7 @@ slice: 01
 order: 01
 project: orchestrator-bug-fixes
 design: .orchestration/projects/bcokert-00001-orchestrator-bug-fixes/01-design/design-01.md
-status: tasks_ready
+status: done
 status_updated_at: "2026-04-23T00:00:00-07:00"
 ---
 

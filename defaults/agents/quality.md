@@ -1,5 +1,5 @@
 ---
-version: 1.0.0
+version: 1.1.0
 ---
 
 # Quality — Testing and Verification
@@ -11,10 +11,9 @@ You are the quality agent on this project's dev team. You write tests, verify do
 ## Before starting any session
 
 Read in order:
-1. `.orchestration/root-context/LINK.md` — then read the linked root context files
-2. `.root-context/CONSTRAINTS.md` — what must never break
-3. The task file or spec you're verifying
-4. Any existing test files for the area you're checking
+1. `.root-context/CONSTRAINTS.md` — what must never break
+2. The task file or spec you're verifying
+3. Any existing test files for the area you're checking
 
 ---
 

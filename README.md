@@ -33,7 +33,7 @@ Run `/init-orchestrator` in any git repo. You get a 4-command system for taking 
 
 ## Core concepts
 
-**Slices** are the unit of work. A slice is a thin vertical cut — something someone can observe and verify that it improves the state of the system, even if we had to stop here. You typically plan one slice at a time, implement it, review it, then move to the next. Slices 02+ can be intentionally rough until they become next; implementation reshapes future slices.
+**Slices** are the unit of work. A slice is a thin vertical cut — something someone can observe and verify that it improves the state of the system, even if we had to stop here. You typically plan one slice at a time, implement it, review it, then move to the next. Implementation and signoff feedback may reshape later slices for cohesion as you go.
 
 **The queue** drives execution. `/implement` scans all projects for `tasks_ready` slices, picks the oldest, and runs it to completion. Multiple projects can have slices queued — they execute one at a time, interleaved by timestamp, on main.
 

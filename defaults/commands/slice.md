@@ -1,5 +1,5 @@
 ---
-version: 1.1.0
+version: 1.1.1
 description: |
   Takes a design doc and produces a vertical slicing plan. Each slice is independently deliverable and validatable. Phases are optional groupings of slices — slices are the fundamental unit. Max ~200 lines. Output feeds into /spec.
 allowed-tools:
@@ -80,9 +80,7 @@ Target: as short as the content genuinely allows, max ~200 lines. Do not compres
 
 Each slice is its own file. Target 30–50 lines. Hard cap 100 lines. A slice that can't fit in 100 lines is too big — split it.
 
-**Slice 01 (next to implement):** full detail — complete Goal, complete Happy path, complete Edge cases.
-
-**Slices 02+:** intentionally rough. Goal + 2–3 rough bullets per section, clearly in draft state. Implementation will reshape them before they become next.
+**Every slice gets full detail** — complete Goal, complete Happy path, complete Edge cases. Implementation and signoff feedback may revise later slices for cohesion, but they don't start rough.
 
 **Follow-up slices** (from signoff review feedback) use dot notation: `slice: 05.1`, `order: 5.1`, filename `05.1-{slug}.md`. The `order` field is the canonical sort key — `5.1` sorts between `5` and `6`.
 

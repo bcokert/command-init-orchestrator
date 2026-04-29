@@ -1,5 +1,5 @@
 ---
-version: 2.11.0
+version: 2.11.1
 description: |
   Full planning pipeline for a single project: design interview → slicing → spec → breakdown → tasks_ready. Resumes from wherever the project left off. Commits at each human approval gate. Ends when tasks are ready for /implement.
 allowed-tools:
@@ -293,9 +293,6 @@ Show the slicing gate:
 Slicing complete — {project_id}
 
 {N} slice files in .orchestration/projects/{id}/02-slices/
-
-Slice 01 is fully detailed. Slices 02+ are intentionally rough — flesh
-them out when they become next.
 
 Every slice requires human review before it can be specced.
 Review the slices. Approve or provide feedback below.

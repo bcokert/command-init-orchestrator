@@ -4,7 +4,8 @@ slice: 04
 order: 04
 project: batch-slice-flow
 design: .orchestration/projects/bcokert-00007-batch-slice-flow/01-design/design-01.md
-status: draft
+status: tasks_ready
+status_updated_at: 2026-05-06T20:03:31-07:00
 ---
 
 # Slice 04 — /plan-project rewrite (correctness + batch + shrinkage)

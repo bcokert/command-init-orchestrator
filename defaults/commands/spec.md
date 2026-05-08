@@ -1,5 +1,5 @@
 ---
-version: 2.0.0
+version: 2.1.0
 description: |
   Takes a slices doc (and its linked design doc) and writes a full Delegation Brief for an AI agent. No discovery interview — that happened in /plan-project. Self-contained output: test vectors, explicit escalation paths, independently verifiable breakdown.
 allowed-tools:
@@ -9,22 +9,21 @@ allowed-tools:
   - Grep
   - Bash
   - AskUserQuestion
-  - Skill
 ---
 
-# Spec — Delegation Brief for AI Agents
+# Spec — delegation brief for AI agents
 
-Your job is to read a slices doc and write a complete Delegation Brief an AI agent can execute without asking questions.
+Read a slices doc and write a complete Delegation Brief an AI agent can execute without asking questions.
 
-**No discovery interview.** That happened in `/plan-project`. If something is genuinely unresolvable from the available docs, ask Bdon — but keep it tight. One clarifying question, not a session.
+**No discovery interview.** That happened in `/plan-project`. If something is genuinely unresolvable from the available docs, ask the user — one clarifying question, not a session.
+
+State, schemas, principles live in `.root-context/state-diagram.md`. Helper used: `support/bdonize.md` (voice).
 
 ---
 
 ## Phase 0 — Load inputs
 
-If a slices doc path was passed as an argument, read it. Also read the linked design doc (from the `design:` frontmatter field). If no path was passed, ask:
-
-> "Which slices doc are we writing a spec for? (path to file)"
+If a slices doc path was passed as argument, read it. Also read the linked design doc (from the `design:` frontmatter field). If no path was passed: "Which slices doc are we writing a spec for? (path to file)".
 
 Also read any project context referenced — architecture files, CONSTRAINTS.md, DECISIONS.md.
 
@@ -32,108 +31,83 @@ Also read any project context referenced — architecture files, CONSTRAINTS.md,
 
 ## Phase 1 — Confirm scope
 
-Restate in 2-3 sentences what the spec will cover. Ask Bdon to confirm or correct before writing.
+Restate in 2-3 sentences what the spec will cover. Ask the user to confirm or correct before writing.
 
 ---
 
-## Phase 2 — Write the Delegation Brief
+## Phase 2 — Write the delegation brief
 
-Write a complete brief for an AI agent. The agent must be able to execute this without asking questions. If they'd need to ask, the spec is incomplete.
+A complete brief the agent can execute without asking. If they'd need to ask, the spec is incomplete.
 
----
-
-## Delegation Brief
+```markdown
+# Brief {NN} — {title}
 
 **Type:** Task (AI agent)
 **Date:** [today]
 
----
-
-### 1. Intent
+## 1. Intent
 
 What this is and why it matters. Written for an agent with no prior context — they understand the full situation from this section alone.
 
----
-
-### 2. Observable outcomes
+## 2. Observable outcomes
 
 One scenario per slice from the slices doc:
 
-```
 Given [starting condition]
 When [the action taken]
 Then [the observable result]
-```
 
 Cover the happy path for each slice, key edge cases, and failure modes.
 
----
-
-### 3. Constraints
+## 3. Constraints
 
 **Must:** Non-negotiable requirements.
-
 **Must not:** Hard prohibitions.
-
 **Preferences:** Soft guidance — what to do when multiple approaches are viable.
-
 **Escalation triggers:** Conditions where the agent must stop and check in rather than proceed.
 
----
+## 4. Done definition
 
-### 4. Done definition
+Observable outcomes an independent person can verify without reading code. One clear signal per item. Include specific test vectors — known-good inputs and expected outputs.
 
-Observable outcomes an independent person can verify without reading the code. One clear signal per item.
+## 5. Breakdown
 
-Include specific test cases with known-good inputs and expected outputs — not descriptions of what to test, but actual test vectors.
-
----
-
-### 5. Breakdown
-
-Each slice from the slices doc becomes one or more sub-tasks. Each sub-task must be independently verifiable and small enough to complete in a focused session.
+Each slice from the slices doc becomes one or more sub-tasks. Each sub-task is independently verifiable and small enough for a focused session.
 
 | # | Step | Deliverable | Done signal |
 |---|------|-------------|-------------|
 | 1 | ... | ... | ... |
-
----
-
-*(End of Delegation Brief)*
+```
 
 ---
 
 ## Phase 3 — Stress test
 
-Before presenting:
-
-1. Could an agent understand the full problem from the Intent section alone?
+1. Could an agent understand the full problem from Intent alone?
 2. Is every constraint specific enough to be enforceable?
-3. Do the Done Definition items not require reading code to verify?
-4. Does the spec include an explicit escalation path — the agent knows when to stop rather than guess?
-5. Are there actual test vectors, not just descriptions of what to test?
+3. Do Done Definition items verify without reading code?
+4. Does the spec include an explicit escalation path?
+5. Test vectors present, not just descriptions of what to test?
 6. Did anything from the slices doc not make it into the breakdown?
 
-Fix any issues found.
+Fix any issues.
 
 ---
 
 ## Phase 4 — Bdonize and save
 
-Apply bdonizer patterns directly to the draft before saving. Do not invoke the bdonizer Skill tool — it loads instructions but does not produce revised output in this context. Apply inline:
+Apply voice patterns inline per `support/bdonize.md` before saving.
 
-- **Phase 1 — Strip AI patterns:** significance inflation, AI vocabulary ("crucial", "highlight", "landscape", "underscore", "vibrant"), em dash overuse, inline-header lists, filler phrases ("in order to", "it is important to note"), excessive hedging, sycophantic tone, chatbot artifacts.
-- **Phase 2 — Tune to voice:** no warmup sentence, short declarative payoffs, deadpan over dramatic, practical framing over emotional, stop when done (no summary sentence). Sentence case headings. Terse fragments are fine.
+Save to `.orchestration/projects/{id}/03-briefs/{NN}-{slug}.md`. When called from `/plan-project`, the project id and slice number are passed as context. When called standalone, derive from the project folder structure.
 
-Save the file to `.orchestration/projects/{id}/03-briefs/{NN}-{slug}.md`. When called from `/plan-project`, the project id and slice number are passed as context — use them directly. When called standalone, derive them from the project folder structure.
-
-Write using the full absolute path (never pass `~/...` to Write). Confirm the path to Bdon.
+Write using the full absolute path. Confirm the path.
 
 ---
 
-## Behavior rules
+## Behavior rules (spec deltas)
+
+Shared rules live in `.root-context/state-diagram.md`.
 
 - No discovery interview. Read the docs, write the spec.
-- Ask Bdon only if something is genuinely unresolvable from the available docs.
+- Ask the user only if something is genuinely unresolvable from the available docs.
 - The spec is done when an agent could execute it without asking anything.
-- This command is for AI agent delegation only. For human delegation, use `/delegate`.

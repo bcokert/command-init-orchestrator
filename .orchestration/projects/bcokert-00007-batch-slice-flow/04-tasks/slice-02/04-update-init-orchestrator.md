@@ -3,7 +3,7 @@ spec: .orchestration/projects/bcokert-00007-batch-slice-flow/03-briefs/02-shared
 slice: 02
 step: 4
 title: Update init-orchestrator.md to install new support files
-status: todo
+status: done
 depends_on: [03-write-bdonize.md]
 agent_type: architect
 model: sonnet

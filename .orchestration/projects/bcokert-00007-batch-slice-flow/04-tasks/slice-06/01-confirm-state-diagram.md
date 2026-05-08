@@ -3,7 +3,7 @@ spec: .orchestration/projects/bcokert-00007-batch-slice-flow/03-briefs/06-review
 slice: 06
 step: 1
 title: Confirm state-diagram.md alignment for review
-status: todo
+status: done
 depends_on: []
 agent_type: architect
 model: sonnet

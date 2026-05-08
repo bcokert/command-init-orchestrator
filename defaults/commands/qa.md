@@ -1,7 +1,7 @@
 ---
-version: 1.2.0
+version: 1.3.0
 description: |
-  Runs after implement. Verifies done signals for each task in a spec, runs mechanical checks where possible, and outputs a QA report to .orchestration/dashboard/{spec-id}-qa.md.
+  Runs after implement. Verifies done signals for each task in a spec, runs mechanical checks where possible, and writes a QA report to .orchestration/projects/{id}/05-qa/slice-{NN}-qa-report.md.
 allowed-tools:
   - Read
   - Write
@@ -38,12 +38,12 @@ For each task file with `status: done`, check its done signal.
 
 Only check what the done signal specifies. Don't invent tests.
 
-Mark each check: `pass`, `fail`, or `manual` (requires human or running service).
+Mark each check: `pass`, `fail`, or `manual` (requires user or running service).
 
 After verification (and after any fixes in Phase 1.5), write `qa_result` to each task file frontmatter:
 - `pass` — passed on first check
 - `fixed` — failed initially, fixed during QA, re-verified as passing
-- `manual` — marked manual (requires human or running service)
+- `manual` — marked manual (requires user or running service)
 
 ---
 
@@ -51,12 +51,12 @@ After verification (and after any fixes in Phase 1.5), write `qa_result` to each
 
 For each `fail`:
 
-1. Determine if the fix is within scope — the agent team can resolve it without human input or an unavailable service.
+1. Determine if the fix is within scope — the agent team can resolve it without user input or an unavailable service.
 2. If yes: fix it, then re-run the verification for that check.
    - If it still fails: try a meaningfully different approach and re-run again. There is no fixed retry cap — repeat as many times as needed.
    - Only declare stuck when you have genuinely exhausted distinct approaches. Vague or superficially different attempts do not count as genuine attempts.
-3. If stuck: write exactly **"I cannot fix this without human input"** followed by a clear reason (what was tried, what's blocking further progress). Mark the check `fail` with that explanation.
-4. If the fix requires human judgment, a running service, or information not available: mark `manual` with a note explaining what's needed.
+3. If stuck: write exactly **"I cannot fix this without user input"** followed by a clear reason (what was tried, what's blocking further progress). Mark the check `fail` with that explanation.
+4. If the fix requires user judgment, a running service, or information not available: mark `manual` with a note explaining what's needed.
 
 Only write the QA report (Phase 3) when all fixable failures have been resolved or explicitly declared stuck. `manual` items do not block the report.
 
@@ -67,7 +67,7 @@ Only write the QA report (Phase 3) when all fixable failures have been resolved 
 After all fixable failures are resolved, review the design doc and future slice files for anything that needs updating based on what was just implemented.
 
 1. Read `.orchestration/projects/{id}/01-design/design-{NN}.md`.
-2. Read all slice files in `.orchestration/projects/{id}/02-slices/` with `status: draft` or `status: reviewed` (future unimplemented slices).
+2. Read all slice files in `.orchestration/projects/{id}/02-slices/` with `status: draft` or `status: review` (future unimplemented slices).
 3. For each, ask: does what was just implemented conflict with, clarify, or invalidate anything here?
 4. If a future slice's scope significantly overlaps with what was just implemented: stop and ask before modifying.
 5. Apply any updates directly. Leave all changes uncommitted.
@@ -114,11 +114,11 @@ status: {passed|failed|partial|pending-manual}
 
 ## Manual checks needed
 
-{List any checks that require human review or a running service.}
+{List any checks that require user review or a running service.}
 
 ## Recommended next steps
 
-{What to fix, re-run /qa after, or escalate to Bdon.}
+{What to fix, re-run /qa after, or escalate to the user.}
 ```
 
 ---
@@ -140,7 +140,7 @@ Review the output. When ready, run /review to approve (marks done)
 or provide feedback (creates new slice in backlog).
 ```
 
-**On stuck** (agent declared "I cannot fix this without human input" on at least one check):
+**On stuck** (agent declared "I cannot fix this without user input" on at least one check):
 
 1. Write the QA report file with `status: failed`. Include the stuck declaration and reason for each failed check.
 2. Update the slice file frontmatter: `status: signoff_review` and `status_updated_at: {current ISO 8601 timestamp with timezone offset}`
@@ -153,13 +153,13 @@ Stuck on: {list of failed checks with reasons}
 Provide a fix or guidance, then re-run /qa to retry.
 ```
 
-**Stop here. The commit happens in `/review` when the human approves — not now.**
+**Stop here. The commit happens in `/review` when the user approves — not now.**
 
 ---
 
 ## Phase 5 — Human fix after signoff_review
 
-If the operator provides a fix at signoff_review in response to a QA failure (code edit, guided fix, or a new dot-notation slice):
+If the user provides a fix at signoff_review in response to a QA failure (code edit, guided fix, or a new dot-notation slice):
 
 1. Update the slice file frontmatter: `status: qa_in_progress` and `status_updated_at: {current ISO 8601 timestamp with timezone offset}`
 2. Re-run QA from Phase 1.
@@ -174,4 +174,4 @@ If the operator provides a fix at signoff_review in response to a QA failure (co
 - A spec is `passed` only if all non-manual checks pass. `manual` items do not count as failures.
 - If there are unfixed failures: do not suggest marking the spec `done`. Flag for fix.
 - QA runs automatically after all tasks complete — do not wait to be asked. When the last task is marked `done`, proceed to Phase 0 immediately.
-- Never `git add` or `git commit` anything. The QA report and slice status update stay uncommitted. The human reviews the full uncommitted diff at signoff_review. The commit happens in `/review` on approval.
+- Never `git add` or `git commit` anything. The QA report and slice status update stay uncommitted. The user reviews the full uncommitted diff at signoff_review. The commit happens in `/review` on approval.

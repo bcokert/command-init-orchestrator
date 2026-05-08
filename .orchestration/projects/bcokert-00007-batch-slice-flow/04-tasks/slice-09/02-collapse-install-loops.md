@@ -3,7 +3,7 @@ spec: .orchestration/projects/bcokert-00007-batch-slice-flow/03-briefs/09-init-o
 slice: 09
 step: 2
 title: Collapse three install loops into one parameterised loop
-status: todo
+status: done
 depends_on: [01-audit-and-delete-config-yaml.md]
 agent_type: architect
 model: sonnet

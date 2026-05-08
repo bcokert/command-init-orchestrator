@@ -3,7 +3,7 @@ spec: .orchestration/projects/bcokert-00007-batch-slice-flow/03-briefs/03-agent-
 slice: 03
 step: 7
 title: Update init-orchestrator.md to install _common-preamble.md
-status: todo
+status: done
 depends_on: [06-update-standards.md]
 agent_type: architect
 model: sonnet

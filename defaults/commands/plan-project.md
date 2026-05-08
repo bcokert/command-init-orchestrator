@@ -1,115 +1,70 @@
 ---
-version: 2.11.1
+version: 2.12.0
 description: |
-  Full planning pipeline for a single project: design interview → slicing → spec → breakdown → tasks_ready. Resumes from wherever the project left off. Commits at each human approval gate. Ends when tasks are ready for /implement.
+  Full planning pipeline: design interview → slicing → spec → breakdown → tasks_ready. Resumes from wherever the project left off. Commits at each user approval gate. Ends with tasks ready for /implement.
 allowed-tools:
   - Read
   - Write
+  - Edit
   - Glob
   - Grep
   - Bash
   - AskUserQuestion
-  - Skill
 ---
 
-# Plan-project — Full planning pipeline
+# Plan-project — full planning pipeline
 
-Your job is to take a project from idea to tasks_ready. You own the full planning pipeline: design interview → slicing → spec → breakdown. You resume from wherever the project last stopped.
+Take a project from idea to `tasks_ready`. Owns: design interview → slicing → spec → breakdown. Resume from wherever the project last stopped.
+
+State, schemas, principles, vocabulary, and crash recovery rules live in `.root-context/state-diagram.md`. Helpers used: `support/next-actions.md` (scope reader), `support/status-write.md` (frontmatter helper), `support/bdonize.md` (voice).
 
 ---
 
-## Phase 0 — Detect state and route
+## Phase 0 — Resolve scope
 
-### Step 1 — Identify the project
+Run `support/next-actions.md`. Filter to projects with at least one slice in `{draft, review, speccing, breakdown}`, OR no slice files yet, OR no design doc yet. With a project ID arg: restrict to that project.
 
-If a project ID or path was passed as argument, use it.
+If no match: proceed to Step 4 (create new project).
+If multiple match without an arg: list them, ask which to resume or to start a new one.
 
-If no argument:
-1. Glob `.orchestration/projects/*/` directories, excluding any path under `done/`.
-2. For each directory, read slice files at `.orchestration/projects/{id}/02-slices/*.md`. Collect `status:` frontmatter for each.
-3. A project has actionable work for plan-project if it has at least one slice in `draft`, `review`, `reviewed`, `speccing`, `specced`, or `breakdown` state, or has no slice files yet, or has no design doc yet.
-4. If one match: use it.
-5. If multiple matches: list them and ask which to resume, or offer to start a new one.
-6. If no matches: start a new project (proceed to Step 3).
+Wrong-command shortcuts (stop on first match):
 
-### Step 2 — Wrong-command routing
+| Slice state in selected project | Action |
+|---|---|
+| `implementing` / `qa_in_progress` | "Slice {NN} is currently implementing — run `/implement` to resume." Stop. |
+| `signoff_review` | "Slice {NN} is awaiting signoff — run `/review` to approve or provide feedback." Stop. |
 
-Read all slice files for the selected project. If any condition below matches, output the error and stop.
-
-| Condition | Error message |
-|-----------|---------------|
-| Any slice at `implementing` or `qa_in_progress` | "Slice {NN} is currently implementing — run `/implement` to resume." |
-| Any slice at `signoff_review` | "Slice {NN} is awaiting signoff — run `/review` to approve or provide feedback." |
-| No slice is in `draft`, `review`, `reviewed`, `speccing`, `breakdown`, or `specced` — all slices are `tasks_ready` or beyond | "All slices are queued or complete — run `/implement` to start implementation." |
-
-### Step 3 — Route by current state
-
-Derive state from artifacts on disk. Check conditions in order — stop at the first match.
+**Route by state** (first match wins):
 
 | Condition | Action |
-|-----------|--------|
-| No project directory | Create project (Step 4), run interview (Phase 1) |
-| Directory exists, no `01-design/design-01.md` | Inform user interview didn't complete, run interview (Phase 1) |
-| Design doc exists, no `02-slices/*.md` | Run slicing (Phase 5) |
-| Scan slices 01, 02, … in order: first slice that is `review`, `reviewed`, or `speccing` and eligible for spec (N=1, or slice N-1 is `tasks_ready` or beyond) | Run spec (Phase 6) for that slice — Phase 7 follows immediately in the same run |
-| Scan slices in order: first slice that is `breakdown` (crash resume) | Run breakdown (Phase 7) for that slice |
-| Scan slices in order: first slice that is `specced` (old projects — backward compat) | Run breakdown (Phase 7) for that slice |
-| Next actionable slice is `draft` | Prompt user to review it (see below). Stop. |
+|---|---|
+| No project directory | Step 4 → Phase 1 |
+| Directory exists, no `01-design/design-{NN}.md` | Phase 1 (interview didn't complete) |
+| Design doc exists, no `02-slices/*.md` | Phase 5 (slicing) |
+| First slice in `review` or `speccing` and eligible (slice 01, or slice N-1 ≥ `tasks_ready`) | Phase 6 (spec) — Phase 7 follows |
+| First slice in `breakdown` (crash resume) | Phase 7 |
+| First slice has `follow_up_of:` set and is `draft` | Surface as a follow-up: "Slice {NN.N} is feedback from prior signoff. Review at {path} and re-run /plan-project." Stop. |
+| Next actionable slice is `draft` (fresh) | "Slice {NN} hasn't been reviewed yet. Edit at {path}; re-run /plan-project when ready." Stop. |
 
-Draft prompt:
-```
-Slice {NN} — {title} — hasn't been reviewed yet.
-
-Review the slice file at .orchestration/projects/{id}/02-slices/{NN}-{slug}.md.
-Edit it directly if anything needs changing.
-When ready, run /plan-project to continue.
-```
-
-**Ordering constraint:** before advancing slice N to any state, slice N-1 must already be at that state or beyond. To spec slice N, slice N-1 must be at `tasks_ready` or beyond. Slice 01 has no prior — no constraint applies.
-
-If a slice would be eligible but the ordering constraint blocks it, report:
-```
-Slice {N-1} must reach {required_state} before slice {N} can advance. Run /plan-project to advance slice {N-1} first.
-```
+**Ordering constraint:** to spec slice N, slice N-1 must be at `tasks_ready` or beyond. Slice 01 has no prior. If blocked: "Slice {N-1} must reach tasks_ready before slice {N} can advance."
 
 ### Step 4 — Create new project
 
-1. Get github username: `git config user.name`, fall back to prefix of `git config user.email`.
-2. Derive slug from the project name: lowercase, kebab-case, max 5 words, strip stop words (the, a, an, for, of, in, to). The project ID format is `{username}-{NNNNN}-{slug}` (e.g. `bcokert-00003-claire-full-system`).
-3. Scan `.orchestration/projects/` for folders matching `{username}-*`, find the highest sequence number, add 1, zero-pad to 5 digits. If folder already exists at derived path, increment and retry.
-4. Create `.orchestration/projects/{id}/`. Create `.orchestration/projects/` if it doesn't exist.
-5. Create observability files (non-blocking — if any write fails, log a warning and continue):
-   - `.orchestration/projects/{id}/observability/questions.md` with header:
-     ```
-     # Questions log
-     <!-- Format: ## YYYY-MM-DD HH:MM — [open|answered] Question text -->
-     ```
-   - `.orchestration/projects/{id}/observability/iterations.md` with header:
-     ```
-     # Iteration log
-     <!-- Format: ## YYYY-MM-DD HH:MM — [state] What changed. Why. -->
-     ```
-   - `.orchestration/projects/{id}/observability/decisions.md` with header:
-     ```
-     # Decision log
-     <!-- Format: ## YYYY-MM-DD HH:MM — Decision. Why. Rejected: alternatives. -->
-     ```
-6. Load project context before starting the interview:
-   - Read `CLAUDE.md` in the current project directory if it exists.
-   - Read `.root-context/architecture.md`, `.root-context/CONSTRAINTS.md`, `.root-context/DECISIONS.md` if they exist.
-   - Note what you've read — don't ask questions the docs already answer.
+1. `git config user.name` (fallback: prefix of `git config user.email`).
+2. Slug from project name: lowercase, kebab-case, max 5 words, strip stop words (the, a, an, for, of, in, to). Format: `{username}-{NNNNN}-{slug}`.
+3. Highest existing sequence + 1, zero-padded to 5 digits. Increment if collision.
+4. Create `.orchestration/projects/{id}/` and `observability/` files (`questions.md`, `iterations.md`, `decisions.md`) with their template headers. Non-blocking on write failures.
+5. Load context: `CLAUDE.md`, `.root-context/architecture.md`, `.root-context/CONSTRAINTS.md`, `.root-context/DECISIONS.md` if present. Skip questions the docs already answer.
 
-Escalation checks (run before Step 4):
-- If git is not initialised: stop — "This directory is not a git repo. Initialise git first."
-- If `.orchestration/` exists with unexpected structure: stop and ask before proceeding.
+Escalation before Step 4:
+- Not a git repo → stop, ask the user to init git first.
+- `.orchestration/` has unexpected structure → stop, ask before proceeding.
 
 ---
 
 ## Phase 1 — Understand the request
 
-Restate in one sentence what you've heard Bdon wants to design. Ask him to confirm or correct.
-
-If nothing has been described yet, open with: "What are we designing?"
+Restate in one sentence what the user wants. Ask to confirm or correct. If nothing has been described yet: "What are we designing?"
 
 ---
 
@@ -117,332 +72,217 @@ If nothing has been described yet, open with: "What are we designing?"
 
 > model: opus · effort: max
 
-Surface everything Bdon knows but hasn't said yet.
+Surface everything the user knows but hasn't said. **No filter on questions** — only stage where every question is on the table.
 
-**No filter on questions.** This is the only stage where every question is on the table. Once the design doc is written, that window is closed.
+Ask **3–5 questions per turn**. Wait for answers.
 
-Ask **3–5 questions per turn**. Never more. Wait for answers before the next round.
+Append each question to `observability/questions.md` with status `open`. Update to `answered` and add the answer when received. Non-blocking.
 
-When sending a batch of questions: append each to `.orchestration/projects/{id}/observability/questions.md` with status `open`:
-```
-## YYYY-MM-DD HH:MM — [open] Question text
-```
-When the answer arrives: update that entry's status to `answered` and append the answer as a sub-item. Non-blocking — if the write fails, log a warning and continue.
+Areas: intent + motivation, current state, desired end state, patterns + conventions, design decisions, boundaries.
 
-Surface questions across these areas:
-
-**Intent and motivation** — What problem does this solve? Why now? What does success look like?
-
-**Current state** — How does it work today? What are the pain points? What constraints come from the current system?
-
-**Desired end state** — What can someone do when this is done that they couldn't before? What does failure look like?
-
-**Patterns and conventions** — What patterns should this follow? What should it explicitly not follow? What architectural decisions are relevant?
-
-**Design decisions** — Where are the real forks in the road? What trade-offs need to be made?
-
-**Boundaries** — What is explicitly out of scope? What must not be touched?
-
----
-
-Keep a running context log every turn during Phase 2:
+**Context log every turn:**
 
 ```
 > **Context so far:**
-> - resolved: [key fact or decision]
-> - open: [question still unanswered]
+> - resolved: [key fact]
+> - open: [unanswered question]
 ```
 
-Never move to Phase 3 while any item is `open`.
-
-When the list has no open items: "I think I have everything. Ready to write the design doc?"
+Move to Phase 3 only when no `open` items remain. "I think I have everything. Ready to write the design doc?"
 
 ---
 
-## planIteration — Staging step
+## planIteration — staging step
 
-At the start of each iteration pass (each re-run during interview, design iteration, or slicing iteration):
+At the start of each iteration pass (any re-run during interview, design iteration, or slicing iteration):
 
-0. If `.orchestration/projects/{id}/observability/` is missing or any of the three template files are absent: recreate missing files with empty template headers (same format as Step 4 in project setup). Non-blocking — log a warning if recreation fails.
-1. Run `git status` to check for unstaged changes.
-2. If files outside `.orchestration/`, `.root-context/`, and `CLAUDE.md` appear unstaged: surface them and ask before staging — code changes during planning are unexpected. Wait for confirmation.
-3. Run `git add .orchestration/` (also stage `.root-context/` and `CLAUDE.md` if they changed). This moves the previous iteration's artifacts to staging, leaving the current pass's changes unstaged for VS Code diff readability.
-4. First iteration on a new project: step 3 is a no-op if nothing has changed yet — continue normally.
-5. If `git add` fails: surface to operator, wait for resolution. Do not advance state.
-6. Append an iteration entry to `.orchestration/projects/{id}/observability/iterations.md` (non-blocking):
-   ```
-   ## YYYY-MM-DD HH:MM — [current_state] What changed this pass. Why.
-   ```
-7. **When invoked during slicing** (after updating affected slice files): run a forward cohesion pass on all remaining slices not at `tasks_ready` or beyond — check each for implications of the change and update if needed.
+0. Recreate any missing files in `observability/` (template headers). Non-blocking.
+1. `git status`. Auto-stage `.orchestration/`, `.root-context/`, `CLAUDE.md`, plus any unstaged code files. Surface a one-line summary: "Staging: N orchestration, M source." User can abort if the summary surprises them.
+2. If `git add` fails: surface to the user, wait. Do not advance state.
+3. Append one entry to `observability/iterations.md`: `## YYYY-MM-DD HH:MM — [state] What changed. Why.` Non-blocking.
+4. **When invoked during slicing**: after updating affected slice files, run a forward cohesion pass over remaining slices not at `tasks_ready` or beyond.
 
 ---
 
 ## Phase 3 — Write the design doc
 
-Only begin when Phase 2 is complete with no open questions.
+Begin only when Phase 2 has no open questions. Target ~200 lines; don't compress unnaturally.
 
-Target: ~200 lines. Do not compress unnaturally.
+Apply voice patterns inline per `support/bdonize.md` before saving.
 
-Apply bdonizer patterns inline before writing:
-- **Strip AI patterns:** significance inflation, AI vocabulary ("crucial", "highlight", "landscape", "underscore", "vibrant"), em dash overuse, inline-header lists, filler phrases, excessive hedging, sycophantic tone.
-- **Tune to voice:** no warmup sentence, short declarative payoffs, deadpan over dramatic, practical framing. Sentence case headings. Terse fragments are fine.
-
-### Design doc format
+### Format
 
 ```markdown
 ---
 type: design
 date: YYYY-MM-DD
-feature: [short kebab-case name]
+feature: [short kebab-case]
 project_id: {id}
-status: ready
+status: in_progress
 ---
 
-# [Feature/Change Name] — Design
+# [Name] — Design
 
 ## Intent
 [1-2 paragraphs. Full context for someone with no prior knowledge.]
 
 ## Current state
-[Bullet list. Pain points, constraints, what exists today.]
+[Bullets. Pain points, constraints, what exists today.]
 
 ## Desired end state
-[Bullet list. Observable facts about the world when this is done.]
+[Bullets. Observable facts when this is done.]
 
 ## Patterns to follow
-[Bullet list. What to follow, what to avoid, and why.]
+[Bullets. What to follow, what to avoid, and why.]
 
 ## Key edge cases
-[Bullet list. Crashes, partial state, wrong-command errors, unrecoverable data. Primary input for slice validation.]
+[Bullets. Crashes, partial state, wrong-command errors, unrecoverable data.]
 
 ## Resolved design decisions
-[One entry per decision. Decision / Why / Rejected alternatives.]
+[Decision / Why / Rejected alternatives.]
 
 ## Agent decisions
-[Decisions made implicitly by the agent based on context — not explicitly discussed with the human. Listed for review to catch unexamined assumptions. One entry per decision.
-
-Format: **Decision made.** Context: why this call seemed obvious. Alternative: what else could have been chosen.]
+[Decisions made implicitly by the agent. Listed for review. Decision made / Context / Alternative.]
 ```
 
-Write to `.orchestration/projects/{id}/01-design/design-01.md` (or `design-{NN}.md` for run N on a feedback_pending project). Create `01-design/` if it doesn't exist.
-
-After writing, append each entry from "Resolved design decisions" to `.orchestration/projects/{id}/observability/decisions.md` (non-blocking):
-```
-## YYYY-MM-DD HH:MM — Decision. Why. Rejected: alternatives.
-```
+Write to `.orchestration/projects/{id}/01-design/design-{NN}.md`. After writing, append each Resolved decision to `observability/decisions.md`.
 
 ---
 
 ## Phase 4 — Design review gate
 
-After writing the design doc, show the review gate:
+Show:
 
 ```
 Design interview complete — {project_id}
 
-Saved: .orchestration/projects/{id}/01-design/design-01.md
+Saved: .orchestration/projects/{id}/01-design/design-{NN}.md
 
 Highest-leverage review point. Corrections here cost nothing.
 After slicing, corrections require updating slice files.
 After implementation, corrections cost the most.
 
-Review the design doc. Edit it directly if anything needs changing.
+Edit the design doc directly if anything needs changing.
 When ready, run /plan-project to continue to slicing.
 ※ design_review · design interview complete → review doc and re-run /plan-project 📄
 ```
 
-Set design doc `status: review`. **Wait here.** Do not proceed to slicing until Bdon says to continue.
+`status-write.md` → set design status to `review`. **Wait.** Do not proceed until the user re-runs.
 
-**Approval transition** — On the re-run after this gate (design doc `status: review`):
-1. Run `approveAndCommit(design)`:
-   - `git add .orchestration/projects/{id}/01-design/design-{NN}.md`
-   - `git commit -m "Design approved — {project_id}"` — skip if clean
-   - Set design doc `status: approved`
-2. Proceed to Phase 5.
-
-If design doc `status: approved` on entry (crash resume): skip commit, proceed to Phase 5.
+**Approval transition** (re-run with design `status: review`): run the design-approval block at the top of Phase 5. Idempotent on crash resume.
 
 ---
 
 ## Phase 5 — Slicing
 
-### On entry
+### On entry — design approval
 
-**Design approval guard:** re-read `01-design/design-{NN}.md` from disk. If `status: review`, run `approveAndCommit(design)` before proceeding:
+Re-read the design doc from disk.
+
+If design `status: review` (approval transition):
 - `git add .orchestration/projects/{id}/01-design/design-{NN}.md`
 - `git commit -m "Design approved — {project_id}"` — skip if clean
-- Set design doc `status: approved`
+- `status-write.md` → design `status: approved`
 
-If design doc `status: approved`: skip this step and continue.
+If design `status: approved`: skip. Proceed to slicing.
 
-**Crash resume:** check `.orchestration/projects/{id}/02-slices/` for existing files. If any exist but slicing wasn't completed (some slices missing or all are `draft` with no slice gate previously shown): delete them all, log "previous slicing incomplete — regenerating", then proceed.
+### Crash resume
 
-Always re-read `01-design/design-{NN}.md` from disk before slicing. Never use cached content.
+If `02-slices/` has files but slicing wasn't completed (all slices `draft` AND no commit referencing `02-slices/` in git log): delete and regenerate. Otherwise resume per slice statuses.
 
 ### Slicing
 
-Read and follow `.orchestration/support/slice.md` in full.
-
-Pass `design-{NN}.md` as input. Produce individual slice files at `.orchestration/projects/{id}/02-slices/{NN}-{slug}.md`. Each slice: Goal + Happy path + Edge cases, 30–50 lines, hard cap 100.
+Read and follow `support/slice.md` in full. Pass the design doc as input. Produce slice files at `02-slices/{NN}-{slug}.md` (or `{NN.N}-{slug}.md` for follow-ups).
 
 ### After all slice files written
 
-Show the slicing gate:
+Show the gate:
 
 ```
 Slicing complete — {project_id}
 
 {N} slice files in .orchestration/projects/{id}/02-slices/
 
-Every slice requires human review before it can be specced.
 Review the slices. Approve or provide feedback below.
-※ Slice 01 · slicing_review · slicing complete → approve or give feedback 📄
+※ Slicing.Review · slicing complete → approve or give feedback 📄
 ```
 
-Set slice 01 status to `review`. **Wait for response.**
+For every generated slice: `status-write.md` → `status: review` and add `review_context: initial` to frontmatter. **Wait.**
 
-**Response handling** — Classify the response:
+### Response handling
 
-| Signal | Detection | Action |
-|--------|-----------|--------|
-| Approval | "looks good", "LGTM", "approved", "ship it", clear sign-off | `approveAndCommit(slices)` → Phase 6 |
-| Feedback | Specific changes, revision requests, questions about content | `planIteration(affected slices)` → resurface |
-| Ambiguous | Anything not clearly approval | Treat as feedback: `planIteration` → resurface and re-ask |
+| Signal | Action |
+|---|---|
+| Approval (clear sign-off; possibly with subset like "approve 1, 2") | Approve listed slices (default: all). Continue. |
+| Feedback on specific slices | Run planIteration on those slices; add `review_context: post_iteration`; resurface. |
+| Mixed (e.g. "approve 1 and 2, feedback on 3-5") | Split: approve subset advances, feedback subset gets planIteration. Resurface only affected slices. |
+| Ambiguous | Re-ask once. If still ambiguous: treat as feedback. |
 
-**On feedback or ambiguous:**
-1. Identify which slices are affected. If unclear, treat as general feedback on all slices.
-2. Run planIteration: stage previous changes (`git add .orchestration/projects/{id}/02-slices/`), update affected slices in detail.
-3. Forward cohesion pass: for each remaining slice not at `tasks_ready` or beyond, check whether the change has implications for it. Update if needed. Skip slices already at `tasks_ready` or beyond.
-4. Resurface with a one-line summary per changed slice. Re-show the gate. Wait for response.
+**On approval (full or subset):**
+1. `git add .orchestration/projects/{id}/02-slices/` then `git commit -m "Slices approved — {project_id}"` — skip if clean.
+2. For approved slices: `status-write.md` → `status: speccing`.
+3. Loop in slice-number order: for each approved slice, run Phase 6 → Phase 7. No inter-slice gates. Slice N+1's spec depends on slice N's task files for cohesion — sequential, no user pause.
 
-**On approval:**
-1. Run `approveAndCommit(slices)`:
-   - `git add .orchestration/projects/{id}/02-slices/`
-   - `git commit -m "Slices approved — {project_id}"` — skip if clean
-   - Set all approved slices `status: speccing`
-2. Loop: for each approved slice in order, run Phase 6 then Phase 7. Slice N must reach `tasks_ready` before slice N+1 begins Phase 6. The loop continues until all approved slices are at `tasks_ready`.
-
-**Bulk loop crash resume** — If the process stops mid-loop and resumes:
-- Re-read all slice statuses from disk. Find the first slice still in `review`, `speccing`, or `breakdown` state and continue the loop from there. No user prompt needed — the approved-slice list is reconstructed from disk state.
-- State-drift (brief exists but slice stuck at `review`/`speccing`): Phase 6 crash resume handles this — brief exists → skip re-write, proceed to Phase 7. This check applies within the loop.
-- State-drift (task files exist but slice stuck at `breakdown`): Phase 7 crash resume handles this — deletes and regenerates task files. This check applies within the loop.
-- State-drift (brief + task files exist, slice never reached `tasks_ready`): on loop entry for that slice, if `03-briefs/{NN}-*.md` and `04-tasks/slice-{NN}/` both exist with task files, fast-forward `status: tasks_ready` and skip to the next slice.
-
-**Crash resume** — If slices are already at `speccing` or beyond on entry (re-run with no pending gate): skip to Phase 6 and continue the loop from the first slice not yet at `tasks_ready`.
+**Crash resume in the loop:** re-read disk on entry. Find the first slice still in `review` / `speccing` / `breakdown`. Continue from there. If brief + task files both exist for a slice still at `speccing` or `breakdown`: fast-forward `status-write.md` → `tasks_ready` and skip to next.
 
 ---
 
 ## Phase 6 — Spec
 
-### On entry
+`status-write.md` → `status: speccing` (idempotent).
 
-Write `status: speccing` and `status_updated_at: {ISO 8601}` to the slice file (crash recovery point).
+**Crash resume:** brief exists → skip write, proceed to Phase 7. Otherwise write from scratch.
 
-**Crash resume:**
-- Slice status `speccing`, no brief file: run spec from scratch, then proceed to Phase 7.
-- Slice status `speccing`, brief file exists: skip spec, proceed directly to Phase 7.
+Read and follow `support/spec.md`. Write the brief to `03-briefs/{NN}-{slug}.md`.
 
-### Slice selection
-
-The target slice is already determined by Phase 0 Step 3 routing. Use the slice number passed from routing.
-
-### Writing the brief
-
-Read and follow `.orchestration/support/spec.md` in full.
-
-Write the delegation brief to `.orchestration/projects/{id}/03-briefs/{NN}-{slug}.md`.
-
-### After writing
-
-Proceed directly to Phase 7. No gate. No "Wait here".
+Proceed directly to Phase 7. No gate.
 
 ---
 
 ## Phase 7 — Breakdown
 
-Write `status: breakdown` and `status_updated_at: {ISO 8601}` to the slice file (crash recovery point).
+`status-write.md` → `status: breakdown`.
 
-**Crash resume:**
-- Slice status `breakdown`, task files exist: delete all task files in `.orchestration/projects/{id}/04-tasks/slice-{NN}/`, regenerate from scratch.
-- Slice status `breakdown`, no task files: run breakdown from scratch.
+**Crash resume:** if task files exist, delete all in `04-tasks/slice-{NN}/` and regenerate.
 
-1. Read the brief's breakdown table (Section — Breakdown). If zero rows: stop and ask.
+1. Read the brief's Breakdown table. Zero rows → stop and ask.
 
-2. Delete any existing `.md` files in `.orchestration/projects/{id}/04-tasks/slice-{NN}/` before creating new ones (idempotent — ensures a clean slate on crash resume).
+2. **Diagram-first trigger:** if the brief's frontmatter has `state_machine: true` OR any breakdown row's deliverable mentions state-machine work, prepend a step `0` to the breakdown: "Confirm `state-diagram.md` reflects this slice's behavior; update if drift, record confirmation if accurate." This task is `agent_type: architect`.
 
-### Task file creation
+3. Delete any existing `.md` files in `04-tasks/slice-{NN}/` and create one task file per breakdown row. See `state-diagram.md` Frontmatter schemas for the task schema.
 
-Create `.orchestration/projects/{id}/04-tasks/slice-{NN}/{NN}-{slug}.md` for each breakdown table row. Each task file:
-
-```yaml
----
-spec: .orchestration/projects/{id}/03-briefs/{NN}-{slug}.md
-slice: {NN}
-step: {step number}
-title: {title}
-status: todo
-depends_on: [{previous task filename}]  # sequential by default; [] if first task or explicitly independent
-agent_type: {derived from work description}
-model: sonnet
-effort: default
-assigned_at: null
-completed_at: null
-qa_result: null  # set by QA: pass | fixed (passed after QA fixed it) | manual
----
-```
-
-Derive `agent_type` from the work description:
+`agent_type` derivation:
 - `architect` — modifying command/prompt/markdown files
 - `server-dev` — Go or other backend code
 - `client-dev` — frontend code
 - `quality` — tests, QA, verification
 
-`depends_on` is sequential by default (each task depends on the previous). Use `[]` only if the brief explicitly marks the step as independent.
+`depends_on` is sequential by default. Use `[]` only if the brief explicitly marks the step independent.
 
-### After creating all task files
+### After creating task files
 
-1. Update slice file frontmatter: `status: tasks_ready` and `status_updated_at: {current ISO 8601 timestamp with timezone offset}`
-
-2. Surface the agent team:
-
-   Read all task files just created. Collect unique `agent_type` values and count tasks per type. Output:
-
-   ```
-   Proposed agent team for slice {NN}:
-     - {agent_type} ({N} tasks)          ← list each type
-     [Single agent] or [Team of N]
-
-   Confirm or adjust before /implement:
-   ```
-
-   Wait for confirmation. User may add or remove agent types. Do not proceed until confirmed.
-
-3. Commit (after confirmation):
-   - `git add .orchestration/projects/{id}/04-tasks/ .orchestration/projects/{id}/02-slices/{NN}-*.md`
-   - `git commit -m "Tasks ready — {project_id} slice {NN} ({N} tasks)"`
-
+1. `status-write.md` → `status: tasks_ready`.
+2. `git add .orchestration/projects/{id}/04-tasks/ .orchestration/projects/{id}/02-slices/{NN}-*.md`
+3. `git commit -m "Tasks ready — {project_id} slice {NN} ({N} tasks)"`
 4. Output:
+   ```
+   Tasks ready — slice {NN}: {title}
+   {N} tasks in 04-tasks/slice-{NN}/
+   Run /implement to start implementation.
+   ※ Slice {NN} · tasks_ready · breakdown complete → run /implement ▶️
+   ```
 
-```
-Tasks ready — slice {NN}: {title}
-
-{N} tasks created in .orchestration/projects/{id}/04-tasks/slice-{NN}/
-
-Run /implement to start implementation.
-※ Slice {NN} · tasks_ready · breakdown complete → run /implement ▶️
-```
+No team-confirmation gate. The team gate fires once in `/implement` Phase 1, batched across all queued slices.
 
 ---
 
-## Behavior rules
+## Behavior rules (plan-project deltas)
+
+Shared rules — commits only after user approval, re-read from disk on resume, skip-if-clean idiom — live in `.root-context/state-diagram.md` Principles and Vocabulary.
 
 - Never write the design doc before all Phase 2 questions are resolved.
 - Never ask more than 5 questions per turn.
-- Always update the context log every turn during Phase 2.
-- If Bdon gives a vague or short answer, ask a focused follow-up rather than accepting it.
-- If something contradicts an earlier answer, surface the conflict and resolve it before moving on.
-- Never commit mid-phase. Commits happen at approval gates (approveAndCommit on re-run) and after breakdown task creation. Gates stop and wait for the human.
-- The execution pipeline (implement → QA → signoff_review) has its own commit cadence: nothing is committed until the human runs /review and approves. All implementation changes, task status updates, QA reports, and slice status changes stay uncommitted until then.
-- After any change to the design doc — whether during writing or during design_review — do a full cohesion pass before saving: check every section for contradictions with the change. A new decision at the bottom does not automatically update the sections above. This applies to edits made in response to human feedback during review, not just initial writing.
-- **Root context conflicts require a prompt, not a note.** If a design decision contradicts or supersedes something in the project's root context (`.root-context/*`) or `CLAUDE.md`, do not leave a note in the design doc. Ask: "This decision conflicts with [file] — [what it says]. Update [root context|CLAUDE.md] to reflect the new direction?" If yes: update the file, note what changed at the bottom of the design doc under "Root context updates made". If no: record the conflict in the design doc as an open question. Never update root context silently. Always ask first — root context varies by project and may be shared or sensitive.
-- Resuming: always re-read files from disk. Never use cached content from earlier in the session.
+- If the user gives a vague answer, ask a focused follow-up rather than accepting it.
+- Surface contradictions with earlier answers before moving on.
+- After any change to the design doc — during writing or during design_review — do a full cohesion pass before saving. New decisions don't automatically update sections above.
+- **Root context conflicts require a prompt, not a note.** If a design decision contradicts something in `.root-context/*` or `CLAUDE.md`, ask: "This decision conflicts with [file] — [what it says]. Update [root context|CLAUDE.md] to reflect the new direction?" If yes: update the file, note what changed at the bottom of the design doc under "Root context updates made". If no: record as an open question. Never update root context silently.

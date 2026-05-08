@@ -3,7 +3,7 @@ spec: .orchestration/projects/bcokert-00007-batch-slice-flow/03-briefs/07-status
 slice: 07
 step: 2
 title: Merge state abbreviation + next-action tables
-status: todo
+status: done
 depends_on: [01-phase-2-rewrite.md]
 agent_type: architect
 model: sonnet

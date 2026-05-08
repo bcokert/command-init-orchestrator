@@ -3,7 +3,7 @@ spec: .orchestration/projects/bcokert-00007-batch-slice-flow/03-briefs/07-status
 slice: 07
 step: 4
 title: Behavior rules trim + mirror + version + verify
-status: todo
+status: done
 depends_on: [03-dedupe-formats.md]
 agent_type: quality
 model: sonnet

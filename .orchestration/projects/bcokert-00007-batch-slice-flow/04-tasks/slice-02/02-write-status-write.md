@@ -3,7 +3,7 @@ spec: .orchestration/projects/bcokert-00007-batch-slice-flow/03-briefs/02-shared
 slice: 02
 step: 2
 title: Write status-write.md
-status: todo
+status: done
 depends_on: [01-write-next-actions.md]
 agent_type: architect
 model: sonnet

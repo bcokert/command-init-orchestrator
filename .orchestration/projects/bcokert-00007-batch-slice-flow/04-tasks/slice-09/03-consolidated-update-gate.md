@@ -3,7 +3,7 @@ spec: .orchestration/projects/bcokert-00007-batch-slice-flow/03-briefs/09-init-o
 slice: 09
 step: 3
 title: Add consolidated update gate
-status: todo
+status: done
 depends_on: [02-collapse-install-loops.md]
 agent_type: architect
 model: sonnet

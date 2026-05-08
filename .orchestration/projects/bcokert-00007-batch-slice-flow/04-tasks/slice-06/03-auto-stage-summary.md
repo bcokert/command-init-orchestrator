@@ -3,7 +3,7 @@ spec: .orchestration/projects/bcokert-00007-batch-slice-flow/03-briefs/06-review
 slice: 06
 step: 3
 title: Auto-stage with summary line, no per-file prompt
-status: todo
+status: done
 depends_on: [02-phase-0-rewrite.md]
 agent_type: architect
 model: sonnet

@@ -3,7 +3,7 @@ spec: .orchestration/projects/bcokert-00007-batch-slice-flow/03-briefs/05-implem
 slice: 05
 step: 5
 title: Re-entry team-gate logic
-status: todo
+status: done
 depends_on: [04-cut-mid-batch-reread.md]
 agent_type: architect
 model: sonnet

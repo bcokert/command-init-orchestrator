@@ -3,7 +3,7 @@ spec: .orchestration/projects/bcokert-00007-batch-slice-flow/03-briefs/03-agent-
 slice: 03
 step: 4
 title: Update client-dev.md
-status: todo
+status: done
 depends_on: [03-update-server-dev.md]
 agent_type: architect
 model: sonnet

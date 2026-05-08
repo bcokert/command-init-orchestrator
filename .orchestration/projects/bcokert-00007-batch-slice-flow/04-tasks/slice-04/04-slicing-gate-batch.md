@@ -3,7 +3,7 @@ spec: .orchestration/projects/bcokert-00007-batch-slice-flow/03-briefs/04-plan-p
 slice: 04
 step: 4
 title: Slicing gate batch writes + Mixed response row
-status: todo
+status: done
 depends_on: [03-status-write-migration.md]
 agent_type: architect
 model: sonnet

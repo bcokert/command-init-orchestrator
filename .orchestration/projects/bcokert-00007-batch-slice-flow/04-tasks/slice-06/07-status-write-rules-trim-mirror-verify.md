@@ -3,7 +3,7 @@ spec: .orchestration/projects/bcokert-00007-batch-slice-flow/03-briefs/06-review
 slice: 06
 step: 7
 title: Status-write migration + rules trim + mirror + verify
-status: todo
+status: done
 depends_on: [06-archive-end-of-batch.md]
 agent_type: quality
 model: sonnet

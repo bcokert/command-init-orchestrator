@@ -3,7 +3,7 @@ spec: .orchestration/projects/bcokert-00007-batch-slice-flow/03-briefs/06-review
 slice: 06
 step: 2
 title: Rewrite Phase 0 — project-level scope
-status: todo
+status: done
 depends_on: [01-confirm-state-diagram.md]
 agent_type: architect
 model: sonnet

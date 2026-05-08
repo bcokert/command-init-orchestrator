@@ -3,7 +3,7 @@ spec: .orchestration/projects/bcokert-00007-batch-slice-flow/03-briefs/05-implem
 slice: 05
 step: 1
 title: Confirm state-diagram.md alignment for implement
-status: todo
+status: done
 depends_on: []
 agent_type: architect
 model: sonnet

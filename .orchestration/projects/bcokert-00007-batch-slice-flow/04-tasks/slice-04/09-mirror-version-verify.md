@@ -3,7 +3,7 @@ spec: .orchestration/projects/bcokert-00007-batch-slice-flow/03-briefs/04-plan-p
 slice: 04
 step: 9
 title: Mirror to .claude/ + version bump + verify size and vocabulary
-status: todo
+status: done
 depends_on: [08-bdonize-reference-rules-trim-vocab.md]
 agent_type: quality
 model: sonnet

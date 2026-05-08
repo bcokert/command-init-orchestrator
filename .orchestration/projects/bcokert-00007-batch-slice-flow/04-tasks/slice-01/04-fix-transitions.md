@@ -3,13 +3,13 @@ spec: .orchestration/projects/bcokert-00007-batch-slice-flow/03-briefs/01-state-
 slice: 01
 step: 4
 title: Fix state-machine transitions
-status: todo
+status: done
 depends_on: [03-write-schema-tables.md]
 agent_type: architect
 model: sonnet
 effort: default
-assigned_at: null
-completed_at: null
+assigned_at: 2026-05-06T20:13:00-07:00
+completed_at: 2026-05-06T20:14:00-07:00
 qa_result: null
 ---
 

@@ -3,7 +3,7 @@ spec: .orchestration/projects/bcokert-00007-batch-slice-flow/03-briefs/04-plan-p
 slice: 04
 step: 8
 title: Bdonize reference + Behavior rules trim + vocabulary purge
-status: todo
+status: done
 depends_on: [07-followup-routing-and-fixes.md]
 agent_type: architect
 model: sonnet

@@ -104,11 +104,7 @@ slicing: "Stage 2 — Slicing" {
     style.stroke: ${colors.auto-border}
   }
 
-  generating -> generating: "more to generate" {
-    style.stroke: ${colors.auto-border}
-    style.font-size: 9
-  }
-  generating -> review: "all generated" { style.font-size: 9 }
+  generating -> review: "generated\n→ review" { style.font-size: 9 }
   iterating -> iterating: "pending processing\nor onAnswer" {
     style.stroke: ${colors.auto-border}
     style.font-size: 9
@@ -160,7 +156,11 @@ impl: "Stage 3 — Implementation" {
     style.font-size: 9
   }
   running -> qa: "all tasks done" { style.font-size: 9 }
-  qa -> qa: "pass+more pending\nor failure+fixable" {
+  qa -> qa: "failure +\nfixable" {
+    style.stroke: ${colors.auto-border}
+    style.font-size: 9
+  }
+  qa -> running: "pass +\nmore slices" {
     style.stroke: ${colors.auto-border}
     style.font-size: 9
   }
@@ -238,11 +238,6 @@ design.review -> slicing.generating: "approval →\nSlicing" {
 
 slicing.breakdown -> impl.asking: "all broken down" { style.font-size: 9 }
 
-impl.asking -> slicing.review: "want more\nslices first" {
-  style.stroke: ${colors.feedback}
-  style.font-size: 9
-}
-
 impl.qa -> signoff.review: "pass+no more\nor QA stuck" { style.font-size: 9 }
 
 signoff.review -> impl.qa: "QA failure +\nhuman fix" {
@@ -250,12 +245,17 @@ signoff.review -> impl.qa: "QA failure +\nhuman fix" {
   style.font-size: 9
 }
 
-signoff.review -> slicing.generating: "feedback →\nnew slices" {
+signoff.review -> signoff.review: "feedback →\ndraft follow-up\n(batch continues)" {
   style.stroke: ${colors.feedback}
   style.font-size: 9
 }
 
-signoff.approved -> slicing.review: "slices remaining" {
-  style.stroke: ${colors.feedback}
+signoff.approved -> signoff.review: "more signoff\nin project" {
+  style.stroke: ${colors.approve}
+  style.font-size: 9
+}
+
+signoff.approved -> end: "project done\n(other slices remain)" {
+  style.stroke: ${colors.approve}
   style.font-size: 9
 }

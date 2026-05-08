@@ -4,8 +4,8 @@ slice: 09
 order: 09
 project: batch-slice-flow
 design: .orchestration/projects/bcokert-00007-batch-slice-flow/01-design/design-01.md
-status: tasks_ready
-status_updated_at: 2026-05-06T20:03:31-07:00
+status: done
+status_updated_at: 2026-05-08T13:30:00-07:00
 ---
 
 # Slice 09 — init-orchestrator consolidated gate + delete defaults/config.yaml

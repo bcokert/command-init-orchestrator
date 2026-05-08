@@ -3,7 +3,7 @@ spec: .orchestration/projects/bcokert-00007-batch-slice-flow/03-briefs/03-agent-
 slice: 03
 step: 2
 title: Update architect.md
-status: todo
+status: done
 depends_on: [01-write-common-preamble.md]
 agent_type: architect
 model: sonnet

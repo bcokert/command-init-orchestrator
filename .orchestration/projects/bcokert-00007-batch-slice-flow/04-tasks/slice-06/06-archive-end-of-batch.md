@@ -3,7 +3,7 @@ spec: .orchestration/projects/bcokert-00007-batch-slice-flow/03-briefs/06-review
 slice: 06
 step: 6
 title: Archive eligibility check at end-of-batch only
-status: todo
+status: done
 depends_on: [05-feedback-continues-batch.md]
 agent_type: architect
 model: sonnet

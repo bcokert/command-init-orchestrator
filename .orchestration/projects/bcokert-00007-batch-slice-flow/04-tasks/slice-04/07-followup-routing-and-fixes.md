@@ -3,7 +3,7 @@ spec: .orchestration/projects/bcokert-00007-batch-slice-flow/03-briefs/04-plan-p
 slice: 04
 step: 7
 title: follow_up_of routing + design template + Phase 5 crash signal
-status: todo
+status: done
 depends_on: [06-cut-team-gates-add-diagram-trigger.md]
 agent_type: architect
 model: sonnet

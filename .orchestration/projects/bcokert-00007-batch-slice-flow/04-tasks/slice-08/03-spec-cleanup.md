@@ -3,7 +3,7 @@ spec: .orchestration/projects/bcokert-00007-batch-slice-flow/03-briefs/08-suppor
 slice: 08
 step: 3
 title: spec.md — /delegate cut, Bdon→user, bdonize reference, version bump
-status: todo
+status: done
 depends_on: [02-qa-misc-fixes.md]
 agent_type: architect
 model: sonnet

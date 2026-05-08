@@ -3,7 +3,7 @@ spec: .orchestration/projects/bcokert-00007-batch-slice-flow/03-briefs/08-suppor
 slice: 08
 step: 1
 title: Fix qa.md description path
-status: todo
+status: done
 depends_on: []
 agent_type: architect
 model: sonnet

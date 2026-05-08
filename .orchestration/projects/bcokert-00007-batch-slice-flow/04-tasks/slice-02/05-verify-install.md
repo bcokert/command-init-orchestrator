@@ -3,7 +3,7 @@ spec: .orchestration/projects/bcokert-00007-batch-slice-flow/03-briefs/02-shared
 slice: 02
 step: 5
 title: Verify install of new support files
-status: todo
+status: done
 depends_on: [04-update-init-orchestrator.md]
 agent_type: quality
 model: sonnet

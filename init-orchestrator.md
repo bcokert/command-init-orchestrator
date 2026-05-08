@@ -1,7 +1,7 @@
 ---
-version: 1.7.2
+version: 1.9.0
 description: |
-  Sets up the orchestration layer in the current project. Installs 4 commands to .claude/commands/, 5 agents to .claude/agents/, and 3 support files to .orchestration/support/, creates .orchestration/projects/. Safe to re-run: adds missing components without touching existing project data. Detects and warns about old 7-command installations.
+  Sets up the orchestration layer. Installs 4 commands to .claude/commands/, 6 agents to .claude/agents/ (incl. _common-preamble.md), and 6 support files to .orchestration/support/, creates .orchestration/projects/. Safe to re-run: one consolidated update gate instead of N per-file prompts.
 allowed-tools:
   - Read
   - Write
@@ -41,7 +41,7 @@ The structure it creates:
 
 1. Check if `.orchestration/projects/` exists.
 2. Check `.claude/commands/` for existing command files.
-3. Check `.claude/commands/` for old 7-command files: `pipeline.md`, `qa.md`, `breakdown.md`, `slice.md`, `spec.md`, `commit.md`, `learn.md`, `migrate.md`.
+3. Check `.claude/commands/` for old 7-command files: `pipeline.md`, `qa.md`, `breakdown.md`, `slice.md`, `spec.md`, `commit.md`, `learn.md`, `migrate.md`. (Note: `qa.md`, `slice.md`, and `spec.md` overlap with current support file names — the check is against `.claude/commands/` only; the same names live as support files at `.orchestration/support/` in the current system and are not affected.)
 
 If this is a first run (nothing exists): proceed directly to Phase 1 with no prompting.
 
@@ -67,44 +67,55 @@ If yes: delete them. If no: leave them and continue (new commands will coexist).
 
 ---
 
-## Phase 2 — Install commands and support files
+## Phase 2 — Install commands, support files, and agents
 
-Source: `~/.claude/init-orchestrator/defaults/commands/`
+Three file classes share one install flow. Parameters per class:
 
-**User commands** — target: `.claude/commands/`
+| Class | Source | Target | Files |
+|---|---|---|---|
+| user commands | `~/.claude/init-orchestrator/defaults/commands/` | `.claude/commands/` | `plan-project.md`, `implement.md`, `review.md`, `status.md` |
+| support files | `~/.claude/init-orchestrator/defaults/commands/` | `.orchestration/support/` | `slice.md`, `spec.md`, `qa.md`, `next-actions.md`, `status-write.md`, `bdonize.md` |
+| agents | `~/.claude/init-orchestrator/defaults/agents/` | `.claude/agents/` | `_common-preamble.md`, `architect.md`, `client-dev.md`, `quality.md`, `server-dev.md`, `standards.md` |
 
-Install: `plan-project.md`, `implement.md`, `review.md`, `status.md`
+Create each target directory if it doesn't exist.
 
-For each:
-- **Missing:** copy it in, no prompt
-- **Same version** (check `version:` frontmatter field): skip, note "already current"
-- **Different version:** ask "Command `{name}` is at v{old} locally, v{new} available. Update? (yes/no)"
+### Step 1 — Categorise every file
 
-Create `.claude/commands/` if it doesn't exist.
+For each file across all three classes, compare local `version:` to source `version:`. Bucket each:
 
-**Support files** — source: `~/.claude/init-orchestrator/defaults/commands/` — target: `.orchestration/support/`
+- **Missing locally** — copy in, no prompt.
+- **Same version** — skip silently (note "already current" in the Phase 5 summary).
+- **Different version** — collect into the `would-update` list.
 
-Install: `slice.md`, `spec.md`, `qa.md`
+If a source file is missing from defaults: note it and skip; don't fail the whole init.
 
-For each:
-- **Missing:** copy it in, no prompt
-- **Same version** (check `version:` frontmatter field): skip, note "already current"
-- **Different version:** ask "Support file `{name}` is at v{old} locally, v{new} available. Update? (yes/no)"
+### Step 2 — Consolidated update gate
 
-Create `.orchestration/support/` if it doesn't exist.
+If `would-update` is empty: proceed to Phase 3.
 
-**Agent files** — source: `~/.claude/init-orchestrator/defaults/agents/` — target: `.claude/agents/`
+Otherwise show one prompt:
 
-Install: `architect.md`, `client-dev.md`, `quality.md`, `server-dev.md`, `standards.md`
+```
+{N} files would update:
+  .claude/commands/plan-project.md   v{old} → v{new}
+  .orchestration/support/qa.md       v{old} → v{new}
+  ...
 
-For each:
-- **Missing:** copy it in, no prompt
-- **Same version** (check `version:` frontmatter field): skip, note "already current"
-- **Different version:** ask "Agent `{name}` is at v{old} locally, v{new} available. Update? (yes/no)"
+Choose:
+  accept all   — apply every update
+  review       — fall back to per-file prompts
+  skip         — leave install unchanged; report below
+```
 
-Create `.claude/agents/` if it doesn't exist.
+Default on plain "yes": `accept all`. Default on plain "no": `skip`.
 
-If a source file is missing from defaults: note it and skip — don't fail the whole init.
+| Choice | Action |
+|---|---|
+| accept all | Copy every `would-update` file into its target. Done. |
+| review | For each `would-update` file, ask: "{path}: v{old} → v{new}. Update? (yes/no)" |
+| skip | Don't copy anything. Report which files would have updated. Note: re-run `/init-orchestrator` to apply. |
+
+Missing-locally files (Step 1 bucket) always copy regardless of the gate choice — they're net-new installs, not updates.
 
 ---
 
@@ -181,16 +192,20 @@ Commands:
   .claude/commands/status.md     v{N}
 
 Support:
-  .orchestration/support/slice.md  v{N}
-  .orchestration/support/spec.md   v{N}
-  .orchestration/support/qa.md     v{N}
+  .orchestration/support/slice.md         v{N}
+  .orchestration/support/spec.md          v{N}
+  .orchestration/support/qa.md            v{N}
+  .orchestration/support/next-actions.md  v{N}
+  .orchestration/support/status-write.md  v{N}
+  .orchestration/support/bdonize.md       v{N}
 
 Agents:
-  .claude/agents/architect.md    v{N}
-  .claude/agents/client-dev.md   v{N}
-  .claude/agents/quality.md      v{N}
-  .claude/agents/server-dev.md   v{N}
-  .claude/agents/standards.md    v{N}
+  .claude/agents/_common-preamble.md  v{N}
+  .claude/agents/architect.md         v{N}
+  .claude/agents/client-dev.md        v{N}
+  .claude/agents/quality.md           v{N}
+  .claude/agents/server-dev.md        v{N}
+  .claude/agents/standards.md         v{N}
 
 Structure:
   .orchestration/projects/   (project data)

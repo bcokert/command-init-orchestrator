@@ -3,7 +3,7 @@ spec: .orchestration/projects/bcokert-00007-batch-slice-flow/03-briefs/10-readme
 slice: 10
 step: 7
 title: Re-render affected SVGs via d2 CLI
-status: todo
+status: done
 depends_on: [06-update-feedback-loop-d2.md]
 agent_type: architect
 model: sonnet

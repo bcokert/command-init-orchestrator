@@ -3,7 +3,7 @@ spec: .orchestration/projects/bcokert-00007-batch-slice-flow/03-briefs/04-plan-p
 slice: 04
 step: 6
 title: Cut Phase 7 team gates and add diagram-first trigger
-status: todo
+status: done
 depends_on: [05-design-approval-collapse.md]
 agent_type: architect
 model: sonnet

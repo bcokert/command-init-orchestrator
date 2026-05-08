@@ -3,7 +3,7 @@ spec: .orchestration/projects/bcokert-00007-batch-slice-flow/03-briefs/08-suppor
 slice: 08
 step: 4
 title: slice.md — state-machine prose cut, Bdon→user, bdonize reference, version bump
-status: todo
+status: done
 depends_on: [03-spec-cleanup.md]
 agent_type: architect
 model: sonnet

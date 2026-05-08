@@ -3,7 +3,7 @@ spec: .orchestration/projects/bcokert-00007-batch-slice-flow/03-briefs/07-status
 slice: 07
 step: 1
 title: Rewrite Phase 2 to use next-actions reader
-status: todo
+status: done
 depends_on: []
 agent_type: architect
 model: sonnet

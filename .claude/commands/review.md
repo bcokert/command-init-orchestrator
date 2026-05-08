@@ -1,171 +1,102 @@
 ---
-version: 1.5.0
+version: 1.6.0
 description: |
-  Closes the signoff loop for a slice in signoff_review. Approve path: commits the full execution diff from main, archives the project if all slices are done. Feedback path: writes new draft slice files to the backlog for /plan-project to pick up.
+  Closes signoff loop for a project. One run = one project. Iterates every signoff_review slice; auto-stages on approve; archives only when all slices are done with no feedback drafts. Feedback creates dot-notation drafts and continues the batch.
 allowed-tools:
   - Read
   - Write
+  - Edit
   - Bash
   - Glob
   - Grep
   - AskUserQuestion
 ---
 
-# Review — Signoff and close
+# Review — signoff and close
 
-Your job is to close out a project at `signoff_review`: either approve it (commit, archive) or capture feedback (new slice files, back to `/plan-project`).
+Close out a project at `signoff_review`: approve (commit, archive on full completion) or capture feedback (new draft slices, batch continues). One run = one project.
 
----
-
-## Phase 0 — Detect state and route
-
-### Step 1 — Identify the slice
-
-If a project ID was passed as argument:
-1. Glob `.orchestration/projects/{id}/02-slices/*.md`. Read each file's frontmatter.
-2. Find the slice with `status: signoff_review`.
-3. If none found: "No slices awaiting signoff in {id}. Run /implement to continue." Stop.
-4. If multiple found: list them and prompt selection.
-
-If no argument:
-1. Glob `.orchestration/projects/*/02-slices/*.md` (excluding `done/`). Read each file's frontmatter.
-2. Filter to slices with `status: signoff_review`.
-3. If none: "No slices awaiting signoff. Run /implement to execute tasks, or /plan-project to start a new project." Stop.
-4. If one: use it. Extract `{id}` from the path.
-5. If multiple: list all and prompt selection.
+State, schemas, principles, vocabulary, and crash recovery rules live in `.root-context/state-diagram.md`. Helpers used: `support/next-actions.md` (scope), `support/status-write.md` (frontmatter writes).
 
 ---
 
-## Phase 1 — Approve path
+## Phase 0 — Resolve scope
 
-Present a summary before asking:
-- Slice title and number
-- QA result (from the QA report in `05-qa/`)
-- Number of uncommitted files changed (run `git status` from the project root)
+Run `support/next-actions.md`. Filter to slices at `signoff_review`. With a project ID arg: restrict to that project. Without an arg: if one project has signoff slices, auto-pick. If multiple, prompt at project level (not slice level): "Which project to review? {list}".
 
-Ask: "Approve and close this slice, or provide feedback?"
+If none: "No slices awaiting signoff. Run /implement to execute tasks, or /plan-project to start a new project." Stop.
 
-**On approval:**
-
-1. **Write slice done state** — before committing, write `status: done` and `status_updated_at: {current ISO 8601 timestamp with timezone offset}` to the slice file at `.orchestration/projects/{id}/02-slices/` (Glob for the file where `slice:` frontmatter matches the current slice number). If the file can't be found: log a warning and continue.
-
-2. **Stage and commit** — from the project root:
-
-   a. Run `git status --porcelain` to get the full list of changed and untracked files.
-
-   b. Always stage orchestration artifacts:
-      ```bash
-      git add .orchestration/projects/{id}/
-      ```
-
-   c. Stage any tracked modified files outside `.orchestration/projects/{id}/` automatically (these are implementation files changed during the slice). In `git status --porcelain` output, these are lines starting with `M` or `MM`.
-
-   d. For any untracked files (`??` prefix) outside `.orchestration/projects/{id}/`: prompt before staging. For each: "Found untracked file: {path}. Include in commit? (yes/no)". Stage only those confirmed.
-
-   e. Show a one-line staging summary before committing:
-      ```
-      Staging: {N} orchestration files, {N} source files[, {N} confirmed untracked]
-      ```
-
-   f. Commit:
-      ```bash
-      git commit -m "Slice {NN} complete — {project_id}"
-      ```
-
-3. **Archive eligibility check** — Glob all slice files at `.orchestration/projects/{id}/02-slices/*.md`. Read each file's `status` frontmatter field.
-   - If any slice file cannot be read: log "warning: could not read {path} — treating as not-done" and count it as not-done.
-   - Count slices where `status` is not `done`. Call this `remaining`.
-   - If `remaining > 0`:
-     ```
-     Slice {NN} done — {remaining} slices remaining. Run /plan-project or /implement to continue.
-     ※ Slice {NN} · done · approved → {remaining} slices remaining
-     ```
-     Stop. Do not archive.
-   - If `remaining == 0`: proceed to archive.
-
-5. **Archive** — check target doesn't exist:
-   ```bash
-   # target: .orchestration/projects/done/YYYY-MM/{id}/
-   ```
-   If target exists: "Archive target already exists at {path} — resolve manually before re-running /review." Stop.
-   Otherwise:
-   ```bash
-   mkdir -p .orchestration/projects/done/YYYY-MM/
-   mv .orchestration/projects/{id}/ .orchestration/projects/done/YYYY-MM/{id}/
-   ```
-
-6. **Commit final state:**
-   ```bash
-   git add -A
-   git commit -m "Archive — {project_id}"
-   ```
-
-7. Output:
-   ```
-   Slice {NN} done — {project_id}
-
-   Archived to .orchestration/projects/done/YYYY-MM/{id}/
-   ※ Slice {NN} · done · slice {NN} approved → project complete
-   ```
+The chosen project's signoff slices, in slice-number order, are the batch.
 
 ---
 
-## Phase 2 — Feedback path
+## Phase 1 — Iterate the batch
 
-Ask the user to describe their feedback. Capture all distinct issues or improvements before writing anything.
+For each slice in the batch:
 
-For each piece of feedback:
+1. Surface a summary: title + number, QA result (from `05-qa/slice-{NN}-qa-report.md`), uncommitted-file count (`git status --porcelain | wc -l`).
+2. Ask: "Approve, feedback, or other?"
+3. Classify the response:
 
-1. Derive a slug (kebab-case, max 5 words).
-2. Determine order: find the highest `order` value among slice files in `.orchestration/projects/{id}/02-slices/`. Add 1 for a clean new slice (e.g. `6` → `7`), or use dot notation (`6.1`) if the feedback is specifically a follow-up to a named slice.
-3. Write `.orchestration/projects/{id}/02-slices/{order}-{slug}.md`:
-   ```markdown
-   ---
-   type: slice
-   slice: {order}
-   order: {order}
-   project: {id}
-   design: {path to design doc}
-   status: draft
-   follow_up_of: {NN}   # only if this is a follow-up to a specific slice
-   ---
+| Signal | Action |
+|---|---|
+| Approval | Approve path (below) |
+| Feedback | Feedback path (below) |
+| Ambiguous | Re-ask once. Still ambiguous → default to feedback (recoverable; accidental approval would commit). |
 
-   # Slice {order} — {title}
+### Approve path
 
-   **Goal:** {derived from feedback — 1-2 sentences}
+1. `status-write.md` → `status: done`.
+2. Stage:
+   - `git add .orchestration/projects/{id}/`.
+   - Auto-stage tracked-modified files outside `.orchestration/{id}/` (`M` / `MM` in `git status --porcelain`).
+   - Auto-stage untracked files outside `.orchestration/` (`??` in `git status --porcelain`).
+3. Show one-line staging summary: `Staging: {N} orchestration, {M} source, {K} untracked`. User can abort the commit if the summary looks wrong.
+4. `git commit -m "Slice {NN} complete — {project_id}"`.
+5. Continue to the next slice in the batch.
 
-   ## Happy path
+### Feedback path
 
-   - {rough bullet from feedback}
+For each distinct issue in the response:
 
-   ## Edge cases
+1. Slug from feedback (kebab-case, max 5 words).
+2. Order: `{NN}.{n}` dot-notation (n = next available index after the slice number).
+3. Write `02-slices/{order}-{slug}.md` per the slice schema in `.root-context/state-diagram.md`. Set `status: draft` and `follow_up_of: {NN}`.
 
-   - {rough bullet if applicable}
-   ```
-
-4. Output:
-   ```
-   Feedback recorded — {N} new slice(s) added to backlog:
-   {for each new slice: "  .orchestration/projects/{id}/02-slices/{order}-{slug}.md"}
-
-   Slice {NN} is still at signoff_review. Run /review again on it to approve
-   and commit its implementation. The feedback is carried forward in the new
-   slices — approval means the current implementation is accepted, not that
-   everything is perfect.
-
-   After approving slice {NN}, run /plan-project to advance the feedback slices.
-   ※ Slice {NN} · signoff_review · feedback recorded → run /review to approve slice, then /plan-project 📄
-   ```
-
-No commit. Feedback slices are reviewed via `/plan-project` before anything is committed.
+No commit on the feedback path. Continue to the next slice in the batch.
 
 ---
 
-## Behavior rules
+## Phase 2 — End-of-batch summary
 
-- Only run when a slice with `status: signoff_review` exists. If none found: report and stop per Phase 0.
-- The approve commit includes everything uncommitted on main — implementation files, task status files, QA report, slice status. This is the one commit for the entire execution pipeline. Do not cherry-pick.
-- Never overwrite an existing archive target. Fail with clear instructions.
-- Feedback path: no commit. The slice files are `draft` and require human review via `/plan-project` before any commit happens.
-- Always re-read slice files from disk. Never use session-cached state.
-- Feedback detection: plan-project identifies pending feedback by finding draft slices with `follow_up_of:` set. No stored state needed.
+After the loop:
+
+- Count slices in the project that ended at `done` and slices with `follow_up_of:` drafts created during this run.
+- Archive eligibility: all original slices `done` AND zero feedback-drafts created this run.
+
+**On archive:**
+1. Target: `.orchestration/projects/done/YYYY-MM/{id}/`. If exists: stop with "Archive target already exists at {path} — resolve manually."
+2. `mkdir -p .orchestration/projects/done/YYYY-MM/`
+3. `mv .orchestration/projects/{id}/ .orchestration/projects/done/YYYY-MM/{id}/`
+4. `git add -A && git commit -m "Archive — {project_id}"`
+5. Output: `Archived to .orchestration/projects/done/YYYY-MM/{id}/`. Stop.
+
+**On not-archive:**
+```
+Approved {N}, feedback on {M}.
+{If M > 0: Run /plan-project to advance the {M} feedback slice(s).}
+{If unfinished other-state slices: list them with their next command.}
+※ Project {id} · review batch complete
+```
+
+---
+
+## Behavior rules (review deltas)
+
+Shared rules — re-read from disk on resume, skip-if-clean — live in `.root-context/state-diagram.md` Principles.
+
+- One /review run = one project. Iterate every signoff slice in that project as a batch.
+- The approve commit per slice bundles all its uncommitted work (orchestration + source). One commit per slice — not cherry-picked.
+- Feedback path never commits. Drafts are reviewed via `/plan-project` later.
+- Never overwrite an existing archive target. Stop with manual-resolve message.
+- `follow_up_of:` is the canonical signal for feedback drafts. `/plan-project` Phase 0 picks them up.

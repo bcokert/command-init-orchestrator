@@ -3,7 +3,7 @@ spec: .orchestration/projects/bcokert-00007-batch-slice-flow/03-briefs/07-status
 slice: 07
 step: 3
 title: Dedupe count format + hoist date-format rule
-status: todo
+status: done
 depends_on: [02-merge-state-tables.md]
 agent_type: architect
 model: sonnet

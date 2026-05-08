@@ -3,7 +3,7 @@ spec: .orchestration/projects/bcokert-00007-batch-slice-flow/03-briefs/09-init-o
 slice: 09
 step: 1
 title: Audit defaults/config.yaml and delete
-status: todo
+status: done
 depends_on: []
 agent_type: architect
 model: sonnet

@@ -3,7 +3,7 @@ spec: .orchestration/projects/bcokert-00007-batch-slice-flow/03-briefs/05-implem
 slice: 05
 step: 6
 title: Migrate status writes to status-write.md helper
-status: todo
+status: done
 depends_on: [05-reentry-team-gate.md]
 agent_type: architect
 model: sonnet

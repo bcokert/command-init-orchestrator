@@ -3,7 +3,7 @@ spec: .orchestration/projects/bcokert-00007-batch-slice-flow/03-briefs/10-readme
 slice: 10
 step: 8
 title: Verify all README links resolve
-status: todo
+status: done
 depends_on: [07-rerender-svgs.md]
 agent_type: quality
 model: sonnet

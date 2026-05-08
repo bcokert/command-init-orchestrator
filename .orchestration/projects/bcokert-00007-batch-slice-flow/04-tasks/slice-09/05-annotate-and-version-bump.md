@@ -3,7 +3,7 @@ spec: .orchestration/projects/bcokert-00007-batch-slice-flow/03-briefs/09-init-o
 slice: 09
 step: 5
 title: Annotate old-7-command list + version bump
-status: todo
+status: done
 depends_on: [04-fallback-and-skip-branches.md]
 agent_type: architect
 model: sonnet

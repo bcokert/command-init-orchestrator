@@ -3,7 +3,7 @@ spec: .orchestration/projects/bcokert-00007-batch-slice-flow/03-briefs/10-readme
 slice: 10
 step: 1
 title: README.md update
-status: todo
+status: done
 depends_on: []
 agent_type: architect
 model: sonnet

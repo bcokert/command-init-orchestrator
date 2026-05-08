@@ -12,7 +12,7 @@ Run `/init-orchestrator` in any git repo. You get a 4-command system for taking 
 
 **Status that reflects reality.** `status.md` is the ground truth for every project. `/status` gives you a table of all active projects, their stage, and how long they've been there. Replaces JIRA-level tracking without needing JIRA.
 
-**Human gates where they matter.** Gates exist after design, slicing, spec, and QA. Not after every step. The system trusts mechanical work and gates judgment calls.
+**Human gates where they matter.** Gates exist after design, slicing, and QA signoff. Not after every step. The system trusts mechanical work and gates judgment calls.
 
 **QA is a first-class citizen.** QA runs automatically at the end of every implementation slice. You can customize what it checks. Nothing reaches signoff without it.
 
@@ -35,9 +35,9 @@ Run `/init-orchestrator` in any git repo. You get a 4-command system for taking 
 
 **Slices** are the unit of work. A slice is a thin vertical cut — something someone can observe and verify that it improves the state of the system, even if we had to stop here. You typically plan one slice at a time, implement it, review it, then move to the next. Implementation and signoff feedback may reshape later slices for cohesion as you go.
 
-**The queue** drives execution. `/implement` scans all projects for `tasks_ready` slices, picks the oldest, and runs it to completion. Multiple projects can have slices queued — they execute one at a time, interleaved by timestamp, on main.
+**The queue** drives execution. `/implement` scans all projects for `tasks_ready` slices, picks the oldest by `status_updated_at`, and runs every queued slice end-to-end without inter-slice gates. Multiple projects' slices interleave by timestamp, on main.
 
-**Human gates** exist at design review, slicing review, spec review, and QA signoff. Nothing advances past a gate without a human re-running the command. Between gates, the system runs autonomously.
+**Human gates** exist at design review, slicing review, and signoff review. Spec → breakdown is automatic; the team runs at /implement (one team gate per batch), not per slice. Between gates the system runs autonomously.
 
 ---
 
@@ -51,10 +51,10 @@ Run `/init-orchestrator` in any git repo. You get a 4-command system for taking 
    Approve: generates the spec (implementation plan)
 4. Review the spec — light pass, the heavy lifting is in design and slicing
    Approve: breaks the spec into tasks
-5. /implement — confirm agent team, tasks run automatically through QA
-6. /review — approve or provide feedback
-   Approve: commits and archives
-   Feedback: creates a follow-up slice to iterate further
+5. /implement — confirm agent team once, all queued slices run end-to-end through QA
+6. /review — iterates every signoff slice in the project; per-slice approve/feedback
+   Approve all: commits each slice; archives when fully done
+   Feedback: creates a follow-up slice (dot-notation, e.g. 5.1); batch continues
 ```
 
 Run `/status` at any point to see where everything stands.
@@ -99,12 +99,13 @@ A few patterns worth knowing before you hit them in the wild.
 .orchestration/projects/{id}/
 ├── 01-design/          ← design doc (written during /plan-project interview)
 ├── 02-slices/          ← slice files (one per unit of work)
-├── 03-briefs/          ← delegation briefs (one per specced slice)
-├── 04-tasks/           ← task files, organised by slice
+├── 03-briefs/          ← delegation briefs (one per spec)
+├── 04-tasks/           ← task files, organized by slice
 │   └── slice-01/
 ├── 05-qa/              ← QA reports (written automatically after /implement)
-└── status.md           ← ground truth: current stage, transitions
+└── observability/      ← questions, iterations, decisions logs (planning trace)
 
+.orchestration/support/                      ← shared support files referenced by commands
 .orchestration/projects/done/YYYY-MM/{id}/   ← archived after /review approve
 ```
 
@@ -116,10 +117,13 @@ A few patterns worth knowing before you hit them in the wild.
 /init-orchestrator
 ```
 
-Installs `plan-project.md`, `implement.md`, `review.md`, `status.md` into `.claude/commands/`.
-Creates `.orchestration/projects/`.
+Installs:
+- 4 user commands into `.claude/commands/` — `plan-project`, `implement`, `review`, `status`
+- 6 support files into `.orchestration/support/` — `slice`, `spec`, `qa`, `next-actions`, `status-write`, `bdonize`
+- 6 agent files into `.claude/agents/` — `_common-preamble`, `architect`, `client-dev`, `quality`, `server-dev`, `standards`
+- Creates `.orchestration/projects/` for project data.
 
-Safe to re-run — adds missing components without touching existing ones, telling you if they've drifted and if you want to hard replace, handle it yourself, or try to merge automatically.
+Safe to re-run. On a re-run with drifted files, one consolidated update gate offers `accept all`, `review per-file`, or `skip` — no per-file prompts.
 
 ---
 
@@ -127,11 +131,8 @@ Safe to re-run — adds missing components without touching existing ones, telli
 
 The system is a scaffold, not a service. Everything is a file you own.
 
-**Two sets of command files:**
+**Source of truth: `defaults/`.** All command, agent, and support files are edited in `defaults/` only. `.claude/commands/`, `.claude/agents/`, and `.orchestration/support/` are install targets — never edit them directly.
 
-- `.claude/commands/` — the local install. Edits here affect only this repo. Use this to tweak behavior for a specific project.
-- `defaults/commands/` — the source that gets copied on `/init-orchestrator` install. Edits here ship to anyone who installs or re-runs the command.
-
-To update a command for everyone: edit `defaults/commands/`, then re-run `/init-orchestrator` in any project to pick up the change.
+To pick up the latest source in a project: re-run `/init-orchestrator`. The consolidated update gate offers `accept all`, `review per-file`, or `skip`.
 
 To add project-specific context: drop a `CLAUDE.md` at your project root or add files to `.root-context/`. Commands read these automatically before starting.

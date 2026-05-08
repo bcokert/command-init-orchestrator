@@ -3,7 +3,7 @@ spec: .orchestration/projects/bcokert-00007-batch-slice-flow/03-briefs/09-init-o
 slice: 09
 step: 4
 title: review-per-file fallback + skip reporting + regression check
-status: todo
+status: done
 depends_on: [03-consolidated-update-gate.md]
 agent_type: quality
 model: sonnet

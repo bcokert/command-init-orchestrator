@@ -40,7 +40,7 @@ grid: "" {
       style.stroke: ${colors.qa-border}
       style.font-size: 11
     }
-    new_slice: "new slice\nadded to backlog" {
+    new_slice: "draft follow-up\nfollow_up_of: NN\n(e.g. 5.1)" {
       shape: page
       style.fill: ${colors.feedback}
       style.stroke: ${colors.feedback-border}
@@ -54,10 +54,10 @@ grid: "" {
       style.stroke: ${colors.design-border}
     }
 
-    review -> new_slice: feedback {
+    review -> new_slice: "feedback\n(batch continues)" {
       style.font-size: 9
     }
-    new_slice -> design: "run /plan-project" {
+    new_slice -> design: "run /plan-project\nlater" {
       style.font-size: 9
     }
     design -> spec
@@ -95,4 +95,11 @@ grid: "" {
 
 grid.row1.spec -> grid.row2.impl: /implement {
   style.font-size: 9
+}
+
+batch_note: "/review iterates every signoff slice in the project.\nFeedback creates a draft follow-up and continues to the next slice — no pause." {
+  style.fill: "#fafafa"
+  style.stroke: "#cccccc"
+  style.font-size: 10
+  style.font-color: ${colors.lc}
 }

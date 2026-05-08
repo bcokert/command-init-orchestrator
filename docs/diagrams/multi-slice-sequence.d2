@@ -24,7 +24,7 @@ grid: "" {
   style.stroke: transparent
   style.fill: transparent
 
-  row1: "slice 01 (done)" {
+  row1: "slice 01 (done — not yet archived)" {
     direction: right
     style.fill: "#fafafa"
     style.stroke: "#dddddd"
@@ -48,19 +48,19 @@ grid: "" {
       style.stroke: ${colors.archive-border}
       style.font-size: 11
     }
-    s1_done: "archived" {
+    s1_done: "done\n(in place)" {
       style.fill: ${colors.archive}
       style.stroke: ${colors.archive-border}
     }
 
     s1_design -> s1_impl
     s1_impl -> s1_review
-    s1_review -> s1_done: approve {
+    s1_review -> s1_done: "approve\n(commit only)" {
       style.font-size: 9
     }
   }
 
-  row2: "slice 02 (current)" {
+  row2: "slice 02 (current — not yet archived)" {
     direction: right
     style.fill: "#fafafa"
     style.stroke: "#dddddd"
@@ -84,14 +84,14 @@ grid: "" {
       style.stroke: ${colors.archive-border}
       style.font-size: 11
     }
-    s2_done: "archived" {
+    s2_done: "done\n(in place)" {
       style.fill: ${colors.archive}
       style.stroke: ${colors.archive-border}
     }
 
     s2_design -> s2_impl
     s2_impl -> s2_review
-    s2_review -> s2_done: approve {
+    s2_review -> s2_done: "approve\n(commit only)" {
       style.font-size: 9
     }
   }
@@ -124,4 +124,11 @@ grid.row1.s1_review -> grid.row2.s2_design: "slice 02 becomes next" {
 }
 grid.row2.s2_review -> grid.row3.s3_next: "slice 03 becomes next" {
   style.font-size: 9
+}
+
+archive_note: "After every slice in the project reaches `done` (and no feedback drafts exist),\n/review archives the whole project to .orchestration/projects/done/YYYY-MM/{id}/" {
+  style.fill: "#fafafa"
+  style.stroke: "#cccccc"
+  style.font-size: 10
+  style.font-color: ${colors.lc}
 }

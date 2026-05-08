@@ -3,7 +3,7 @@ spec: .orchestration/projects/bcokert-00007-batch-slice-flow/03-briefs/03-agent-
 slice: 03
 step: 6
 title: Update standards.md
-status: todo
+status: done
 depends_on: [05-update-quality.md]
 agent_type: architect
 model: sonnet

@@ -3,7 +3,7 @@ spec: .orchestration/projects/bcokert-00007-batch-slice-flow/03-briefs/05-implem
 slice: 05
 step: 7
 title: Behavior rules trim + vocabulary + mirror + version + verify
-status: todo
+status: done
 depends_on: [06-status-write-migration.md]
 agent_type: quality
 model: sonnet

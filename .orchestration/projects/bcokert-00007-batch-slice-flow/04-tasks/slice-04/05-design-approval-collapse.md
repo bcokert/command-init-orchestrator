@@ -3,7 +3,7 @@ spec: .orchestration/projects/bcokert-00007-batch-slice-flow/03-briefs/04-plan-p
 slice: 04
 step: 5
 title: Collapse Phase 4 + Phase 5 design-approval commit
-status: todo
+status: done
 depends_on: [04-slicing-gate-batch.md]
 agent_type: architect
 model: sonnet

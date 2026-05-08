@@ -1,134 +1,119 @@
 ---
-version: 2.7.0
+version: 2.8.0
 description: |
-  Execution pipeline: global queue scan → all tasks_ready slices → automatic QA → signoff_review. Runs all queued slices in sequence. Stops when all are at signoff_review for human approval via /review.
+  Execution pipeline. Global queue → all tasks_ready slices → automatic QA → signoff_review. One team gate at start, batched across the whole queue. Scope frozen at entry — no mid-batch re-reads.
 allowed-tools:
   - Read
   - Write
+  - Edit
   - Glob
   - Grep
   - Bash
   - AskUserQuestion
 ---
 
-# Implement — Task execution pipeline
+# Implement — task execution pipeline
 
-Your job is to take all queued slices from `tasks_ready` to `signoff_review`. You own: queue selection, sequential task execution, and automatic QA.
+Take all queued slices from `tasks_ready` to `signoff_review`. Owns: queue selection, sequential task execution, automatic QA.
+
+State, schemas, principles, vocabulary, and crash recovery rules live in `.root-context/state-diagram.md`. Helpers used: `support/next-actions.md` (queue), `support/status-write.md` (frontmatter writes), `support/qa.md` (Phase 3).
 
 ---
 
-## Phase 0 — Detect state and route
+## Phase 0 — Resolve scope
 
-### Step 1 — Select next slice from global queue
+Run `support/next-actions.md`. Filter to slices at `tasks_ready` or `implementing`. With a project ID arg: restrict to that project.
 
-If a project ID was passed as argument: glob `.orchestration/projects/{id}/02-slices/*.md`, validate the project has at least one slice at `tasks_ready` or `implementing`, and select its lowest-numbered slice at `tasks_ready` (or the in-progress slice if any is `implementing`). This determines `{id}` and `{NN}`.
+Sort: `status_updated_at` ascending; tiebreak project ID alphabetical. If all candidates lack `status_updated_at` and no arg was passed: stop and report.
 
-If no argument:
-1. Glob all `.orchestration/projects/*/02-slices/*.md` (excluding `done/`). Read each file's `slice:`, `status:`, and `status_updated_at:` frontmatter fields.
-2. Filter to slices with `status: tasks_ready`.
-3. If no slices found: "Nothing in the queue. Run /plan-project to create tasks." Stop.
-4. Sort by `status_updated_at` ascending (oldest first). Tiebreak: project ID alphabetically. If `status_updated_at` is absent or unparseable on all candidates: report "Cannot determine queue order — all queued slices are missing status_updated_at. Set the field or pass a project ID directly." Stop.
-5. Enforce per-project slice order: for each candidate slice N in project P, check whether any lower-numbered slice in project P is not at `signoff_review` or `done`. If so, report: "Project {P} slice {N} is blocked — slice {M} must reach signoff_review first." Skip this candidate.
-6. Collect all unblocked candidates into an ordered execution list (sorted as above). If the list is empty: report all blocked slices and stop. "No eligible slices in the queue. Resolve the blockers listed above or run /plan-project."
-7. The first item in the execution list is the active slice. This determines `{id}` and `{NN}` for Phase 1 and the initial Phase 2 cycle. After each slice reaches `signoff_review`, re-read slice states from disk and advance to the next slice in the list.
+Per-project ordering: slice N blocked until slice N-1 reaches `signoff_review`. Skip blocked candidates; report blockers.
 
-### Step 2 — Wrong-command routing
+**Wrong-command shortcuts:**
+- Project has only `draft` / `review` / `speccing` / `breakdown` slices → "Project '{id}' has slices in planning — run `/plan-project`." Stop.
+- Explicit project arg has only `signoff_review` → "Project '{id}' slice {NN} is awaiting signoff — run `/review`." Stop.
 
-Check these conditions before doing any work. Stop if any match.
+The execution list is the unblocked candidates in sort order. **Frozen at entry** — no mid-run re-reads. Slices appearing post-entry are picked up on the next invocation. The first list item is the active slice.
 
-| Condition | Error message |
-|-----------|---------------|
-| Selected project has no slice at `tasks_ready` or `implementing`, but has slices in `draft`, `reviewed`, or `specced` | "Project '{id}' has slices in planning — run `/plan-project` to continue." |
-| Selected project has a slice at `signoff_review` and was explicitly passed as the project ID | "Project '{id}' slice {NN} is awaiting signoff — run `/review` to approve or provide feedback." |
+Active slice routing (current state):
 
-### Step 3 — Route by active slice state
-
-The active slice is the first item in the execution list that is not already at `signoff_review`. Route based on its current state:
-
-| Slice state | Action |
-|-------------|--------|
-| `tasks_ready` | Proceed to Phase 1 |
-| `implementing` | Resume — find first `in_progress` or next runnable `todo` task for slice `{NN}` by reading task file statuses from disk, skip to Phase 2 |
-| `signoff_review` | Already done this run — advance to the next slice in the execution list. If none remain, stop. |
-| All slice `{NN}` tasks `done` | Skip directly to Phase 3 (QA) |
+| State | Action |
+|---|---|
+| `tasks_ready` | Phase 1 |
+| `implementing` | Resume — find first `in_progress` or runnable `todo` task; skip to Phase 2 |
+| All slice tasks `done` | Skip to Phase 3 |
 
 ---
 
 ## Phase 1 — Implementation.Asking gate
 
-1. Glob all `.orchestration/projects/*/02-slices/*.md`. Identify every slice at `tasks_ready` across all projects (not just the selected one).
-2. For each `tasks_ready` slice found: read its task files and count those with `status: todo`. Sum across all slices for a total task count `{T}` across `{S}` slices.
-3. Collect unique `agent_type` values from those task files. Count tasks per type.
-4. Display:
-   ```
-   Ready to start implementation?
+Read all task files for `tasks_ready` slices in scope. Sum `todo` count `{T}` across `{S}` slices. Collect unique `agent_type` values; count tasks per type.
 
-   {T} tasks across {S} slice(s):
-   {for each slice: "  Slice {NN} — {title} ({N} tasks)"}
-   Agent team:
-     - {agent_type} ({N} tasks)
-     - {agent_type} ({N} tasks)
+**Re-entry shortcut:** if `observability/team-mix.md` exists for the active project and matches the current scope's team mix, skip the gate and proceed to Phase 2. Otherwise display:
 
-   All queued slices will run in sequence. Reply "yes" to begin,
-   or "review more slices first" to plan more before executing.
-   ```
-5. Wait for operator response.
+```
+Ready to start implementation?
 
-   | Response | Action |
-   |----------|--------|
-   | Approval ("yes", "go", "start", etc.) | Proceed to Phase 2 |
-   | "Review more slices first" (or similar) | List any slices not yet at `tasks_ready` (in `draft`, `review`, `reviewed`, `speccing`, or `breakdown` state) and tell the operator: "Run `/plan-project` to advance those slices, then re-run `/implement` to return here." Stop. |
-   | Ambiguous | Ask once to clarify. |
+{T} tasks across {S} slice(s):
+  Slice {NN} — {title} ({N} tasks)
+  ...
+Agent team:
+  - {agent_type} ({N} tasks)
+  - ...
 
-6. Do not proceed to Phase 2 until the operator explicitly approves. User may adjust the agent team before approving.
+All queued slices run end-to-end with no inter-slice gates. Reply "yes" to begin.
+```
+
+Wait for the user's response.
+
+| Response | Action |
+|---|---|
+| Approval ("yes", "go", "start") | Record team mix to `observability/team-mix.md`; proceed to Phase 2 |
+| Adjusted team | Apply the user's edits to in-scope task files; re-display once; wait again |
+| Ambiguous | Re-ask once. If still unclear: stop and report. |
 
 ---
 
 ## Phase 2 — Task execution
 
-1. Write `status: implementing` and `status_updated_at: {current ISO 8601 timestamp with timezone offset}` to the slice file at `.orchestration/projects/{id}/02-slices/` (Glob for the file where `slice:` frontmatter matches the current slice number). If the slice file can't be found: log "warning: could not find slice file for slice {NN} — skipping status write" and continue.
+`status-write.md` → active slice `status: implementing`.
 
-2. Build the execution queue: all `todo` tasks in `.orchestration/projects/{id}/04-tasks/slice-{NN}/` ordered by `step`, respecting `depends_on`. A task is runnable only when all tasks named in its `depends_on` list have `status: done`.
+Execution queue: all `todo` tasks in `04-tasks/slice-{NN}/` ordered by `step`, respecting `depends_on`. A task is runnable only when every dep has `status: done`.
 
-3. If a `depends_on` reference doesn't exist or isn't `done` when required: stop and report which task is blocked and what's blocking it. Output: "Fix the task's `depends_on` field or complete the prerequisite task, then re-run /implement."
+If a `depends_on` reference doesn't exist or isn't `done` when required: stop, report which task is blocked and what's blocking it. "Fix the task's `depends_on` field or complete the prerequisite, then re-run /implement."
 
-4. For each task in order:
-   - Write `assigned_at: {ISO 8601}` to task file frontmatter.
-   - Present the task: read the task file and the brief it references. Provide a kickoff that includes the task work, its done signal, and the brief path for full context. Surface the task's `model` and `effort` values (default to `sonnet`/`default` if fields are absent).
-   - When task completes: write `status: done` and `completed_at: {ISO 8601}` to task file frontmatter.
-   - Proceed to next task.
+For each runnable task:
+- Write `assigned_at` to task frontmatter.
+- Read the task file and its brief. Surface a kickoff including the task work, done signal, and brief path. Surface `model` and `effort` (defaults: `sonnet` / `default`).
+- On completion: write `status: done` and `completed_at`.
 
-5. If all tasks are already `done` on entry: skip directly to Phase 3.
+If all tasks are `done` on entry: skip to Phase 3.
 
 ---
 
 ## Phase 3 — QA and signoff
 
-Read and follow `.orchestration/support/qa.md` in full. QA runs automatically — no prompt.
+Read and follow `support/qa.md` in full. QA runs automatically — no prompt.
 
-Before invoking QA: write `status: qa_in_progress` and `status_updated_at: {current ISO 8601 timestamp with timezone offset}` to the slice file at `.orchestration/projects/{id}/02-slices/`. Use the same Glob pattern as Phase 2 to locate it. If the slice file already shows `status: qa_in_progress` or a later state (e.g. on crash-resume): skip this write. If the file can't be found: log a warning and continue.
+Before invoking: `status-write.md` → `status: qa_in_progress`. Skip if already `qa_in_progress` or beyond (crash resume).
 
-On QA pass:
-1. Slice file frontmatter: `status: signoff_review` and `status_updated_at: {current ISO 8601 timestamp with timezone offset}`
-2. Re-read the execution list from disk. Check whether any remaining slices are still at `tasks_ready` or `implementing`.
-   - If yes: advance to the next slice — return to Phase 2 for it. Do not output the signoff message yet.
-   - If no (all slices in the execution list are now at `signoff_review`): output the final summary and stop.
-3. Final output (after all slices reach `signoff_review`):
+**On QA pass:**
+1. `status-write.md` → `status: signoff_review`.
+2. Advance to the next slice in the frozen execution list. If any remain at `tasks_ready` or `implementing`: return to Phase 2 for that slice. Do not output the signoff message yet.
+3. After every slice in scope is at `signoff_review`:
    ```
    QA passed — {project_id} ({S} slices at signoff_review)
 
-   Review the output. When ready, run /review to approve each slice (marks done)
-   or provide feedback (creates new slices in the backlog).
-   ※ All slices · signoff_review · QA passed → run /review to approve 📄
+   Run /review to approve each slice (marks done) or provide feedback.
+   ※ All slices · signoff_review · QA passed → run /review 📄
    ```
-4. Stop. No commit — that happens in `/review` on approval.
+4. Stop. No commit — that happens in `/review`.
 
 ---
 
-## Behavior rules
+## Behavior rules (implement deltas)
 
-- Never `git add` or `git commit` anything — not during task execution, not after QA, not at signoff_review. All changes (implementation files, task status updates, QA report, slice status) must stay uncommitted so the human can review the full diff. The commit happens in `/review` when the human approves.
-- Never run tasks in parallel — v1 is sequential only.
-- Always validate `depends_on` before running a task. A task with an unmet dependency must not run.
-- Resume by reading task file statuses from disk. Never assume state from the current session.
-- If the queue is empty (no `tasks_ready` slices), report and stop per Step 1.
+Shared rules — never commit/push, re-read from disk on resume, skip-if-clean — live in `.root-context/state-diagram.md` Principles.
+
+- Tasks run sequentially. No parallel execution.
+- Validate `depends_on` before running every task. A task with an unmet dependency must not run.
+- Scope is frozen at Phase 0. Mid-run re-reads are not permitted.

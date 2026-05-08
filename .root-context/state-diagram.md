@@ -4,15 +4,42 @@ On a per project basis. Order of transitions and guards is relevant — short ci
 
 ## Principles
 
-**Agent owns all transitions.** The human never edits status files. They respond to agent prompts; the agent writes all status updates. Humans may edit content files (design docs, slice files, specs) for context or corrections, but should never need to.
+**Agent owns all transitions.** The user never edits status files. They respond to agent prompts; the agent writes all status updates. Users may edit content files (design docs, slice files, specs) for context or corrections, but should never need to.
 
-**Commit only after human approval.** No automatic commits mid-phase. Commits happen when a human approves at a review gate (`approveAndCommit`). The human triggers git push manually; the agent never pushes.
+**Commit only after user approval.** No automatic commits mid-phase. Commits happen when a user approves at a review gate (`approveAndCommit`). The user triggers git push manually; the agent never pushes.
 
 **Staging for readability.** At the start of each `planIteration`, `git add` the previous iteration's unstaged changes so VS Code diff shows only the current iteration's new changes. Code files appearing unstaged during planning are unexpected — surface them and confirm before staging.
 
 **Forward-reaching updates.** Changes to any artifact propagate to all existing unimplemented artifacts for cohesion. The target gets a detailed update first; then all existing unimplemented artifacts (design, slices, specs, tasks) get a cohesion pass.
 
 **Per-slice state machines.** Each slice tracks its own state via `status:` frontmatter. Ordering constraint: slice N cannot be approved until slice N-1 is approved. Otherwise, slices progress independently.
+
+**Batch is the default.** A command's full scope runs end-to-end without inter-item gates. Per-slice gates fire only when a slice's state genuinely needs user input — design review, slicing review, signoff review. Confirmations of work the user already authorized are not gates.
+
+### Crash recovery
+
+- On re-entry, every command re-reads state from disk. Never assume state from session context.
+- Spec and breakdown are idempotent. If a brief file already exists when a slice is at `speccing`, skip the write and proceed to breakdown. If task files exist when a slice is at `breakdown`, delete and regenerate.
+- If a brief and task files both exist for a slice still at `speccing` or `breakdown`, fast-forward the slice to `tasks_ready` and continue.
+- If `git add` or `git commit` fails: surface to the user, wait for resolution, do not advance state.
+- Missing slice file on resume: log warning, surface to user, stop before advancing.
+- Missing `observability/` files: recreate empty headers, continue (observability data loss only).
+
+---
+
+## Vocabulary
+
+Canonical terms — used everywhere, no synonyms.
+
+| Term | Meaning |
+|------|---------|
+| **user** | The person operating the orchestrator. The only actor term — synonyms like "human", "operator", or a personal name are not used. |
+| **active project** | A project under `.orchestration/projects/` not in `done/`. Excluded from globs by every command. |
+| **queue** | The ordered list of slices ready for `/implement`, sorted by `status_updated_at` ascending with project-ID tiebreak. |
+| **transition** | A state-machine edge — from one node to another, possibly guarded. |
+| **action** | A legal verb the agent can take in a given state. The `next_actions` field on a `next-actions` tuple lists these. |
+| **agent_type** | Frontmatter field on a task file (`architect`, `server-dev`, `client-dev`, `quality`). The user-facing label for the same is **agent team**. |
+| **skip if clean** | Idiom for `git commit` — if the staged set is empty (`git diff --staged --quiet`), don't commit; otherwise commit normally. |
 
 ---
 
@@ -24,7 +51,7 @@ Each project stores planning context in `observability/`:
 - `.orchestration/projects/{id}/observability/iterations.md` — replay log: timestamp, current state, what changed, why. Appended at the end of each `planIteration`.
 - `.orchestration/projects/{id}/observability/decisions.md` — key decisions with reasoning and rejected alternatives. Appended by `updatePlanningContext`.
 
-These exist for debugging and replay — humans never need to read them to operate the system during regular use, but use them to validate output/operation and make targeted improvements.
+These exist for debugging and replay — users never need to read them to operate the system during regular use, but use them to validate output/operation and make targeted improvements.
 
 > A richer replay mechanism that can fully reconstruct state is desirable but deferred. The above is the immediately feasible version.
 
@@ -34,9 +61,9 @@ These exist for debugging and replay — humans never need to read them to opera
 
 ```ts pseudo
 type pendingIterations = {
-    answeredQuestions      // raw answered questions from human
-    rawFeedback            // raw feedback from human during any review step
-    unreviewedManualEdits  // unstaged edits a human made directly to any planning artifacts
+    answeredQuestions      // raw answered questions from user
+    rawFeedback            // raw feedback from user during any review step
+    unreviewedManualEdits  // unstaged edits a user made directly to any planning artifacts
                            // graceful handling of an unexpected case — not an expected workflow
 }
 type openQuestions     // all questions not yet answered — persisted to observability/questions.md
@@ -59,7 +86,7 @@ function isPendingQuestions()
 function planIteration(targetArtifact) {
     // 1. Stage previous iteration's changes for VS Code diff readability
     //    git add .orchestration/ and related root-context/ or CLAUDE.md changes
-    //    If code files appear unstaged: surface to human before staging — unexpected during planning
+    //    If code files appear unstaged: surface to user before staging — unexpected during planning
 
     // 2. Apply pending inputs
     if (rawFeedback || answeredQuestions || unreviewedManualEdits) {
@@ -74,7 +101,7 @@ function planIteration(targetArtifact) {
 function interviewQuestions() {
     // Read observability/questions.md
     // Select up to 5 open questions by importance and impact on remaining questions
-    // Ask human; record questions asked with timestamp in observability/questions.md
+    // Ask user; record questions asked with timestamp in observability/questions.md
 }
 
 function summarizeAndAskForApproval() {
@@ -88,7 +115,7 @@ function approveAndCommit(artifacts) {
     // git add all unstaged .orchestration/ + related files (confirm code files if any appear)
     // git commit -m "{appropriate message}"
     // Update slice/design status to reflect approval
-    // Push is never triggered by the agent — human does this manually
+    // Push is never triggered by the agent — user does this manually
 }
 
 function updatePlanningContext(newContext) {
@@ -154,16 +181,11 @@ Design.Review: onAnswer {containsApproval} -> Slicing.Generating
 ```
 // Each slice is an independent state machine tracked via slice file frontmatter.
 // Ordering constraint: slice N cannot be approved before slice N-1.
-// All human-gate states in slicing are Slicing.Review.
-// (Slicing.Asking from an earlier draft was a mistake — it's all Slicing.Review.)
+// All review-gate states in slicing are Slicing.Review.
 
-Slicing.Generating: onSliceGenerated {slicesLeftToGenerate > 0} -> Slicing.Generating
-    / generate next slice(s) based on planningContext
-    / set new slices status: draft
-
-Slicing.Generating: onSliceGenerated {slicesLeftToGenerate == 0} -> Slicing.Review
-    / surface 1-N slices for human review
-    / set pending slices status: review
+Slicing.Generating: onSlicesGenerated -> Slicing.Review
+    / generate slice files based on planningContext, status: draft
+    / on slicing-gate surface, set every generated slice status: review and review_context: initial
 
 Slicing.Iterating: onDoneIteration {isPendingProcessing()} -> Slicing.Iterating
     / planIteration(sliceN)
@@ -181,12 +203,12 @@ Slicing.Iterating: onAnswer -> Slicing.Iterating
     // answer arriving mid-processing is treated the same as waiting for one
 
 // Slicing.Review handles: initial slice reviews, post-iteration summaries, and interview questions.
-// The agent's output clarifies what it's asking for. The transitions are the same regardless.
-// Slicing.Review disambiguates via last prompt context — the agent tracks what it last asked.
+// Disambiguation is persisted via the review_context: frontmatter field on the slice
+// (initial | post_iteration | question) so it survives crashes.
 
 // Note: Slicing.Iterating is only reachable via feedback from Slicing.Review, never from initial flow.
 // Initial flow is Generating -> Review -> (approval) -> Speccing. This is intentional: iteration
-// only happens when the human has seen the slices and responded with changes.
+// only happens when the user has seen the slices and responded with changes.
 
 Slicing.Review: onAnswer {containsFeedback} -> Slicing.Iterating
     / planIteration for each affected slice
@@ -199,7 +221,7 @@ Slicing.Review: onAnswer {containsApproval} -> Slicing.Speccing
     // ordering constraint enforced here: slice N blocked if slice N-1 not yet approved
     // agent output indicates which slices are being approved
 
-// Spec and breakdown are atomic from the human's perspective — no review gate between them.
+// Spec and breakdown are atomic from the user's perspective — no review gate between them.
 // But each is tracked in frontmatter for crash recovery and observability.
 
 Slicing.Speccing: onAllApprovedSlicesSpecced -> Slicing.Breakdown
@@ -219,11 +241,7 @@ Slicing.Breakdown: onAllSpeccedBrokenDown -> Implementation.Asking
 ```
 // Implementation.Asking is a start gate, not a selection gate.
 // Implementation always runs all tasks_ready work.
-// Its purpose: give the human a chance to approve and batch more slices before execution starts.
-
-Implementation.Asking: onAnswer {wantMoreSlicesBrokenDown} -> Slicing.Review
-    / surface next pending slice(s) for review
-    // after those slices reach tasks_ready -> return to Implementation.Asking
+// Its purpose: give the user a chance to approve and batch more slices before execution starts.
 
 Implementation.Asking: onImplementationStarted -> Implementation.Running
     / confirm agent team
@@ -238,8 +256,9 @@ Implementation.Running: onTaskDone {tasksPending == 0} -> Implementation.QA
 // QA auto-retries without a fixed limit. The agent tries different approaches.
 // Escalation to Signoff.Review happens only when the agent explicitly cannot continue.
 
-Implementation.QA: onQAComplete {qaPass && morePending} -> Implementation.QA
-    / run QA for next un-QA'd implemented slice
+Implementation.QA: onQAComplete {qaPass && morePending} -> Implementation.Running
+    / advance to next slice in execution list
+    / set next slice status: implementing
 
 Implementation.QA: onQAComplete {qaPass && !morePending} -> Signoff.Review
     / set slice status: signoff_review, qaResult: pass
@@ -250,7 +269,7 @@ Implementation.QA: onQAComplete {qaFailure && fixable} -> Implementation.QA
 
 Implementation.QA: onQAComplete {qaFailure && stuck} -> Signoff.Review
     / set slice status: signoff_review, qaResult: failure
-    // agent surfaces exactly why it's stuck; human response unblocks
+    // agent surfaces exactly why it's stuck; user response unblocks
 ```
 
 ---
@@ -258,26 +277,76 @@ Implementation.QA: onQAComplete {qaFailure && stuck} -> Signoff.Review
 ## Stage 4 — Signoff
 
 ```
-Signoff.Review: onAnswer {qaFailure && humanFixProvided} -> Implementation.QA
-    / apply human fix (direct code change, agent-guided fix, or new dot-notation slice e.g. 5.1)
+Signoff.Review: onAnswer {qaFailure && userFixProvided} -> Implementation.QA
+    / apply user fix (direct code change, agent-guided fix, or new dot-notation slice e.g. 5.1)
     / set slice status: qa_in_progress
 
-Signoff.Review: onAnswer {containsFeedback} -> Slicing.Generating
-    / planIteration(slice)
-    / generate new slice(s) for the feedback (dot notation: e.g. 5.1)
-    // new slices start at draft, go through the full Slicing.Review -> Speccing -> Breakdown flow
+Signoff.Review: onAnswer {containsFeedback} -> Signoff.Review
+    / write draft follow-up slice(s) with follow_up_of: NN, dot-notation order (e.g. 5.1)
+    / continue the batch — no pause for /plan-project handoff
+    // /plan-project picks up draft follow-ups via follow_up_of: in a later run
 
 Signoff.Review: onAnswer {containsApproval} -> Signoff.Approved
     / approveAndCommit(slice)
     / set slice status: done
 
-Signoff.Approved: onCommitted {unfinishedSlicesRemaining > 0} -> Slicing.Review
-    / surface next 1-N slices for review
+Signoff.Approved: onCommitted {moreSignoffSlicesInProject > 0} -> Signoff.Review
+    / continue the signoff batch with the next slice in slice-number order
+
+Signoff.Approved: onCommitted {moreSignoffSlicesInProject == 0 && unfinishedSlicesRemaining > 0} -> End
+    / project not yet complete — user runs /plan-project or /implement to advance other slices
 
 Signoff.Approved: onCommitted {unfinishedSlicesRemaining == 0} -> End
     / summary of project
     / archive project
 ```
+
+---
+
+## Frontmatter schemas
+
+Single source of truth. Every artifact's frontmatter is defined here. Commands and agents reference this section instead of restating fields.
+
+### Design doc (`01-design/design-{NN}.md`)
+
+| field | type | values | required |
+|-------|------|--------|----------|
+| type | string | `"design"` | yes |
+| date | string (ISO 8601 date) | — | yes |
+| feature | string (kebab-case) | — | yes |
+| project_id | string | matches project folder name | yes |
+| status | enum | `in_progress` \| `review` \| `approved` | yes |
+
+### Slice (`02-slices/{NN}-{slug}.md`)
+
+| field | type | values | required |
+|-------|------|--------|----------|
+| type | string | `"slice"` | yes |
+| slice | string \| integer | `NN` or `NN.N` (dot-notation follow-ups) | yes |
+| order | string \| integer | matches `slice` (canonical sort key) | yes |
+| project | string | feature kebab-case | yes |
+| design | string | path to design doc | yes |
+| status | enum | `draft` \| `review` \| `speccing` \| `breakdown` \| `tasks_ready` \| `implementing` \| `qa_in_progress` \| `signoff_review` \| `done` | yes |
+| status_updated_at | string (ISO 8601 with tz) | — | yes after any status write |
+| review_context | enum | `initial` \| `post_iteration` \| `question` | when `status: review` |
+| follow_up_of | string \| integer | parent slice number | only for follow-ups |
+
+### Task (`04-tasks/slice-{NN}/{NN}-{slug}.md`)
+
+| field | type | values | required |
+|-------|------|--------|----------|
+| spec | string | path to brief | yes |
+| slice | integer | parent slice number | yes |
+| step | integer | step order within slice | yes |
+| title | string | — | yes |
+| status | enum | `todo` \| `in_progress` \| `done` | yes |
+| depends_on | array of filenames | empty for first or independent | yes |
+| agent_type | enum | `architect` \| `server-dev` \| `client-dev` \| `quality` | yes |
+| model | string | `sonnet` \| `opus` \| `haiku` | yes |
+| effort | string | `default` \| `max` | yes |
+| assigned_at | string (ISO 8601) \| null | — | yes |
+| completed_at | string (ISO 8601) \| null | — | yes |
+| qa_result | enum \| null | `pass` \| `fixed` \| `manual` | set by QA |
 
 ---
 
@@ -290,13 +359,13 @@ Valid `status:` values in slice file frontmatter, in pipeline order.
 | Status | State | Meaning |
 |--------|-------|---------|
 | `draft` | initial | Slice created, not yet reviewed |
-| `review` | Slicing.Review | Agent waiting for human input (slice review, interview, or iteration summary) |
+| `review` | Slicing.Review | Agent waiting for user input (slice review, interview, or iteration summary) |
 | `speccing` | Slicing.Speccing | Spec being written; stored for crash recovery |
 | `breakdown` | Slicing.Breakdown | Task breakdown in progress; stored for crash recovery |
 | `tasks_ready` | queued | Breakdown complete, ready to implement |
 | `implementing` | Implementation.Running | Tasks executing |
 | `qa_in_progress` | Implementation.QA | QA running, including auto-retries |
-| `signoff_review` | Signoff.Review | QA complete (pass or stuck), waiting for human signoff |
+| `signoff_review` | Signoff.Review | QA complete (pass or stuck), waiting for user signoff |
 | `done` | End | Approved, committed, archived |
 
 ## Design document status values
@@ -306,7 +375,7 @@ Valid `status:` values in slice file frontmatter, in pipeline order.
 | Status | Meaning |
 |--------|---------|
 | `in_progress` | Being written or iterated on |
-| `review` | Agent asked for approval; waiting for human response |
+| `review` | Agent asked for approval; waiting for user response |
 | `approved` | Human approved; slicing in progress or complete |
 
 ---
@@ -314,8 +383,8 @@ Valid `status:` values in slice file frontmatter, in pipeline order.
 ## Error handling
 
 ### Git operations
-- `git add` or `git commit` failure: surface to human, wait for resolution — do not advance state
-- Push: human-triggered only; agent never pushes
+- `git add` or `git commit` failure: surface to user, wait for resolution — do not advance state
+- Push: user-triggered only; agent never pushes
 
 ### Crash and resume
 - On re-entry: read all slice files and design doc from disk — never assume state from session context
@@ -331,11 +400,11 @@ Valid `status:` values in slice file frontmatter, in pipeline order.
 - Wait for confirmation — code changes during planning are unexpected
 
 ### Missing or corrupted artifacts
-- Missing slice file on resume: log warning, surface to human, stop before advancing state
+- Missing slice file on resume: log warning, surface to user, stop before advancing state
 - Missing `observability/` files: recreate empty, continue (observability data loss only)
 
 ### QA escalation
 - No retry cap — agent tries multiple distinct approaches
-- Escalate to Signoff.Review when agent cannot proceed without human input
+- Escalate to Signoff.Review when agent cannot proceed without user input
 - Human fix options: direct code edit, agent-guided fix, new dot-notation slice (e.g. 5.1)
-- After human fix confirmed: transition slice back to `qa_in_progress`, rerun QA
+- After user fix confirmed: transition slice back to `qa_in_progress`, rerun QA

@@ -3,7 +3,7 @@ spec: .orchestration/projects/bcokert-00007-batch-slice-flow/03-briefs/06-review
 slice: 06
 step: 4
 title: Mixed-response handling — re-ask once, default to feedback
-status: todo
+status: done
 depends_on: [03-auto-stage-summary.md]
 agent_type: architect
 model: sonnet

@@ -3,7 +3,7 @@ spec: .orchestration/projects/bcokert-00007-batch-slice-flow/03-briefs/10-readme
 slice: 10
 step: 2
 title: defaults/README.md update — links not re-lists
-status: todo
+status: done
 depends_on: [01-readme-update.md]
 agent_type: architect
 model: sonnet

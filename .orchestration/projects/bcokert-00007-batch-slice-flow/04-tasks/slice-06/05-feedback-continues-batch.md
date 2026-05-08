@@ -3,7 +3,7 @@ spec: .orchestration/projects/bcokert-00007-batch-slice-flow/03-briefs/06-review
 slice: 06
 step: 5
 title: Feedback path continues batch
-status: todo
+status: done
 depends_on: [04-mixed-response-handling.md]
 agent_type: architect
 model: sonnet

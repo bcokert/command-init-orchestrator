@@ -16,13 +16,11 @@ review gates the system was built to enforce.
 
 ---
 
-## Two sets of command files
+## Source of truth: defaults/
 
-`.claude/commands/` — local install. Changes here affect only this repo.
+All command, agent, and support files are edited in `defaults/` only. Never edit `.claude/commands/`, `.claude/agents/`, or `.orchestration/support/` directly — those are install targets, not sources.
 
-`defaults/commands/` — source shipped to users. When someone runs `/init-orchestrator`, these files are copied into their project. Changes here ship to everyone.
-
-If you change `defaults/commands/`, also sync `.claude/commands/` so the change applies locally (enables dogfooding the update immediately).
+To pick up changes locally for testing, the user runs `/init-orchestrator`. Don't auto-mirror to `.claude/` from any task or command — let the install flow do it.
 
 **Version bumping is required** whenever you modify any file in `defaults/` or `init-orchestrator.md`. Clients compare `version:` fields to decide whether to self-update — a content change with no version bump is invisible to them. Bump patch for fixes, minor for new behaviour, major for breaking changes.
 

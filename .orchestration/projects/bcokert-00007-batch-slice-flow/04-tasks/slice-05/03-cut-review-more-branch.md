@@ -3,7 +3,7 @@ spec: .orchestration/projects/bcokert-00007-batch-slice-flow/03-briefs/05-implem
 slice: 05
 step: 3
 title: Cut "review more slices first" branch
-status: todo
+status: done
 depends_on: [02-phase-0-rewrite.md]
 agent_type: architect
 model: sonnet

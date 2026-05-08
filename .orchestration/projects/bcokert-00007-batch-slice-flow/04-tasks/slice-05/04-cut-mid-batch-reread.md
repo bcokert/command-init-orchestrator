@@ -3,7 +3,7 @@ spec: .orchestration/projects/bcokert-00007-batch-slice-flow/03-briefs/05-implem
 slice: 05
 step: 4
 title: Cut mid-batch re-read at lines 113-115
-status: todo
+status: done
 depends_on: [03-cut-review-more-branch.md]
 agent_type: architect
 model: sonnet

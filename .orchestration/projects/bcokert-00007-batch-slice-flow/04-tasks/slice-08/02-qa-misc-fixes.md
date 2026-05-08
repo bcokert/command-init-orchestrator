@@ -3,7 +3,7 @@ spec: .orchestration/projects/bcokert-00007-batch-slice-flow/03-briefs/08-suppor
 slice: 08
 step: 2
 title: qa.md — reviewed→review, Bdon→user, version bump
-status: todo
+status: done
 depends_on: [01-fix-qa-description-path.md]
 agent_type: architect
 model: sonnet
